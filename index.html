@@ -126,24 +126,24 @@
         <div class="click-target-wrapper">
           <button id="main-clicker" class="main-clicker" aria-label="Build & Advance Civilization">
             <div class="clicker-orbit"></div>
-            <div class="clicker-icon" id="clicker-icon">🪨</div>
-            <div class="clicker-caption" id="clicker-caption">Knap Flint</div>
+            <div class="clicker-icon" id="clicker-icon">🛖</div>
+            <div class="clicker-caption" id="clicker-caption">Build Settlement</div>
           </button>
         </div>
       </div>
 
       <!-- Civilization Doctrine Selector -->
       <div class="doctrine-bar">
-        <div class="doctrine-title">⚖️ STATE DOCTRINE</div>
+        <div class="doctrine-title">⚖️ URBAN PLANNING DOCTRINE</div>
         <div class="doctrine-buttons">
           <button class="doctrine-btn active" data-doctrine="balanced" title="+10% Passive CP/s & +10% Click Power">
-            🏛️ Balanced Pax
+            🏛️ Balanced Urbanism
           </button>
           <button class="doctrine-btn" data-doctrine="industrious" title="+35% Click Power & +4% Crit Chance, -10% Passive CP/s">
-            ⚒️ Forge Mobilization
+            🏗️ Rapid Construction
           </button>
           <button class="doctrine-btn" data-doctrine="prosperity" title="+20% Passive CP/s, -15% Click Power">
-            🌾 Golden Prosperity
+            🌾 Civic Prosperity
           </button>
         </div>
       </div>
@@ -154,15 +154,15 @@
     <!-- CENTER COLUMN: THE LIVING CITY PANORAMA & INFRASTRUCTURE DISTRICTS -->
     <section class="panel center-panel">
       <div class="news-ticker">
-        <span class="ticker-tag">CHRONICLE</span>
-        <p id="news-text">Your tribe gathers around a flickering fire, dreaming of walls that touch the sky...</p>
+        <span class="ticker-tag">CITY GAZETTE</span>
+        <p id="news-text">Settlers clear the riverbank and raise the first thatched huts of your growing city...</p>
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="city">🏙️ City &amp; Infrastructure <span id="bld-total-badge" class="badge">0</span></button>
-        <button class="tab-btn" data-tab="wonders">🏛️ Wonders <span id="wonder-badge" class="badge">0/?</span></button>
+        <button class="tab-btn active" data-tab="city">🏙️ City &amp; Districts <span id="bld-total-badge" class="badge">0</span></button>
+        <button class="tab-btn" data-tab="wonders">🏛️ Landmarks <span id="wonder-badge" class="badge">0/?</span></button>
         <button class="tab-btn" data-tab="achievements">🏆 Achievements <span id="ach-badge" class="badge">0/0</span></button>
-        <button class="tab-btn" data-tab="stats">📊 Archives</button>
+        <button class="tab-btn" data-tab="stats">📊 City Archives</button>
       </div>
 
       <!-- TAB 1 (DEFAULT): LIVING CITY PANORAMA & VISUAL INFRASTRUCTURE DISTRICTS -->
@@ -171,14 +171,14 @@
           <canvas id="city-canvas" width="760" height="230"></canvas>
           <div class="panorama-overlay-label">
             <span id="panorama-era-title">Stone Age Settlement</span>
-            <span id="panorama-cps-share">Total Output: 0.0 CP/s</span>
+            <span id="panorama-cps-share">City Output: +0.0 CP/s</span>
           </div>
           <!-- Floating Golden Anomaly -->
-          <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a temporal boost!">✨</button>
+          <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a civic boom!">✨</button>
         </div>
 
         <div class="section-subtitle" style="margin-top: 14px;">
-          <span>🏗️ Constructed Infrastructure Districts</span>
+          <span>🏘️ City Zones &amp; Infrastructure Districts</span>
           <span id="districts-summary-note" style="font-size:0.74rem;color:var(--text-muted);text-transform:none;">Construct buildings on the right to expand your city districts</span>
         </div>
 
@@ -191,9 +191,9 @@
       <div class="tab-content" id="tab-wonders">
         <div class="ach-summary">
           <div>
-            <strong>Monumental Wonders Constructed:</strong> <span id="wonders-built-count">0</span>
+            <strong>Grand Civic Landmarks Erected:</strong> <span id="wonders-built-count">0</span>
           </div>
-          <div class="ach-bonus-note">Each Epoch reveals a new Wonder to crown your skyline!</div>
+          <div class="ach-bonus-note">Each Epoch unlocks a monumental World Wonder to crown your city skyline!</div>
         </div>
         <div id="wonders-grid" class="wonders-grid"></div>
       </div>
@@ -205,7 +205,7 @@
             <strong>Achievement Mastery:</strong> <span id="ach-unlocked-count">0</span> / <span id="ach-total-count">0</span>
             (<span id="ach-pct">0%</span>)
           </div>
-          <div class="ach-bonus-note">Each achievement grants <strong>+1% Global Production</strong> (Current: +<span id="ach-bonus-pct">0</span>%)</div>
+          <div class="ach-bonus-note">Each achievement grants <strong>+1% Global City Output</strong> (Current: +<span id="ach-bonus-pct">0</span>%)</div>
         </div>
         <div class="ach-filter-bar">
           <button class="filter-btn active" data-filter="all">All</button>
@@ -219,7 +219,7 @@
       <div class="tab-content" id="tab-stats">
         <div class="stats-card" id="stats-container"></div>
         <div class="section-subtitle" style="margin-top: 18px;">
-          <span>🔬 Researched Technologies (<span id="researched-count">0</span>)</span>
+          <span>📜 Enacted Civic Upgrades (<span id="researched-count">0</span>)</span>
         </div>
         <div id="researched-list" class="researched-chips"></div>
       </div>
@@ -230,12 +230,12 @@
       <!-- Top Upgrades Tray -->
       <div class="store-upgrades-section">
         <div class="store-subheader">
-          <span>🔬 Research &amp; Upgrades (<span id="upgrade-badge">0</span>)</span>
+          <span>📜 Civic Upgrades (<span id="upgrade-badge">0</span>)</span>
           <button id="btn-buy-all-upgrades" class="mini-btn">Buy All</button>
         </div>
         <div id="upgrades-tray" class="upgrades-tray"></div>
         <div id="upgrade-inspector" class="upgrade-inspector">
-          Hover over an upgrade tile above to inspect its effect and cost.
+          Hover over a civic upgrade tile above to inspect its effect and cost.
         </div>
       </div>
 

@@ -27,16 +27,16 @@ const ERAS = [
     name: "Stone Age",
     short: "Stone",
     threshold: 0,
-    icon: "🪨",
-    action: "Knap Flint",
+    icon: "🛖",
+    action: "Build Settlement",
     skyColors: ["#3b2316", "#7c4a2d", "#c27d48"],
     hillColors: ["#2d3a24", "#3f5232"],
-    revealDesc: "From humble flint sparks and flickering campfires, your first settlement takes root.",
+    revealDesc: "Thatched huts and riverbank farms take root along the fertile valley.",
     news: [
-      "Elders in {CITY} discover that hitting two rocks together makes a sharper rock.",
-      "Cave paintings outside {CITY} receive mixed reviews from local mammoth herds.",
-      "The council of {CITY} debates whether fire is just a passing fad.",
-      "Local gatherer insists those bright red berries near the river are probably safe."
+      "Families in {CITY} raise a new row of thatched huts along the riverbank.",
+      "First mud-brick granary completed in {CITY}; winter grain reserves doubled.",
+      "Village elders in {CITY} lay out foot-paths connecting the huts to the river farms.",
+      "Settlers clear driftwood and reeds to expand {CITY}'s southern homesteads."
     ]
   },
   {
@@ -44,16 +44,16 @@ const ERAS = [
     name: "Bronze Age",
     short: "Bronze",
     threshold: 5000,
-    icon: "🏺",
-    action: "Smelt Bronze",
+    icon: "🧱",
+    action: "Lay Mud-Brick",
     skyColors: ["#2c1d12", "#6e4220", "#c87d32"],
     hillColors: ["#4a3b22", "#634e2b"],
-    revealDesc: "Glowing kilns smelt copper and tin! Walled river cities and stepped ziggurats rise.",
+    revealDesc: "Stone-lined irrigation canals and bustling walled bazaars transform your village into a city-state!",
     news: [
-      "Tin and copper merchants in {CITY} form the world's first trade guild.",
-      "Clay tablet complaints about low-quality copper go viral across {CITY}.",
-      "Invention of the wheel dramatically reduces rock-dragging injuries in {CITY}.",
-      "Ziggurat architects promise the next terrace will touch the clouds."
+      "New irrigation canals bring fresh river water to every orchard in {CITY}.",
+      "Caravans from three river valleys gather at {CITY}'s Walled Bazaar.",
+      "Municipal brickmakers pave {CITY}'s main processional avenue.",
+      "Harbor barges unload cedar timber and grain at {CITY}'s canal wharves."
     ]
   },
   {
@@ -62,15 +62,15 @@ const ERAS = [
     short: "Classical",
     threshold: 250000,
     icon: "🏛️",
-    action: "Carve Marble",
+    action: "Pave Marble Forum",
     skyColors: ["#173152", "#2e5c8a", "#6fa3d2"],
     hillColors: ["#2e472d", "#3d5e3a"],
-    revealDesc: "Marble colonnades, grand aqueducts, and academies of philosophy illuminate the coast!",
+    revealDesc: "Towering stone aqueducts, public bathhouses, and marble civic forums grace your metropolis!",
     news: [
-      "Philosophers in {CITY} spend four days arguing whether a soup is a salad.",
-      "New stone aqueduct delivers fresh mountain water directly to {CITY}'s public baths.",
-      "All roads lead to {CITY}, causing historic chariot congestion at the forum.",
-      "{CITY} Amphitheater sells out for tonight's dramatic poetry championship."
+      "New stone aqueduct delivers fresh mountain water directly to {CITY}'s public fountains.",
+      "All paved roads lead to {CITY}, causing historic chariot traffic around the Marble Forum.",
+      "Citizens gather beneath the colonnades of {CITY}'s Agora to vote on new waterworks.",
+      "{CITY} Amphitheater sells out for tonight's grand civic festival."
     ]
   },
   {
@@ -78,16 +78,16 @@ const ERAS = [
     name: "Medieval Age",
     short: "Medieval",
     threshold: 15000000,
-    icon: "⚔️",
-    action: "Forge Steel",
+    icon: "🏰",
+    action: "Raise Town Walls",
     skyColors: ["#1a2038", "#353e66", "#646f9e"],
     hillColors: ["#243829", "#314d38"],
-    revealDesc: "Towering stone citadels, guild watermills, and tempered steel define a new feudal order!",
+    revealDesc: "Timber river watermills, cobblestone guild quarters, and turreted town walls fortify the city!",
     news: [
-      "{CITY} blacksmiths guild unveils double-tempered castle gates.",
-      "Monks in {CITY} finish illuminating a manuscript after 14 years of squinting.",
-      "Trebuchet engineers claim they can launch a 90kg stone over 300 meters.",
-      "Court alchemist accidentally invents stained glass while seeking gold."
+      "Row of new watermills along {CITY}'s riverfront doubles daily flour and textile output.",
+      "Merchant guilds in {CITY}receive a royal town charter and pave the Old Town square.",
+      "Masons complete the northern gatehouse and watchtowers of {CITY}'s city walls.",
+      "Bell chimes from {CITY}'s new Guildhall clocktower keep market hours across every ward."
     ]
   },
   {
@@ -95,16 +95,16 @@ const ERAS = [
     name: "Renaissance",
     short: "Renaiss.",
     threshold: 1000000000,
-    icon: "🎨",
-    action: "Print Treatise",
+    icon: "🌉",
+    action: "Span Grand Canal",
     skyColors: ["#2c193d", "#5e3370", "#9e5b9b"],
     hillColors: ["#2d422c", "#3e593c"],
-    revealDesc: "Printing presses, brass telescopes, and polymath workshops ignite a rebirth of science!",
+    revealDesc: "Arched stone canal bridges, merchant exchanges, and domed civic universities flourish!",
     news: [
-      "Printing presses flood {CITY} plazas with pamphlets and star charts.",
-      "Polymaths in {CITY} sketch flying machines on the back of tavern napkins.",
-      "Merchant banks introduce double-entry bookkeeping; {CITY} accountants rejoice.",
-      "Grand Observatory telescope reveals tiny moons orbiting distant gas giants."
+      "Architects unveil a three-arch stone bridge spanning {CITY}'s Grand Canal.",
+      "The Merchant Exchange in {CITY} finances trade fleets departing for four continents.",
+      "Students from across the realm enroll at {CITY}'s newly chartered Civic University.",
+      "Public piazzas in {CITY} are adorned with marble fountains and gas-lit promenades."
     ]
   },
   {
@@ -112,16 +112,16 @@ const ERAS = [
     name: "Industrial Age",
     short: "Industrial",
     threshold: 75000000000,
-    icon: "⚙️",
-    action: "Stoke Boiler",
+    icon: "🚂",
+    action: "Rivet Steel Girder",
     skyColors: ["#262428", "#4d4340", "#8c725c"],
     hillColors: ["#2b3026", "#3b4235"],
-    revealDesc: "Roaring steam turbines, iron foundries, and continental railways reshape the horizon!",
+    revealDesc: "Municipal power stations, electric streetlamps, and grand central rail terminals electrify the city!",
     news: [
-      "Steam locomotives cut travel from {CITY} to the coast from weeks to hours.",
-      "Bessemer converters light up {CITY}'s evening sky with rivers of molten steel.",
-      "Telegraph operators exchange witty banter in Morse code at lightning speed.",
-      "Citizens of {CITY} marvel at electric streetlamps replacing gas lanterns."
+      "Grand Central Station opens in {CITY} with twelve glass-vaulted passenger platforms.",
+      "Municipal Power Station switches on, illuminating 10,000 electric streetlamps across {CITY}.",
+      "Electric streetcars and commuter trains cut cross-town travel in {CITY} to minutes.",
+      "Steel suspension bridges link {CITY}'s industrial harbor to the downtown borough."
     ]
   },
   {
@@ -129,16 +129,16 @@ const ERAS = [
     name: "Atomic Age",
     short: "Atomic",
     threshold: 6000000000000,
-    icon: "☢️",
-    action: "Split Atom",
+    icon: "🚇",
+    action: "Expand Metro Grid",
     skyColors: ["#0f2342", "#1e497a", "#3d82b8"],
     hillColors: ["#1f362c", "#2d4d3e"],
-    revealDesc: "Humanity unlocks the nucleus and launches its first rockets into planetary orbit!",
+    revealDesc: "Clean nuclear power grids and international jet airports turn your city into a global hub!",
     news: [
-      "Commercial jetliners usher in an era of breakfast in {CITY}, dinner across the ocean.",
-      "{CITY}'s first orbital satellite beeps reassuringly from low planetary orbit.",
-      "Clean fission reactors power {CITY}'s entire metropolitan grid.",
-      "Pocket-sized transistor radios become the hottest gift in {CITY}."
+      "{CITY} International Airport opens Terminal 4 for non-stop transoceanic jetliners.",
+      "Clean fission power plant supplies 100% of {CITY}'s metropolitan electricity grid.",
+      "Automated underground metro trains carry two million daily commuters beneath {CITY}.",
+      "Mid-century glass high-rises and expressways reshape {CITY}'s expanding skyline."
     ]
   },
   {
@@ -146,16 +146,16 @@ const ERAS = [
     name: "Information Age",
     short: "Info Age",
     threshold: 500000000000000,
-    icon: "💻",
-    action: "Compile Code",
+    icon: "🏢",
+    action: "Raise Smart Tower",
     skyColors: ["#091d36", "#13426e", "#2274a5"],
     hillColors: ["#172e36", "#21424d"],
-    revealDesc: "Nanometer silicon fabs, fiber-optic oceans, and quantum clouds weave a planetary mind!",
+    revealDesc: "Supertall glass skyscrapers and 500 km/h Maglev transit corridors create a smart metropolis!",
     news: [
-      "Fiber-optic cables link {CITY} to every continent in a millisecond mesh.",
-      "Quantum processors in {CITY} solve a 10,000-year math problem before lunch.",
-      "Autonomous drone fleets deliver hot ramen to 98th-floor balconies in {CITY}.",
-      "Open-source contributors optimize {CITY}'s traffic grid by 42%."
+      "New 120-story Glass Skyscraper becomes the tallest tower in {CITY}'s Financial Core.",
+      "High-speed Maglev express links {CITY} downtown to the airport in 4 minutes flat.",
+      "Smart-grid traffic sensors reduce {CITY} rush-hour congestion by 65%.",
+      "Rooftop solar gardens and sky-parks crown every new high-rise in {CITY}."
     ]
   },
   {
@@ -163,162 +163,360 @@ const ERAS = [
     name: "Cyberpunk Age",
     short: "Cyberpunk",
     threshold: 50000000000000000,
-    icon: "🦾",
-    action: "Neural Overclock",
+    icon: "🏙️",
+    action: "Erect Neon Spire",
     skyColors: ["#0c051c", "#290c4a", "#59126e"],
     hillColors: ["#160d29", "#241442"],
-    revealDesc: "Mile-high neon arcologies, direct neural uplinks, and orbital Dyson relays pierce the rain!",
+    revealDesc: "Mile-high neon arcology spires and sub-orbital spaceports crown the planetary megacity!",
     news: [
-      "Neon holograms tower 800 meters above the rain-slicked spires of {CITY}.",
-      "Direct neural interfaces allow {CITY} citizens to download fluency in 12 languages.",
-      "Orbital elevators in {CITY} hum with zero-G cargo pods arriving from Luna.",
-      "Synthetic jazz quartet wins {CITY}'s annual metropolitan music festival."
+      "Neon Arcology Spire #7 opens its 400th residential sky-deck above {CITY}.",
+      "Sub-orbital passenger shuttles depart {CITY} Spaceport every 15 minutes.",
+      "Holographic sky-bridges link {CITY}'s upper arcology tiers above the rain clouds.",
+      "Autonomous aerocabs weave smoothly between the glowing megatowers of {CITY}."
     ]
   }
 ];
 
 const BUILDINGS = [
-  // Era 0: Stone Age
-  { id: "forager", name: "Forager Camp", era: 0, icon: "⛺", baseCost: 15, baseCps: 0.2, pop: 3, desc: "Nimble gatherers harvesting wild roots, flint, and timber." },
-  { id: "megalith", name: "Megalith Circle", era: 0, icon: "🗿", baseCost: 120, baseCps: 1.5, pop: 10, desc: "Astronomical standing stones uniting nearby neolithic clans." },
-  // Era 1: Bronze Age
-  { id: "foundry", name: "Bronze Foundry", era: 1, icon: "🔥", baseCost: 1800, baseCps: 14, pop: 35, desc: "Charcoal kilns alloying copper and tin into durable tools." },
-  { id: "ziggurat", name: "Stepped Ziggurat", era: 1, icon: "🏜️", baseCost: 24000, baseCps: 110, pop: 150, desc: "Monumental terraced temple-granary organizing river irrigation." },
-  // Era 2: Classical Age
-  { id: "aqueduct", name: "Stone Aqueduct", era: 2, icon: "🌉", baseCost: 320000, baseCps: 950, pop: 600, desc: "Gravity-fed arches supplying crystal water to marble forums." },
-  { id: "academy", name: "Lyceum Academy", era: 2, icon: "🏛️", baseCost: 4500000, baseCps: 8200, pop: 2200, desc: "Scholars debating geometry, rhetoric, and natural philosophy." },
-  // Era 3: Medieval Age
-  { id: "watermill", name: "Guild Watermill", era: 3, icon: "⚙️", baseCost: 65000000, baseCps: 75000, pop: 8500, desc: "River-driven timber gears grinding grain and fulling cloth." },
-  { id: "citadel", name: "Star Citadel", era: 3, icon: "🏰", baseCost: 950000000, baseCps: 680000, pop: 35000, desc: "Fortified keep anchoring bustling charter towns and markets." },
-  // Era 4: Renaissance
-  { id: "press", name: "Printing House", era: 4, icon: "📜", baseCost: 14000000000, baseCps: 6200000, pop: 120000, desc: "Movable-type presses multiplying human knowledge overnight." },
-  { id: "observatory", name: "Grand Observatory", era: 4, icon: "🔭", baseCost: 210000000000, baseCps: 58000000, pop: 450000, desc: "Brass domes charting planetary orbits and oceanic navigation." },
-  // Era 5: Industrial Age
-  { id: "steamworks", name: "Steam Ironworks", era: 5, icon: "🏭", baseCost: 3200000000000, baseCps: 540000000, pop: 1800000, desc: "Coal-fired turbines and Bessemer steel mills running 24/7." },
-  { id: "railhub", name: "Continental Rail Hub", era: 5, icon: "🚂", baseCost: 48000000000000, baseCps: 5000000000, pop: 6500000, desc: "Steel arteries linking mines, harbors, and metropolises." },
-  // Era 6: Atomic Age
-  { id: "fission", name: "Atomics Complex", era: 6, icon: "⚛️", baseCost: 750000000000000, baseCps: 48000000000, pop: 24000000, desc: "Heavy-water fission reactors outputting gigawatts of clean power." },
-  { id: "cosmodrome", name: "Orbital Cosmodrome", era: 6, icon: "🚀", baseCost: 12000000000000000, baseCps: 460000000000, pop: 85000000, desc: "Launchpads sending communications and survey arrays to orbit." },
-  // Era 7: Information Age
-  { id: "fab", name: "Nanometer Silicon Fab", era: 7, icon: "🔬", baseCost: 190000000000000000, baseCps: 4500000000000, pop: 300000000, desc: "Extreme-UV lithography etching trillions of logic gates." },
-  { id: "quantum", name: "Quantum Cloud Core", era: 7, icon: "🌐", baseCost: 3100000000000000000, baseCps: 44000000000000, pop: 1100000000, desc: "Cryogenic qubit arrays optimizing global logistics in real time." },
-  // Era 8: Cyberpunk Age
-  { id: "arcology", name: "Neon Arcology Spire", era: 8, icon: "🏙️", baseCost: 52000000000000000000, baseCps: 450000000000000, pop: 4500000000, desc: "Mile-high self-sustaining cybernetic vertical city." },
-  { id: "dyson", name: "Matrioshka Orbital Node", era: 8, icon: "🛰️", baseCost: 900000000000000000000, baseCps: 4800000000000000, pop: 18000000000, desc: "Solar-harvesting megastructure beaming petawatts to the Neon Grid." }
+  // Era 0: Stone Age (Settlement Foundations)
+  {
+    id: "forager",
+    name: "Thatched Hut",
+    districtName: "Settler Homesteads",
+    zoneTag: "Residential",
+    era: 0,
+    icon: "🛖",
+    baseCost: 15,
+    baseCps: 0.2,
+    pop: 4,
+    desc: "Cozy timber-and-reed dwellings sheltering your village's first permanent families."
+  },
+  {
+    id: "megalith",
+    name: "Riverbank Farm",
+    districtName: "Floodplain Farmlands",
+    zoneTag: "Agriculture",
+    era: 0,
+    icon: "🌾",
+    baseCost: 120,
+    baseCps: 1.5,
+    pop: 12,
+    desc: "Fertile riverside crop plots and mud-brick granaries feeding the growing settlement."
+  },
+  // Era 1: Bronze Age (Early Urban Infrastructure)
+  {
+    id: "foundry",
+    name: "Irrigation Canal",
+    districtName: "Canal & Levee Waterworks",
+    zoneTag: "Waterworks",
+    era: 1,
+    icon: "🛶",
+    baseCost: 1800,
+    baseCps: 14,
+    pop: 40,
+    desc: "Stone-lined water channels and shaduf lifts irrigating orchards and city gardens."
+  },
+  {
+    id: "ziggurat",
+    name: "Walled Bazaar",
+    districtName: "Caravan Market Quarter",
+    zoneTag: "Commerce",
+    era: 1,
+    icon: "🏺",
+    baseCost: 24000,
+    baseCps: 110,
+    pop: 160,
+    desc: "Bustling mud-brick market squares where river barges and merchant caravans trade goods."
+  },
+  // Era 2: Classical Age (Civic Engineering)
+  {
+    id: "aqueduct",
+    name: "Stone Aqueduct",
+    districtName: "Aqueduct & Public Baths",
+    zoneTag: "Waterworks",
+    era: 2,
+    icon: "🌉",
+    baseCost: 320000,
+    baseCps: 950,
+    pop: 650,
+    desc: "Gravity-fed masonry arches delivering fresh mountain water to fountains and bathhouses."
+  },
+  {
+    id: "academy",
+    name: "Marble Forum",
+    districtName: "Civic Forum & Agora",
+    zoneTag: "Civic",
+    era: 2,
+    icon: "🏛️",
+    baseCost: 4500000,
+    baseCps: 8200,
+    pop: 2400,
+    desc: "Colonnaded municipal plazas housing courts, senate chambers, and public markets."
+  },
+  // Era 3: Medieval Age (River Industry & Chartered Towns)
+  {
+    id: "watermill",
+    name: "River Watermill",
+    districtName: "Millers' Riverfront",
+    zoneTag: "Industry",
+    era: 3,
+    icon: "⚙️",
+    baseCost: 65000000,
+    baseCps: 75000,
+    pop: 9000,
+    desc: "Timber waterwheels along the city river grinding grain and powering artisan workshops."
+  },
+  {
+    id: "citadel",
+    name: "Charter Guildhall",
+    districtName: "Old Town & Guild Ward",
+    zoneTag: "Commerce",
+    era: 3,
+    icon: "🏰",
+    baseCost: 950000000,
+    baseCps: 680000,
+    pop: 38000,
+    desc: "Cobblestone market streets, half-timbered guildhalls, and fortified stone town walls."
+  },
+  // Era 4: Renaissance (Mercantile Bridges & Civic Campuses)
+  {
+    id: "press",
+    name: "Merchant Exchange",
+    districtName: "Grand Canal Piazza",
+    zoneTag: "Finance",
+    era: 4,
+    icon: "🏦",
+    baseCost: 14000000000,
+    baseCps: 6200000,
+    pop: 130000,
+    desc: "Arched stone canal bridges, maritime wharves, and banking houses financing city trade."
+  },
+  {
+    id: "observatory",
+    name: "Civic University",
+    districtName: "University & Library Quarter",
+    zoneTag: "Education",
+    era: 4,
+    icon: "🎓",
+    baseCost: 210000000000,
+    baseCps: 58000000,
+    pop: 480000,
+    desc: "Domed lecture halls, municipal libraries, and botanical gardens educating the citizenry."
+  },
+  // Era 5: Industrial Age (Utilities & Rail Transit)
+  {
+    id: "steamworks",
+    name: "Coal Power Station",
+    districtName: "Municipal Power Grid",
+    zoneTag: "Utilities",
+    era: 5,
+    icon: "🏭",
+    baseCost: 3200000000000,
+    baseCps: 540000000,
+    pop: 1900000,
+    desc: "Red-brick turbine halls and dynamos electrifying streetlamps, tramways, and factories."
+  },
+  {
+    id: "railhub",
+    name: "Grand Central Station",
+    districtName: "Central Railway Terminus",
+    zoneTag: "Transit",
+    era: 5,
+    icon: "🚂",
+    baseCost: 48000000000000,
+    baseCps: 5000000000,
+    pop: 6800000,
+    desc: "Vaulted iron-and-glass passenger terminals and steel rail lines linking every borough."
+  },
+  // Era 6: Atomic Age (Metropolitan Energy & Aviation)
+  {
+    id: "fission",
+    name: "Nuclear Power Plant",
+    districtName: "Clean Fission Energy Park",
+    zoneTag: "Utilities",
+    era: 6,
+    icon: "⚛️",
+    baseCost: 750000000000000,
+    baseCps: 48000000000,
+    pop: 25000000,
+    desc: "Twin cooling towers and reactor domes supplying gigawatts of clean city electricity."
+  },
+  {
+    id: "cosmodrome",
+    name: "International Airport",
+    districtName: "International Skyport",
+    zoneTag: "Aviation",
+    era: 6,
+    icon: "✈️",
+    baseCost: 12000000000000000,
+    baseCps: 460000000000,
+    pop: 90000000,
+    desc: "Multi-runway jet terminals and air-traffic control towers welcoming global travelers."
+  },
+  // Era 7: Information Age (High-Rise Skyline & High-Speed Transit)
+  {
+    id: "fab",
+    name: "Glass Skyscraper",
+    districtName: "Downtown Financial Core",
+    zoneTag: "High-Rise",
+    era: 7,
+    icon: "🏢",
+    baseCost: 190000000000000000,
+    baseCps: 4500000000000,
+    pop: 320000000,
+    desc: "Sleek curtain-wall office towers and fiber-optic exchanges anchoring the downtown skyline."
+  },
+  {
+    id: "quantum",
+    name: "Maglev Transit Hub",
+    districtName: "High-Speed Maglev Corridor",
+    zoneTag: "Transit",
+    era: 7,
+    icon: "🚄",
+    baseCost: 3100000000000000000,
+    baseCps: 44000000000000,
+    pop: 1150000000,
+    desc: "Elevated magnetic-levitation rail lines and AI traffic centers moving millions at 500 km/h."
+  },
+  // Era 8: Cyberpunk Age (Vertical Megacities & Spaceports)
+  {
+    id: "arcology",
+    name: "Neon Arcology Spire",
+    districtName: "Cybernetic Arcology Sector",
+    zoneTag: "Megastructure",
+    era: 8,
+    icon: "🏙️",
+    baseCost: 52000000000000000000,
+    baseCps: 450000000000000,
+    pop: 4600000000,
+    desc: "Mile-high self-sustaining vertical city with sky-parks and holographic transit decks."
+  },
+  {
+    id: "dyson",
+    name: "Orbital Spaceport",
+    districtName: "Sub-Orbital Launch Plaza",
+    zoneTag: "Spaceport",
+    era: 8,
+    icon: "🚀",
+    baseCost: 900000000000000000000,
+    baseCps: 4800000000000000,
+    pop: 18500000000,
+    desc: "Electromagnetic launch loops and passenger shuttle docks linking the megacity to orbit."
+  }
 ];
 
 // ============================================================================
-// 9 MONUMENTAL WORLD WONDERS
+// 9 MONUMENTAL CIVIC LANDMARKS & WORLD WONDERS
 // ============================================================================
 const WONDERS = [
   {
     id: "w_stonehenge",
     era: 0,
-    name: "Great Trilithon Ring",
+    name: "Solstice Sanctuary Ring",
     icon: "🗿",
     cost: 2200,
     effectText: "+25% Click Power & +3% Critical Strike Chance",
-    lore: "Colossal bluestones aligned with the solstice sunrise."
+    lore: "Colossal standing stones at the heart of the settlement aligned with the solstice sunrise."
   },
   {
     id: "w_gardens",
     era: 1,
-    name: "Hanging Gardens of Babylon",
+    name: "Hanging Gardens Terrace",
     icon: "🌴",
     cost: 110000,
     effectText: "+15% Global CP/s & +50% City Population",
-    lore: "Lush ascending terraces irrigated by Archimedes screws."
+    lore: "Lush ascending stone terraces irrigated by municipal canal screws."
   },
   {
     id: "w_colossus",
     era: 2,
-    name: "Flavian Amphitheater",
+    name: "Grand Civic Colosseum",
     icon: "🏟️",
     cost: 6500000,
     effectText: "Max Momentum Combo increased to 2.0x & decays 40% slower",
-    lore: "Roaring crowds inspire artisans to unprecedented feats."
+    lore: "A monumental marble amphitheater uniting 80,000 citizens in celebration."
   },
   {
     id: "w_cathedral",
     era: 3,
-    name: "Astronomical Spire",
+    name: "Astronomical Clock Spire",
     icon: "⛪",
     cost: 420000000,
-    effectText: "All buildings cost 8% less CP to construct",
-    lore: "A gothic masterpiece housing the world's most precise mechanical clock."
+    effectText: "All city infrastructure costs 8% less CP to construct",
+    lore: "A soaring stone spire housing the city's master mechanical clock and bells."
   },
   {
     id: "w_workshop",
     era: 4,
-    name: "Polymath's Grand Atelier",
-    icon: "📐",
+    name: "Grand Palazzo & Dome",
+    icon: "🏛️",
     cost: 28000000000,
     effectText: "+20% Global CP/s & +4% Critical Strike Chance",
-    lore: "Flying machines, anatomical codices, and war engines under one dome."
+    lore: "An octagonal brick-and-marble civic dome crowning the Renaissance skyline."
   },
   {
     id: "w_crystal_palace",
     era: 5,
-    name: "Crystal Exhibition Palace",
-    icon: "🏛️",
+    name: "Crystal Exhibition Hall",
+    icon: "🏢",
     cost: 2200000000000,
     effectText: "+25% Global CP/s",
-    lore: "Cast-iron and plate-glass marvel showcasing the world's steam inventions."
+    lore: "Cast-iron and plate-glass palace hosting the World's Fair of urban engineering."
   },
   {
     id: "w_apollo",
     era: 6,
-    name: "Tranquility Lunar Base",
-    icon: "🌕",
+    name: "World Trade Broadcast Tower",
+    icon: "🗼",
     cost: 180000000000000,
-    effectText: "Golden Temporal Anomalies give +50% larger rewards & last longer",
-    lore: "Permanent pressurized habitats gleaming on the Sea of Tranquility."
+    effectText: "Golden Civic Booms give +50% larger rewards & last longer",
+    lore: "A 600-meter steel observation and broadcast needle overlooking the metropolis."
   },
   {
     id: "w_cern",
     era: 7,
-    name: "Planetary Hadron Ring",
-    icon: "🌀",
+    name: "Central Smart-Grid Spire",
+    icon: "🌐",
     cost: 16000000000000000,
     effectText: "Clicks gain an additional +2% of your total CP/s",
-    lore: "Smashing particles at 99.999999% light speed to unlock quantum secrets."
+    lore: "An AI-assisted municipal nerve center synchronizing every train, tower, and power line."
   },
   {
     id: "w_orbital_elevator",
     era: 8,
-    name: "Bifrost Cyber-Elevator",
+    name: "Bifrost Sky-Elevator",
     icon: "🌌",
     cost: 1800000000000000000,
     effectText: "+50% Global CP/s & crowns your skyline with an orbital tether",
-    lore: "A braided carbon-nanotube tether anchoring the Metropolis to geostationary orbit."
+    lore: "A braided carbon-nanotube tether anchoring the Megacity directly to geostationary orbit."
   }
 ];
 
 // ============================================================================
-// TECH UPGRADES
+// CIVIC ORDINANCES & INFRASTRUCTURE UPGRADES
 // ============================================================================
 const UPGRADES = [];
 
 function registerUpgrades() {
   const tierNames = [
-    ["Obsidian Blades", "Tribal Council", "Mammoth Bone Frames", "Sacred Hearth"],
-    ["Star-Aligned Lintels", "Solstice Acousticals", "Bluestone Quarries", "Druidic Resonance"],
-    ["Bellows Blast Furnaces", "Lost-Wax Casting", "Tin Caravan Routes", "Royal Metallurgy"],
-    ["Cuneiform Ledger", "Glazed Brick Facades", "Hydraulic Canals", "High Priest Astrologers"],
-    ["Pozzolana Concrete", "Double-Tier Arches", "Lead Siphon Pipes", "Imperial Nymphaeum"],
-    ["Socratic Dialectics", "Scroll Libraries", "Euclid's Elements", "Platonic Symposiums"],
-    ["Overshot Millwheels", "Camshaft Trip-Hammers", "Guild Master Charter", "Automated Looms"],
-    ["Concentric Curtain Walls", "Machicolated Towers", "Royal Minting Press", "Hanseatic Trade Pact"],
-    ["Oil-Based Ink", "Gutenberg Matrices", "Vernacular Editions", "Encyclopedic Compendiums"],
-    ["Achromatic Lenses", "Equatorial Mounts", "Celestial Ephemeris", "Heliocentric Calculus"],
-    ["Compound Steam Pistons", "Pneumatic Converters", "Regenerative Furnaces", "Assembly Line Gantries"],
-    ["Standard Gauge Track", "Westinghouse Air Brakes", "Electric Block Signals", "Transcontinental Express"],
-    ["Magnetic Containment", "Breeder Fuel Cycles", "Supercritical Turbines", "Sub-atomic Telemetry"],
-    ["Reusable Boosters", "Ion Thruster Arrays", "Geostationary Ring", "Deep Space Relay"],
-    ["3D FinFET Gate-All-Around", "Graphene Interconnects", "Photonic Waveguides", "Picometer Metrology"],
-    ["Topological Qubits", "Entangled Teleportation Bus", "Zero-Kelvin Dilution", "Planetary Neural Mesh"],
-    ["Hydroponic Sky-Decks", "Holographic Plaza Mesh", "Cybernetic Civic Guard", "Atmospheric Scrubbers"],
-    ["Laser Power Beaming", "Von Neumann Replicators", "Star-Lifting Collectors", "Kardashev Type-II Grid"]
+    ["Woven Reed Roofs", "Clay Hearth Chimneys", "Dry-Stone Footings", "Paved Village Lanes"],
+    ["Silt Flood Ditches", "Ox-Drawn Plowshares", "Mud-Brick Granaries", "Terraced River Orchards"],
+    ["Counterweight Shadufs", "Baked-Brick Sluice Gates", "Masonry Lock Chambers", "Royal Waterworks Board"],
+    ["Shaded Linen Awnings", "Standardized Bronze Weights", "Caravanserai Courtyards", "Harbor Wharf Warehouses"],
+    ["Pozzolana Hydraulic Mortar", "Double-Tiered Stone Arches", "Settling Cisterns", "Municipal Thermae Baths"],
+    ["Paved Via Sacra", "Columned Civic Basilica", "Citizen Rostra Plaza", "Senatorial Municipal Mint"],
+    ["Overshot Timber Millwheels", "Stone-Lined Millraces", "Fulling & Bakery Guilds", "Twin-Weir River Dam"],
+    ["Cobblestone Thoroughfares", "Guildhall Bell Tower", "Free Market Town Charter", "Star-Bastion City Walls"],
+    ["Rialto Stone Arch Bridge", "Double-Entry Clearinghouse", "Maritime Harbor Insurance", "Grand Piazza Arcade"],
+    ["Public Reading Rotunda", "Botanical Teaching Gardens", "Astronomical Clock Cupola", "School of Civil Architecture"],
+    ["High-Pressure Steam Boilers", "Rotary Dynamo Generators", "Electric Streetlamp Network", "High-Voltage Substations"],
+    ["Bessemer Steel Rails", "Pneumatic Track Switches", "Vaulted Glass Train Shed", "Underground Subway Links"],
+    ["Pressurized Reactor Domes", "Hyperbolic Cooling Towers", "Automated Grid Dispatch", "Superconducting City Ring"],
+    ["Instrument Landing Radar", "Parallel Jet Runways", "Automated People-Movers", "International Concourse Hub"],
+    ["Tuned Mass Wind Dampers", "Double-Deck Express Lifts", "Solar Curtain-Wall Glass", "Sky-Lobby Transit Bridges"],
+    ["Superconducting Guideways", "Aerodynamic Nose Cones", "AI Headway Control", "Vacuum-Tube Express Loops"],
+    ["Hydroponic Sky-Atriums", "Holographic Transit Decks", "Atmospheric Rain Catchers", "Autonomous Drone Skyways"],
+    ["Electromagnetic Launch Track", "Cryogenic Fuel Plazas", "Orbital Commuter Lounges", "Planetary Gateway Ring"]
   ];
 
   const tierThresholds = [1, 10, 25, 50];
@@ -332,7 +530,7 @@ function registerUpgrades() {
         icon: b.icon,
         era: b.era,
         cost: Math.round(b.baseCost * tierCostMults[tIdx]),
-        desc: `${b.name} production is DOUBLED (2x).`,
+        desc: `${b.name} (${b.districtName}) output is DOUBLED (2x).`,
         type: "building_mult",
         target: b.id,
         mult: 2,
@@ -342,15 +540,15 @@ function registerUpgrades() {
   });
 
   const clickUpgrades = [
-    { id: "c_flint", era: 0, name: "Hafted Handaxes", icon: "🪓", cost: 100, desc: "Base click +1 CP and +0.5% of your CP/s per click.", flat: 1, cpsPct: 0.005, reqCp: 35 },
-    { id: "c_lever", era: 1, name: "Bronze Lever & Pulley", icon: "🪝", cost: 8000, desc: "Click power x1.5 and +0.5% of your CP/s per click.", mult: 1.5, cpsPct: 0.005, reqCp: 2500 },
-    { id: "c_crane", era: 2, name: "Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 150000 },
-    { id: "c_guild", era: 3, name: "Freemason Calipers", icon: "📐", cost: 35000000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 10000000 },
-    { id: "c_da_vinci", era: 4, name: "Vitruvian Automaton", icon: "⚙️", cost: 2500000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 600000000 },
-    { id: "c_pneumatic", era: 5, name: "Steam Jackhammer", icon: "🔩", cost: 180000000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 50000000000 },
-    { id: "c_laser", era: 6, name: "Industrial Laser Cutter", icon: "⚡", cost: 15000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 4000000000000 },
-    { id: "c_exo", era: 7, name: "Haptic Exoskeleton", icon: "🦾", cost: 1200000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 350000000000000 },
-    { id: "c_neural", era: 8, name: "Direct Cortex Uplink", icon: "🧠", cost: 120000000000000000, desc: "Click power x2.5 and +2% of your CP/s per click.", mult: 2.5, cpsPct: 0.02, reqCp: 35000000000000000 }
+    { id: "c_flint", era: 0, name: "Timber Framing Mallets", icon: "🔨", cost: 100, desc: "Base click +1 CP and +0.5% of your CP/s per click.", flat: 1, cpsPct: 0.005, reqCp: 35 },
+    { id: "c_lever", era: 1, name: "Mud-Brick Molds & Plumb Lines", icon: "🧱", cost: 8000, desc: "Click power x1.5 and +0.5% of your CP/s per click.", mult: 1.5, cpsPct: 0.005, reqCp: 2500 },
+    { id: "c_crane", era: 2, name: "Roman Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 150000 },
+    { id: "c_guild", era: 3, name: "Master Mason Guild Square", icon: "📐", cost: 35000000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 10000000 },
+    { id: "c_da_vinci", era: 4, name: "Geared Hoist & Scaffolding", icon: "⚙️", cost: 2500000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 600000000 },
+    { id: "c_pneumatic", era: 5, name: "Steam Riveting Gantry", icon: "🔩", cost: 180000000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 50000000000 },
+    { id: "c_laser", era: 6, name: "Tower Crane Fleet", icon: "🏗️", cost: 15000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 4000000000000 },
+    { id: "c_exo", era: 7, name: "Automated Prefab Robotics", icon: "🦾", cost: 1200000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 350000000000000 },
+    { id: "c_neural", era: 8, name: "Nano-Swarm Assembler Grid", icon: "🏙️", cost: 120000000000000000, desc: "Click power x2.5 and +2% of your CP/s per click.", mult: 2.5, cpsPct: 0.02, reqCp: 35000000000000000 }
   ];
 
   clickUpgrades.forEach((cu) => {
@@ -370,14 +568,14 @@ function registerUpgrades() {
   });
 
   const eraTechs = [
-    { id: "g_wheel", era: 1, name: "Spoked Chariot Wheels", icon: "🛞", cost: 15000, mult: 1.15, desc: "All civilization production +15%." },
-    { id: "g_alphabet", era: 2, name: "Phonetic Alphabet", icon: "🔤", cost: 900000, mult: 1.15, desc: "All civilization production +15%." },
-    { id: "g_compass", era: 3, name: "Magnetic Compass", icon: "🧭", cost: 60000000, mult: 1.20, desc: "All civilization production +20%." },
-    { id: "g_scientific", era: 4, name: "The Scientific Method", icon: "🧪", cost: 4500000000, mult: 1.20, desc: "All civilization production +20%." },
-    { id: "g_dynamo", era: 5, name: "Alternating Current Grid", icon: "💡", cost: 350000000000, mult: 1.25, desc: "All civilization production +25%." },
-    { id: "g_internet", era: 6, name: "ARPANET Packet Switching", icon: "📡", cost: 28000000000000, mult: 1.25, desc: "All civilization production +25%." },
-    { id: "g_agi", era: 7, name: "Autonomous City Mind", icon: "🤖", cost: 2500000000000000, mult: 1.30, desc: "All civilization production +30%." },
-    { id: "g_singularity", era: 8, name: "Neon Technocore Singularity", icon: "🌌", cost: 250000000000000000, mult: 1.50, desc: "All civilization production +50%." }
+    { id: "g_wheel", era: 1, name: "Paved Processional Roads", icon: "🛣️", cost: 15000, mult: 1.15, desc: "All city infrastructure output +15%." },
+    { id: "g_alphabet", era: 2, name: "Municipal Zoning Code", icon: "📜", cost: 900000, mult: 1.15, desc: "All city infrastructure output +15%." },
+    { id: "g_compass", era: 3, name: "Hanseatic Port Authority", icon: "⚓", cost: 60000000, mult: 1.20, desc: "All city infrastructure output +20%." },
+    { id: "g_scientific", era: 4, name: "Grand Urban Masterplan", icon: "🗺️", cost: 4500000000, mult: 1.20, desc: "All city infrastructure output +20%." },
+    { id: "g_dynamo", era: 5, name: "Alternating Current City Grid", icon: "💡", cost: 350000000000, mult: 1.25, desc: "All city infrastructure output +25%." },
+    { id: "g_internet", era: 6, name: "Metropolitan Ring-Road & Metro", icon: "🚇", cost: 28000000000000, mult: 1.25, desc: "All city infrastructure output +25%." },
+    { id: "g_agi", era: 7, name: "Fiber-Optic Smart City Mesh", icon: "📡", cost: 2500000000000000, mult: 1.30, desc: "All city infrastructure output +30%." },
+    { id: "g_singularity", era: 8, name: "Autonomous Megacity AI Core", icon: "🌌", cost: 250000000000000000, mult: 1.50, desc: "All city infrastructure output +50%." }
   ];
 
   eraTechs.forEach((et) => {
@@ -1078,164 +1276,251 @@ function updateTopHUD() {
 function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
   switch (bId) {
     case "forager":
-      // Warm tan hide tent + pine tree
-      drawPolygon(ctx, [[x, gy - 26], [x - 13, gy], [x + 13, gy]], "#d99b52", "#6b3e19", 1.2);
-      drawPolygon(ctx, [[x, gy - 16], [x - 8, gy - 5], [x + 8, gy - 5]], "#b43c27");
-      drawPolygon(ctx, [[x, gy - 8], [x - 4, gy], [x + 4, gy]], "#3b2110");
+      // Thatched Hut: Mud-brick round/square walls + golden reed roof + warm doorway
+      ctx.fillStyle = "#b87d4b";
+      ctx.fillRect(x - 11, gy - 14, 22, 14);
+      drawPolygon(ctx, [[x, gy - 29], [x - 15, gy - 13], [x + 15, gy - 13]], "#e0a958", "#784719", 1.2);
+      ctx.fillStyle = "#3b2110";
+      ctx.fillRect(x - 3, gy - 9, 6, 9);
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(x + 4, gy - 11, 4, 4);
       break;
+
     case "megalith":
-      // Granite standing stone trilithon
-      ctx.fillStyle = "#7c8594";
-      ctx.fillRect(x - 11, gy - 22, 6, 22);
-      ctx.fillRect(x + 5, gy - 22, 6, 22);
-      ctx.fillStyle = "#9ca3af";
-      ctx.fillRect(x - 14, gy - 28, 28, 6);
-      ctx.fillStyle = "#4d7c42";
-      ctx.fillRect(x - 12, gy - 29, 16, 2);
-      break;
-    case "foundry":
-      // Mud-brick kiln + glowing bronze crucible
-      ctx.fillStyle = "#9a4b32";
-      ctx.fillRect(x - 13, gy - 22, 26, 22);
-      ctx.fillStyle = "#7c3722";
-      ctx.fillRect(x - 5, gy - 32, 10, 10);
-      ctx.fillStyle = "#fb923c";
-      ctx.beginPath();
-      ctx.arc(x, gy - 4, 5, Math.PI, 0);
-      ctx.fill();
-      break;
-    case "ziggurat":
-      // Golden stepped ziggurat + lapis blue stairs
+      // Riverbank Farm: Mud-brick granary silo + golden irrigated wheat rows
       ctx.fillStyle = "#c28b46";
-      ctx.fillRect(x - 16, gy - 10, 32, 10);
-      ctx.fillStyle = "#d49e54";
-      ctx.fillRect(x - 11, gy - 20, 22, 10);
-      ctx.fillStyle = "#e3b268";
-      ctx.fillRect(x - 7, gy - 28, 14, 8);
-      ctx.fillStyle = "#1d4ed8";
-      ctx.fillRect(x - 3, gy - 33, 6, 33);
+      ctx.fillRect(x - 14, gy - 20, 10, 20);
+      drawPolygon(ctx, [[x - 9, gy - 28], [x - 15, gy - 20], [x - 3, gy - 20]], "#d97706");
+      ctx.fillStyle = "#4d7c0f";
+      ctx.fillRect(x - 2, gy - 4, 18, 4);
+      ctx.fillStyle = "#facc15";
+      for (let wx = x; wx <= x + 13; wx += 4) {
+        ctx.fillRect(wx, gy - 14, 2, 10);
+        ctx.fillRect(wx - 1, gy - 16, 4, 3);
+      }
       break;
-    case "aqueduct":
-      // Roman stone arch segment with water channel
+
+    case "foundry":
+      // Irrigation Canal: Stone-lined blue water channel + shaduf lift + date palm
       ctx.fillStyle = "#d6d3d1";
-      ctx.fillRect(x - 18, gy - 28, 36, 6);
+      ctx.fillRect(x - 16, gy - 8, 32, 8);
+      ctx.fillStyle = "#0ea5e9";
+      ctx.fillRect(x - 14, gy - 6, 28, 5);
+      ctx.fillStyle = "#bae6fd";
+      ctx.fillRect(x - 10, gy - 4, 8, 1.5);
+      ctx.fillRect(x + 2, gy - 5, 8, 1.5);
+      // Palm tree on canal levee
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(x - 6, gy - 24, 3, 16);
+      drawPolygon(ctx, [[x - 4, gy - 26], [x - 13, gy - 21], [x + 5, gy - 21]], "#15803d");
+      drawPolygon(ctx, [[x - 4, gy - 29], [x - 11, gy - 24], [x + 3, gy - 24]], "#22c55e");
+      break;
+
+    case "ziggurat":
+      // Walled Bazaar: Sandstone arch gate + colorful striped merchant awning stall
+      ctx.fillStyle = "#d49e54";
+      ctx.fillRect(x - 15, gy - 24, 18, 24);
+      ctx.fillStyle = "#451a03";
+      ctx.beginPath();
+      ctx.arc(x - 6, gy, 5, Math.PI, 0);
+      ctx.fill();
+      // Market awning stall
+      drawPolygon(ctx, [[x + 3, gy - 16], [x + 16, gy - 11], [x + 3, gy - 11]], idx % 2 === 0 ? "#dc2626" : "#2563eb");
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(x + 5, gy - 11, 9, 11);
+      ctx.fillStyle = "#b45309";
+      ctx.fillRect(x + 7, gy - 5, 5, 5);
+      break;
+
+    case "aqueduct":
+      // Stone Aqueduct: Double-tier Roman masonry arch + flowing blue water channel
+      ctx.fillStyle = "#d6d3d1";
+      ctx.fillRect(x - 18, gy - 30, 36, 6);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(x - 18, gy - 30, 36, 3);
+      ctx.fillRect(x - 18, gy - 32, 36, 3);
       ctx.fillStyle = "#e7e5e4";
-      ctx.fillRect(x - 14, gy - 22, 7, 22);
-      ctx.fillRect(x + 7, gy - 22, 7, 22);
+      ctx.fillRect(x - 14, gy - 24, 7, 24);
+      ctx.fillRect(x + 7, gy - 24, 7, 24);
+      ctx.fillRect(x - 18, gy - 14, 36, 4);
       break;
+
     case "academy":
-      // Classical marble temple with red pediment
+      // Marble Forum: Classical white marble colonnade + crimson pediment
       ctx.fillStyle = "#f5f5f4";
-      ctx.fillRect(x - 15, gy - 4, 30, 4);
-      ctx.fillRect(x - 12, gy - 22, 4, 18);
-      ctx.fillRect(x - 2, gy - 22, 4, 18);
-      ctx.fillRect(x + 8, gy - 22, 4, 18);
-      drawPolygon(ctx, [[x, gy - 32], [x - 17, gy - 22], [x + 17, gy - 22]], "#dc2626", "#f5f5f4", 1.2);
+      ctx.fillRect(x - 16, gy - 4, 32, 4);
+      ctx.fillRect(x - 13, gy - 22, 4, 18);
+      ctx.fillRect(x - 5, gy - 22, 4, 18);
+      ctx.fillRect(x + 2, gy - 22, 4, 18);
+      ctx.fillRect(x + 9, gy - 22, 4, 18);
+      drawPolygon(ctx, [[x, gy - 33], [x - 18, gy - 22], [x + 18, gy - 22]], "#dc2626", "#f5f5f4", 1.2);
       break;
+
     case "watermill":
-      // Timber house + waterwheel
+      // River Watermill: Half-timbered millhouse + spoked waterwheel over stream
       ctx.fillStyle = "#fef3c7";
-      ctx.fillRect(x - 14, gy - 22, 22, 22);
-      drawPolygon(ctx, [[x - 3, gy - 33], [x - 16, gy - 22], [x + 10, gy - 22]], "#991b1b");
+      ctx.fillRect(x - 15, gy - 22, 20, 22);
+      drawPolygon(ctx, [[x - 5, gy - 34], [x - 17, gy - 22], [x + 7, gy - 22]], "#991b1b");
+      ctx.fillStyle = "#0284c7";
+      ctx.fillRect(x + 2, gy - 4, 14, 4);
       ctx.strokeStyle = "#78350f";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x + 10, gy - 8, 8, 0, Math.PI * 2);
+      ctx.arc(x + 9, gy - 9, 8, 0, Math.PI * 2);
       ctx.stroke();
       break;
+
     case "citadel":
-      // Stone castle keep with blue turret roofs
+      // Charter Guildhall: Steep-gabled guildhall + stone bell tower with blue spire
+      ctx.fillStyle = "#fde68a";
+      ctx.fillRect(x - 15, gy - 24, 20, 24);
+      drawPolygon(ctx, [[x - 5, gy - 36], [x - 17, gy - 24], [x + 7, gy - 24]], "#b91c1c");
       ctx.fillStyle = "#94a3b8";
-      ctx.fillRect(x - 14, gy - 26, 28, 26);
-      ctx.fillStyle = "#cbd5e1";
-      ctx.fillRect(x - 16, gy - 34, 8, 34);
-      ctx.fillRect(x + 8, gy - 34, 8, 34);
-      drawPolygon(ctx, [[x - 12, gy - 44], [x - 17, gy - 34], [x - 7, gy - 34]], "#2563eb");
-      drawPolygon(ctx, [[x + 12, gy - 44], [x + 7, gy - 34], [x + 17, gy - 34]], "#2563eb");
-      break;
-    case "press":
-      // Renaissance printing guildhall
-      ctx.fillStyle = "#b45309";
-      ctx.fillRect(x - 14, gy - 26, 28, 26);
-      drawPolygon(ctx, [[x, gy - 38], [x - 16, gy - 26], [x + 16, gy - 26]], "#7c2d12");
+      ctx.fillRect(x + 5, gy - 34, 10, 34);
+      drawPolygon(ctx, [[x + 10, gy - 46], [x + 4, gy - 34], [x + 16, gy - 34]], "#2563eb");
       ctx.fillStyle = "#fef08a";
-      ctx.fillRect(x - 8, gy - 18, 5, 6);
-      ctx.fillRect(x + 3, gy - 18, 5, 6);
+      ctx.fillRect(x + 8, gy - 28, 4, 4);
       break;
+
+    case "press":
+      // Merchant Exchange: Renaissance terracotta palazzo + arched stone canal bridge
+      ctx.fillStyle = "#c2410c";
+      ctx.fillRect(x - 16, gy - 28, 20, 28);
+      drawPolygon(ctx, [[x - 6, gy - 37], [x - 18, gy - 28], [x + 6, gy - 28]], "#7c2d12");
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(x - 12, gy - 22, 4, 6);
+      ctx.fillRect(x - 4, gy - 22, 4, 6);
+      // Canal arch bridge next to exchange
+      ctx.fillStyle = "#0284c7";
+      ctx.fillRect(x + 4, gy - 5, 14, 5);
+      ctx.fillStyle = "#e7e5e4";
+      ctx.fillRect(x + 4, gy - 12, 14, 5);
+      break;
+
     case "observatory":
-      // Copper dome observatory + brass telescope
+      // Civic University: Limestone university facade + emerald rotunda dome & lantern
       ctx.fillStyle = "#d97706";
-      ctx.fillRect(x - 13, gy - 20, 26, 20);
+      ctx.fillRect(x - 15, gy - 22, 30, 22);
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillRect(x - 11, gy - 18, 4, 14);
+      ctx.fillRect(x - 2, gy - 18, 4, 14);
+      ctx.fillRect(x + 7, gy - 18, 4, 14);
       ctx.fillStyle = "#10b981";
       ctx.beginPath();
-      ctx.arc(x, gy - 20, 13, Math.PI, 0);
+      ctx.arc(x, gy - 22, 12, Math.PI, 0);
       ctx.fill();
-      ctx.strokeStyle = "#fde047";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(x + 2, gy - 26);
-      ctx.lineTo(x + 13, gy - 36);
-      ctx.stroke();
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(x - 1.5, gy - 38, 3, 5);
       break;
+
     case "steamworks":
-      // Red brick factory + smokestack
+      // Coal Power Station: Red-brick turbine hall + twin tall smokestacks
       ctx.fillStyle = "#991b1b";
       ctx.fillRect(x - 15, gy - 24, 30, 24);
       ctx.fillStyle = "#57534e";
-      ctx.fillRect(x + 6, gy - 42, 6, 18);
+      ctx.fillRect(x + 2, gy - 42, 5, 18);
+      ctx.fillRect(x + 9, gy - 40, 5, 16);
       ctx.fillStyle = "#fbbf24";
-      ctx.fillRect(x - 10, gy - 14, 6, 8);
-      ctx.fillRect(x - 1, gy - 14, 6, 8);
+      ctx.fillRect(x - 11, gy - 16, 6, 9);
+      ctx.fillRect(x - 2, gy - 16, 6, 9);
       break;
+
     case "railhub":
-      // Iron locomotive engine
-      ctx.fillStyle = "#1f2937";
-      ctx.fillRect(x - 14, gy - 18, 26, 14);
-      ctx.fillStyle = "#dc2626";
-      ctx.fillRect(x - 14, gy - 6, 28, 4);
-      ctx.fillStyle = "#374151";
-      ctx.fillRect(x + 4, gy - 26, 5, 8);
-      break;
-    case "fission":
-      // Hyperbolic nuclear cooling tower + Cherenkov glow
-      drawPolygon(ctx, [[x - 8, gy - 34], [x - 13, gy], [x + 13, gy], [x + 8, gy - 34]], "#cbd5e1");
+      // Grand Central Station: Vaulted glass train shed + steam locomotive
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(x - 16, gy - 22, 20, 22);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(x - 8, gy - 12, 16, 4);
+      ctx.beginPath();
+      ctx.arc(x - 6, gy - 22, 10, Math.PI, 0);
+      ctx.fill();
+      // Locomotive emerging
+      ctx.fillStyle = "#1f2937";
+      ctx.fillRect(x + 2, gy - 14, 14, 10);
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(x + 2, gy - 4, 15, 4);
+      ctx.fillStyle = "#475569";
+      ctx.fillRect(x + 11, gy - 20, 4, 6);
       break;
+
+    case "fission":
+      // Nuclear Power Plant: Hyperbolic cooling tower + containment reactor dome
+      drawPolygon(ctx, [[x - 12, gy - 34], [x - 16, gy], [x - 1, gy], [x - 5, gy - 34]], "#e2e8f0");
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(x + 1, gy - 16, 14, 16);
+      ctx.beginPath();
+      ctx.arc(x + 8, gy - 16, 7, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x + 4, gy - 12, 8, 4);
+      break;
+
     case "cosmodrome":
-      // White orbital rocket on launchpad
+      // International Airport: Air-traffic control tower + sleek white jet airliner
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(x - 13, gy - 36, 5, 36);
+      drawPolygon(ctx, [[x - 16, gy - 42], [x - 5, gy - 42], [x - 7, gy - 35], [x - 14, gy - 35]], "#0284c7");
+      // White jetliner on runway
       ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(x - 5, gy - 36, 10, 32);
-      drawPolygon(ctx, [[x, gy - 46], [x - 5, gy - 36], [x + 5, gy - 36]], "#ef4444");
-      drawPolygon(ctx, [[x - 5, gy - 12], [x - 10, gy], [x - 5, gy]], "#ef4444");
-      drawPolygon(ctx, [[x + 5, gy - 12], [x + 10, gy], [x + 5, gy]], "#ef4444");
+      ctx.fillRect(x - 4, gy - 11, 20, 6);
+      drawPolygon(ctx, [[x + 12, gy - 11], [x + 16, gy - 20], [x + 16, gy - 11]], "#2563eb");
+      drawPolygon(ctx, [[x + 2, gy - 8], [x + 8, gy - 8], [x + 4, gy - 2]], "#94a3b8");
       break;
+
     case "fab":
-    case "quantum":
-      // High-tech cyan/teal server & silicon complex
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(x - 14, gy - 30, 28, 30);
-      ctx.strokeStyle = bId === "fab" ? "#2dd4bf" : "#38bdf8";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x - 14, gy - 30, 28, 30);
-      ctx.fillStyle = bId === "fab" ? "#2dd4bf" : "#38bdf8";
-      ctx.fillRect(x - 9, gy - 22, 18, 3);
-      ctx.fillRect(x - 9, gy - 14, 18, 3);
-      break;
-    default:
-      // Cyberpunk Neon Arcology / Orbital Node
-      ctx.fillStyle = "#1e1b4b";
-      ctx.fillRect(x - 13, gy - 42, 26, 42);
-      ctx.strokeStyle = idx % 2 === 0 ? "#f43f5e" : "#06b6d4";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x - 13, gy - 42, 26, 42);
-      ctx.fillStyle = "#fde047";
-      for (let wy = gy - 36; wy < gy - 4; wy += 8) {
-        ctx.fillRect(x - 7, wy, 4, 4);
-        ctx.fillRect(x + 3, wy, 4, 4);
+      // Glass Skyscraper: Supertall reflective blue curtain-wall high-rise + antenna spire
+      ctx.fillStyle = "#0369a1";
+      ctx.fillRect(x - 12, gy - 42, 24, 42);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(x - 12, gy - 42, 24, 42);
+      ctx.fillStyle = "#e0f2fe";
+      ctx.fillRect(x - 1, gy - 50, 2, 8);
+      for (let wy = gy - 37; wy < gy - 4; wy += 6) {
+        ctx.fillStyle = "#7dd3fc";
+        ctx.fillRect(x - 8, wy, 16, 3);
       }
+      break;
+
+    case "quantum":
+      // Maglev Transit Hub: Elevated concrete guideway + sleek 500 km/h bullet train
+      ctx.fillStyle = "#64748b";
+      ctx.fillRect(x - 12, gy - 12, 4, 12);
+      ctx.fillRect(x + 8, gy - 12, 4, 12);
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(x - 18, gy - 16, 36, 4);
+      // Sleek aerodynamic Maglev train car
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(x - 14, gy - 25, 24, 8);
+      drawPolygon(ctx, [[x + 10, gy - 25], [x + 18, gy - 17], [x + 10, gy - 17]], "#f8fafc");
+      ctx.fillStyle = "#06b6d4";
+      ctx.fillRect(x - 12, gy - 22, 22, 3);
+      break;
+
+    case "arcology":
+      // Neon Arcology Spire: Tiered pyramidal cyber-spire with neon sky-bridges
+      drawPolygon(ctx, [[x - 6, gy - 46], [x - 15, gy], [x + 15, gy], [x + 6, gy - 46]], "#1e1b4b", idx % 2 === 0 ? "#f43f5e" : "#06b6d4", 1.5);
+      ctx.fillStyle = "#10b981";
+      ctx.fillRect(x - 9, gy - 26, 18, 3);
+      ctx.fillStyle = "#fde047";
+      for (let wy = gy - 38; wy < gy - 4; wy += 8) {
+        ctx.fillRect(x - 5, wy, 3, 4);
+        ctx.fillRect(x + 2, wy, 3, 4);
+      }
+      break;
+
+    default:
+      // Orbital Spaceport: Curved electromagnetic launch loop + delta orbital shuttle
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(x - 15, gy - 14, 30, 14);
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 14, gy - 14);
+      ctx.quadraticCurveTo(x, gy - 18, x + 14, gy - 44);
+      ctx.stroke();
+      // Delta shuttle on launch track
+      drawPolygon(ctx, [[x + 14, gy - 46], [x + 4, gy - 32], [x + 12, gy - 30]], "#f8fafc");
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(x + 6, gy - 32, 4, 4);
       break;
   }
 }
@@ -1248,8 +1533,15 @@ function renderInfrastructureDistricts() {
   const totalCps = getTotalCps();
   const ownedBuildings = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
 
+  const summaryNote = document.getElementById("districts-summary-note");
+  if (summaryNote) {
+    summaryNote.textContent = ownedBuildings.length > 0
+      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Total Structures`
+      : "Construct buildings on the right to expand your city districts";
+  }
+
   if (ownedBuildings.length === 0) {
-    container.innerHTML = `<div class="district-empty">🔨 Click the Stone Age emblem on the left to gather your first <strong>15 CP</strong>, then construct a <strong>Forager Camp</strong> on the right to establish your first City District!</div>`;
+    container.innerHTML = `<div class="district-empty">🛖 Click the <strong>Build Settlement</strong> emblem on the left to gather your first <strong>15 CP</strong>, then construct a <strong>Thatched Hut</strong> on the right to establish your first City District!</div>`;
     return;
   }
 
@@ -1263,8 +1555,9 @@ function renderInfrastructureDistricts() {
     strip.innerHTML = `
       <div class="district-strip-header">
         <div class="district-title-group">
-          <span>${b.icon} ${b.name} District</span>
-          <span class="district-count-pill">x${count}</span>
+          <span>${b.icon} ${b.districtName}</span>
+          <span class="district-count-pill">${count}× ${b.name}</span>
+          <span class="district-zone-tag">${b.zoneTag}</span>
         </div>
         <div class="district-stats-group">
           <span class="district-cps" id="dist-cps-${b.id}">+${formatNum(bCps, 1)} CP/s</span>
@@ -1293,11 +1586,22 @@ function renderInfrastructureDistricts() {
 
     // Draw up to 16 visual units across the strip
     const visibleUnits = Math.min(16, count);
-    const spacing = Math.min(40, (cw - 40) / Math.max(1, visibleUnits));
+    const spacing = Math.min(38, (cw - 140) / Math.max(1, visibleUnits));
     for (let i = 0; i < visibleUnits; i++) {
-      const ux = 28 + i * spacing;
+      const ux = 26 + i * spacing;
       drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 10, i);
     }
+
+    // Crisp in-canvas graphic label pill on the right side of the strip
+    const labelText = `${ERAS[b.era].short.toUpperCase()} • ${b.zoneTag.toUpperCase()}`;
+    ctx.font = "bold 10px Inter, sans-serif";
+    const textW = ctx.measureText(labelText).width;
+    ctx.fillStyle = "rgba(9, 10, 16, 0.65)";
+    ctx.beginPath();
+    ctx.roundRect(cw - textW - 22, 8, textW + 14, 18, 9);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillText(labelText, cw - textW - 15, 20);
   });
 }
 
@@ -1344,7 +1648,7 @@ function renderBuildingsList() {
         <div class="b-details">
           <div class="b-top">
             <span class="b-name">${b.name}</span>
-            <span class="b-era-tag">${ERAS[b.era].short}</span>
+            <span class="b-era-tag">${b.zoneTag} • ${ERAS[b.era].short}</span>
           </div>
           <div class="b-desc">${b.desc}</div>
           <div class="b-meta">
@@ -1360,13 +1664,13 @@ function renderBuildingsList() {
       const mysteryRow = document.createElement("div");
       mysteryRow.className = "building-row mystery";
       const hintText = b.era > state.currentEra
-        ? "Advance to the next Epoch to unlock new architecture"
-        : `Gather ~${formatNum(Math.ceil(b.baseCost * 0.45))} CP to unveil this blueprint`;
+        ? "Advance to the next Epoch to unlock new urban infrastructure"
+        : `Gather ~${formatNum(Math.ceil(b.baseCost * 0.45))} CP to unveil this city blueprint`;
       mysteryRow.innerHTML = `
         <div class="b-icon">❓</div>
         <div class="b-details">
           <div class="b-top">
-            <span class="b-name">Uncharted Infrastructure</span>
+            <span class="b-name">Uncharted City Infrastructure</span>
           </div>
           <div class="b-desc">${hintText}</div>
           <div class="b-meta">
@@ -1425,16 +1729,16 @@ function setUpgradeInspector(u, isMystery = false, reqMet = false) {
     hoveredUpgradeId = "__mystery__";
     insp.innerHTML = `
       <div class="insp-top">
-        <span>🔭 Undiscovered Breakthrough</span>
+        <span>📜 Undiscovered Civic Upgrade</span>
         <span class="insp-cost">🔒 Shrouded</span>
       </div>
-      <div>${reqMet ? `Gather ~${formatNum(Math.ceil(u.cost * 0.5))} CP to unveil this technology.` : "Construct more infrastructure to inspire new research."}</div>
+      <div>${reqMet ? `Gather ~${formatNum(Math.ceil(u.cost * 0.5))} CP to unveil this civic upgrade.` : "Expand your city infrastructure to unlock new municipal upgrades."}</div>
     `;
     return;
   }
   if (!u) {
     hoveredUpgradeId = null;
-    insp.textContent = "Hover over an upgrade tile above to inspect its effect and cost.";
+    insp.textContent = "Hover over a civic upgrade tile above to inspect its effect and cost.";
     return;
   }
   hoveredUpgradeId = u.id;
@@ -1958,6 +2262,27 @@ function drawTree(ctx, x, y, scale = 1, type = "pine") {
   }
 }
 
+function drawSkylineTag(ctx, x, y, text) {
+  ctx.font = "bold 9.5px Inter, sans-serif";
+  const tw = ctx.measureText(text).width;
+  const pw = tw + 12;
+  const ph = 15;
+  const px = Math.max(6, Math.min(754 - pw, x - pw / 2));
+  const py = y - ph;
+
+  ctx.fillStyle = "rgba(9, 10, 16, 0.72)";
+  ctx.beginPath();
+  ctx.roundRect(px, py, pw, ph, 7);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.fillText(text, px + 6, py + 10.5);
+}
+
 function drawCityCanvas() {
   const canvas = document.getElementById("city-canvas");
   if (!canvas) return;
@@ -2059,89 +2384,108 @@ function drawCityCanvas() {
     ctx.fillRect(wx + offset, h - 13 + (wx % 6), 18, 2);
   }
 
-  // 4. FULL-COLOR PANORAMIC CITY ARCHITECTURE ACROSS THE ENTIRE SKYLINE
+  // 4. FULL-COLOR PANORAMIC CITY ARCHITECTURE & LABELS ACROSS THE SKYLINE
   const gy = h - 40;
 
   if (era <= 4) {
-    [28, 135, 290, 440, 610, 725].forEach((tx, idx) => {
+    [28, 145, 295, 445, 610, 725].forEach((tx, idx) => {
       drawTree(ctx, tx, gy + 3, 0.85, idx % 2 === 0 ? "pine" : "round");
     });
   }
 
   if (era === 0) {
-    const tents = Math.min(9, Math.max(2, (state.buildings.forager || 1) + 1));
-    for (let i = 0; i < tents; i++) {
-      const tx = 55 + i * 76;
-      drawPolygon(ctx, [[tx, gy - 30], [tx - 17, gy + 3], [tx + 17, gy + 3]], "#d99b52", "#6b3e19", 1.5);
-      drawPolygon(ctx, [[tx, gy - 19], [tx - 10, gy - 6], [tx + 10, gy - 6]], "#b43c27");
-      drawPolygon(ctx, [[tx, gy - 9], [tx - 5, gy + 3], [tx + 5, gy + 3]], "#3b2110");
+    // Thatched Huts
+    const huts = Math.min(6, Math.max(2, (state.buildings.forager || 1) + 1));
+    for (let i = 0; i < huts; i++) {
+      const hx = 60 + i * 68;
+      ctx.fillStyle = "#b87d4b";
+      ctx.fillRect(hx - 14, gy - 15, 28, 18);
+      drawPolygon(ctx, [[hx, gy - 33], [hx - 19, gy - 14], [hx + 19, gy - 14]], "#e0a958", "#784719", 1.4);
+      ctx.fillStyle = "#3b2110";
+      ctx.fillRect(hx - 4, gy - 9, 8, 12);
     }
-    if ((state.buildings.megalith || 0) > 0 || hasWonder("w_stonehenge")) {
-      [170, 380, 585].forEach((mx) => {
-        ctx.fillStyle = "#7c8594";
-        ctx.fillRect(mx - 15, gy - 28, 8, 31);
-        ctx.fillRect(mx + 7, gy - 28, 8, 31);
-        ctx.fillStyle = "#9ca3af";
-        ctx.fillRect(mx - 19, gy - 35, 38, 7);
-        ctx.fillStyle = "#4d7c42";
-        ctx.fillRect(mx - 16, gy - 36, 20, 3);
-      });
-    }
-    // Campfires
-    [110, 330, 510].forEach((fx) => {
-      ctx.fillStyle = "#78716c";
-      ctx.fillRect(fx - 9, gy + 1, 18, 4);
-      drawPolygon(ctx, [[fx, gy - 15 - Math.sin(animTick * 6 + fx) * 3], [fx - 7, gy + 2], [fx + 7, gy + 2]], "#f97316");
-      drawPolygon(ctx, [[fx, gy - 9], [fx - 3, gy + 2], [fx + 3, gy + 2]], "#fde047");
-    });
-  } else if (era === 1 || era === 2) {
-    // Stepped Ziggurat
-    const zx = 115;
-    ctx.fillStyle = "#c28b46";
-    ctx.fillRect(zx - 44, gy - 22, 88, 25);
-    ctx.fillStyle = "#d49e54";
-    ctx.fillRect(zx - 32, gy - 40, 64, 18);
-    ctx.fillStyle = "#e3b268";
-    ctx.fillRect(zx - 20, gy - 54, 40, 14);
-    ctx.fillStyle = "#1d4ed8";
-    ctx.fillRect(zx - 9, gy - 64, 18, 10);
-    ctx.fillRect(zx - 4, gy - 54, 8, 57);
+    drawSkylineTag(ctx, 160, gy - 38, "🛖 Thatched Huts");
 
-    // Bronze Foundries
-    [210, 270].forEach((fx) => {
-      ctx.fillStyle = "#9a4b32";
-      ctx.fillRect(fx, gy - 26, 38, 29);
-      ctx.fillStyle = "#7c3722";
-      ctx.fillRect(fx + 6, gy - 40, 10, 14);
-      ctx.fillStyle = "#fb923c";
-      ctx.beginPath();
-      ctx.arc(fx + 19, gy - 3, 6, Math.PI, 0);
-      ctx.fill();
+    // Riverbank Farms & Granaries
+    if ((state.buildings.megalith || 0) > 0) {
+      [485, 560, 635].forEach((fx) => {
+        ctx.fillStyle = "#c28b46";
+        ctx.fillRect(fx - 14, gy - 24, 14, 27);
+        drawPolygon(ctx, [[fx - 7, gy - 34], [fx - 16, gy - 24], [fx + 2, gy - 24]], "#d97706");
+        ctx.fillStyle = "#facc15";
+        for (let wx = fx + 4; wx <= fx + 26; wx += 5) {
+          ctx.fillRect(wx, gy - 14, 3, 16);
+        }
+      });
+      drawSkylineTag(ctx, 560, gy - 40, "🌾 Riverbank Farms");
+    }
+
+    if (hasWonder("w_stonehenge")) {
+      const mx = 700;
+      ctx.fillStyle = "#7c8594";
+      ctx.fillRect(mx - 15, gy - 28, 8, 31);
+      ctx.fillRect(mx + 7, gy - 28, 8, 31);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillRect(mx - 19, gy - 35, 38, 7);
+      drawSkylineTag(ctx, mx, gy - 40, "🗿 Solstice Ring");
+    }
+  } else if (era === 1 || era === 2) {
+    // Walled Bazaar Quarter
+    const bx = 110;
+    ctx.fillStyle = "#d49e54";
+    ctx.fillRect(bx - 46, gy - 36, 92, 39);
+    ctx.fillStyle = "#e3b268";
+    ctx.fillRect(bx - 28, gy - 50, 56, 14);
+    ctx.fillStyle = "#451a03";
+    ctx.beginPath();
+    ctx.arc(bx, gy + 3, 11, Math.PI, 0);
+    ctx.fill();
+    // Striped bazaar awnings
+    [bx - 38, bx + 16].forEach((ax, idx) => {
+      drawPolygon(ctx, [[ax, gy - 18], [ax + 22, gy - 12], [ax, gy - 12]], idx === 0 ? "#dc2626" : "#2563eb");
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(ax + 2, gy - 12, 18, 15);
     });
+    drawSkylineTag(ctx, bx, gy - 56, "🏺 Walled Bazaar");
+
+    // Irrigation Canals & Levee Palms
+    const cx = 255;
+    ctx.fillStyle = "#d6d3d1";
+    ctx.fillRect(cx - 50, gy - 8, 100, 11);
+    ctx.fillStyle = "#0ea5e9";
+    ctx.fillRect(cx - 46, gy - 6, 92, 7);
+    [cx - 32, cx + 28].forEach((px) => {
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(px - 2, gy - 32, 4, 24);
+      drawPolygon(ctx, [[px, gy - 38], [px - 12, gy - 28], [px + 12, gy - 28]], "#15803d");
+    });
+    drawSkylineTag(ctx, cx, gy - 44, "🛶 Irrigation Canals");
 
     if (era === 2 || (state.buildings.aqueduct || 0) > 0) {
       ctx.fillStyle = "#d6d3d1";
-      ctx.fillRect(340, gy - 46, 250, 8);
+      ctx.fillRect(340, gy - 46, 235, 8);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(340, gy - 48, 250, 3);
-      for (let ax = 348; ax < 580; ax += 28) {
+      ctx.fillRect(340, gy - 48, 235, 3);
+      for (let ax = 348; ax < 565; ax += 28) {
         ctx.fillStyle = "#e7e5e4";
         ctx.fillRect(ax, gy - 38, 9, 41);
       }
+      drawSkylineTag(ctx, 455, gy - 54, "🌉 Stone Aqueduct");
     }
 
-    // Classical Marble Temple
+    // Classical Marble Forum
     const tx = 655;
     ctx.fillStyle = "#f5f5f4";
-    ctx.fillRect(tx - 36, gy - 6, 72, 9);
-    for (let cx = tx - 30; cx <= tx + 24; cx += 13) {
+    ctx.fillRect(tx - 38, gy - 6, 76, 9);
+    for (let colX = tx - 32; colX <= tx + 26; colX += 14) {
       ctx.fillStyle = "#e7e5e4";
-      ctx.fillRect(cx, gy - 34, 6, 28);
+      ctx.fillRect(colX, gy - 34, 6, 28);
     }
-    drawPolygon(ctx, [[tx, gy - 50], [tx - 40, gy - 34], [tx + 40, gy - 34]], "#dc2626", "#f5f5f4", 2);
+    drawPolygon(ctx, [[tx, gy - 50], [tx - 42, gy - 34], [tx + 42, gy - 34]], "#dc2626", "#f5f5f4", 2);
+    drawSkylineTag(ctx, tx, gy - 56, "🏛️ Marble Forum");
   } else if (era === 3 || era === 4) {
-    // Star Citadel Castle
-    const cx = 110;
+    // Old Town Charter Guildhall & Keep
+    const cx = 105;
     ctx.fillStyle = "#94a3b8";
     ctx.fillRect(cx - 40, gy - 46, 80, 49);
     ctx.fillStyle = "#cbd5e1";
@@ -2151,48 +2495,60 @@ function drawCityCanvas() {
     drawPolygon(ctx, [[cx + 35, gy - 90], [cx + 21, gy - 66], [cx + 49, gy - 66]], "#2563eb");
     ctx.fillStyle = "#451a03";
     ctx.fillRect(cx - 10, gy - 20, 20, 23);
+    drawSkylineTag(ctx, cx, gy - 94, "🏰 Charter Guildhall");
 
-    // Guild Houses across the middle
-    [205, 265, 330, 395].forEach((hx, idx) => {
-      ctx.fillStyle = idx % 2 === 0 ? "#fef3c7" : "#b45309";
-      ctx.fillRect(hx, gy - 34, 42, 37);
-      drawPolygon(ctx, [[hx + 21, gy - 52], [hx - 4, gy - 34], [hx + 46, gy - 34]], "#991b1b");
+    // River Watermills & Merchant Exchange Houses
+    [195, 260, 325, 390].forEach((hx, idx) => {
+      ctx.fillStyle = idx % 2 === 0 ? "#fef3c7" : "#c2410c";
+      ctx.fillRect(hx, gy - 34, 44, 37);
+      drawPolygon(ctx, [[hx + 22, gy - 52], [hx - 4, gy - 34], [hx + 48, gy - 34]], "#991b1b");
       ctx.fillStyle = "#fde047";
       ctx.fillRect(hx + 8, gy - 24, 7, 7);
-      ctx.fillRect(hx + 25, gy - 24, 7, 7);
+      ctx.fillRect(hx + 26, gy - 24, 7, 7);
     });
+    drawSkylineTag(ctx, 305, gy - 58, era === 4 ? "🏦 Merchant Exchange" : "⚙️ River Watermills");
 
-    // Renaissance Grand Observatory
-    const ox = 560;
+    // Civic University Dome
+    const ox = 565;
     ctx.fillStyle = "#d97706";
-    ctx.fillRect(ox - 34, gy - 42, 68, 45);
+    ctx.fillRect(ox - 40, gy - 42, 80, 45);
+    ctx.fillStyle = "#fef3c7";
+    for (let ux = ox - 30; ux <= ox + 22; ux += 16) {
+      ctx.fillRect(ux, gy - 34, 6, 30);
+    }
     ctx.fillStyle = "#10b981";
     ctx.beginPath();
     ctx.arc(ox, gy - 42, 28, Math.PI, 0);
     ctx.fill();
-    ctx.strokeStyle = "#fde047";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(ox + 6, gy - 56);
-    ctx.lineTo(ox + 26, gy - 72);
-    ctx.stroke();
+    ctx.fillStyle = "#fde047";
+    ctx.fillRect(ox - 3, gy - 78, 6, 8);
+    drawSkylineTag(ctx, ox, gy - 82, "🎓 Civic University");
   } else if (era === 5 || era === 6) {
-    // Red-Brick Steam Ironworks
+    // Municipal Coal Power Station
     ctx.fillStyle = "#991b1b";
-    ctx.fillRect(36, gy - 48, 100, 51);
+    ctx.fillRect(32, gy - 48, 96, 51);
     ctx.fillStyle = "#57534e";
-    ctx.fillRect(52, gy - 92, 12, 44);
-    ctx.fillRect(104, gy - 86, 12, 38);
+    ctx.fillRect(48, gy - 92, 12, 44);
+    ctx.fillRect(98, gy - 86, 12, 38);
     ctx.fillStyle = "rgba(214, 211, 209, 0.5)";
     const puffOffset = (animTick * 12) % 28;
     ctx.beginPath();
-    ctx.arc(58, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
-    ctx.arc(110, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
+    ctx.arc(54, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
+    ctx.arc(104, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
     ctx.fill();
+    drawSkylineTag(ctx, 80, gy - 102, "🏭 Power Station");
 
-    // High-rise blocks across center
-    [165, 235, 310, 390, 465].forEach((bx, idx) => {
-      const bh = 68 + (idx % 3) * 20;
+    // Grand Central Station & Downtown Blocks
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(150, gy - 44, 110, 47);
+    ctx.fillStyle = "#38bdf8";
+    ctx.beginPath();
+    ctx.arc(205, gy - 44, 42, Math.PI, 0);
+    ctx.fill();
+    drawSkylineTag(ctx, 205, gy - 90, "🚂 Grand Central Station");
+
+    [280, 350, 420].forEach((bx, idx) => {
+      const bh = 72 + (idx % 3) * 20;
       ctx.fillStyle = idx % 2 === 0 ? "#475569" : "#334155";
       ctx.fillRect(bx, gy - bh, 52, bh + 3);
       ctx.fillStyle = "#fef08a";
@@ -2204,14 +2560,21 @@ function drawCityCanvas() {
     });
 
     if (era === 6) {
-      drawPolygon(ctx, [[565, gy - 68], [552, gy + 3], [604, gy + 3], [591, gy - 68]], "#cbd5e1", "#94a3b8", 1);
+      // Nuclear Power Plant Cooling Tower & Reactor Dome
+      drawPolygon(ctx, [[518, gy - 68], [505, gy + 3], [555, gy + 3], [542, gy - 68]], "#cbd5e1", "#94a3b8", 1);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(565, gy - 22, 26, 8);
+      ctx.fillRect(518, gy - 22, 24, 8);
+      drawSkylineTag(ctx, 535, gy - 74, "⚛️ Nuclear Plant");
 
-      const rx = 675;
+      // International Airport Control Tower & Jetliner
+      const ax = 655;
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(ax - 7, gy - 82, 14, 85);
+      drawPolygon(ctx, [[ax - 18, gy - 96], [ax + 18, gy - 96], [ax + 11, gy - 82], [ax - 11, gy - 82]], "#0284c7");
       ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(rx - 8, gy - 84, 16, 68);
-      drawPolygon(ctx, [[rx, gy - 106], [rx - 8, gy - 84], [rx + 8, gy - 84]], "#ef4444");
+      ctx.fillRect(ax + 16, gy - 14, 44, 10);
+      drawPolygon(ctx, [[ax + 50, gy - 14], [ax + 60, gy - 28], [ax + 60, gy - 14]], "#2563eb");
+      drawSkylineTag(ctx, ax + 10, gy - 102, "✈️ Int'l Airport");
     }
   } else {
     // Information & Cyberpunk Panoramic Megacity Skyline
@@ -2254,6 +2617,18 @@ function drawCityCanvas() {
         }
       }
     });
+
+    // Elevated Maglev Transit Line across foreground
+    ctx.fillStyle = "rgba(148, 163, 184, 0.85)";
+    ctx.fillRect(0, gy - 18, w, 4);
+    const trainX = ((animTick * 90) % (w + 120)) - 60;
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(trainX, gy - 25, 58, 7);
+    ctx.fillStyle = "#06b6d4";
+    ctx.fillRect(trainX + 4, gy - 23, 50, 2.5);
+
+    drawSkylineTag(ctx, 225, gy - 162, era === 8 ? "🏙️ Neon Arcology Spires" : "🏢 Glass Financial Core");
+    drawSkylineTag(ctx, 540, gy - 148, era === 8 ? "🚀 Orbital Spaceport" : "🚄 Maglev Transit Hub");
   }
 
   if (hasWonder("w_orbital_elevator")) {
