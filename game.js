@@ -2119,6 +2119,13 @@ function enableHorizontalDragScroll(el) {
 
 function drawDistrictStripCanvas(cvs, b, count) {
   if (!cvs) return;
+  const visibleUnits = Math.min(60, count);
+  const wrapW = cvs.parentElement && cvs.parentElement.clientWidth > 0 ? cvs.parentElement.clientWidth : 680;
+  const targetCw = Math.max(wrapW, 680, visibleUnits * 40 + 135);
+  if (cvs.width !== targetCw) {
+    cvs.width = targetCw;
+  }
+
   const ctx = cvs.getContext("2d");
   const cw = cvs.width;
   const ch = cvs.height;
@@ -2167,10 +2174,12 @@ function drawDistrictStripCanvas(cvs, b, count) {
   ctx.fillStyle = ERAS[b.era].hillColors[0];
   ctx.beginPath();
   ctx.moveTo(0, ch - 14);
-  for (let hx = 0; hx <= cw; hx += 120) {
-    ctx.quadraticCurveTo(hx + 60, ch - 30, hx + 120, ch - 14);
+  let lastHx = 0;
+  for (let hx = 0; hx < cw; hx += 120) {
+    lastHx = hx + 120;
+    ctx.quadraticCurveTo(hx + 60, ch - 30, lastHx, ch - 14);
   }
-  ctx.lineTo(cw, ch);
+  ctx.lineTo(Math.max(cw, lastHx), ch);
   ctx.lineTo(0, ch);
   ctx.closePath();
   ctx.fill();
@@ -2194,7 +2203,6 @@ function drawDistrictStripCanvas(cvs, b, count) {
   }
 
   // 5. Draw all Animated Infrastructure Units along the strip
-  const visibleUnits = Math.min(60, count);
   const spacing = 40;
   for (let i = 0; i < visibleUnits; i++) {
     const ux = 28 + i * spacing;
@@ -2270,6 +2278,8 @@ function renderInfrastructureDistricts() {
     }
   });
 
+  const containerW = container.clientWidth > 0 ? container.clientWidth : 680;
+
   ownedBuildings.forEach((b) => {
     const count = state.buildings[b.id] || 0;
     const bCps = count * getBuildingSingleCps(b);
@@ -2277,7 +2287,7 @@ function renderInfrastructureDistricts() {
     const sharePct = shareNum.toFixed(1);
 
     const visibleUnits = Math.min(60, count);
-    const cw = Math.max(680, visibleUnits * 40 + 135);
+    const cw = Math.max(containerW, 680, visibleUnits * 40 + 135);
     const ch = 76;
 
     let strip = document.getElementById(`dist-strip-${b.id}`);
@@ -3270,7 +3280,8 @@ function drawCityCanvas() {
   const ownedDistricts = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
   const builtWonders = WONDERS.filter((w) => hasWonder(w.id));
   const extraDistricts = ownedDistricts.filter((b) => b.era < state.currentEra || (state.buildings[b.id] || 0) >= 5);
-  const targetWidth = Math.max(860, 780 + extraDistricts.length * 95 + builtWonders.length * 115);
+  const viewportW = canvas.parentElement && canvas.parentElement.clientWidth > 0 ? canvas.parentElement.clientWidth : 860;
+  const targetWidth = Math.max(viewportW, 860, 780 + extraDistricts.length * 95 + builtWonders.length * 115);
   if (canvas.width !== targetWidth) {
     canvas.width = targetWidth;
   }
@@ -3444,10 +3455,12 @@ function drawCityCanvas() {
   ctx.fillStyle = hills[0];
   ctx.beginPath();
   ctx.moveTo(0, h - 52);
+  let lastHill0X = 0;
   for (let hx = 0; hx < w; hx += 380) {
-    ctx.quadraticCurveTo(hx + 190, h - 104, hx + 380, h - 58);
+    lastHill0X = hx + 380;
+    ctx.quadraticCurveTo(hx + 190, h - 104, lastHill0X, h - 58);
   }
-  ctx.lineTo(w, h);
+  ctx.lineTo(Math.max(w, lastHill0X), h);
   ctx.lineTo(0, h);
   ctx.closePath();
   ctx.fill();
@@ -3455,10 +3468,12 @@ function drawCityCanvas() {
   ctx.fillStyle = hills[1];
   ctx.beginPath();
   ctx.moveTo(0, h - 38);
+  let lastHill1X = 0;
   for (let hx = 0; hx < w; hx += 340) {
-    ctx.quadraticCurveTo(hx + 170, h - 74, hx + 340, h - 40);
+    lastHill1X = hx + 340;
+    ctx.quadraticCurveTo(hx + 170, h - 74, lastHill1X, h - 40);
   }
-  ctx.lineTo(w, h);
+  ctx.lineTo(Math.max(w, lastHill1X), h);
   ctx.lineTo(0, h);
   ctx.closePath();
   ctx.fill();
