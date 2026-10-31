@@ -55,9 +55,6 @@
       <span id="era-badge" class="era-badge">STONE AGE</span>
       <div class="brand-titles">
         <h1>Clicktopolis</h1>
-        <button id="btn-rename-city" class="city-subtitle-btn" title="Click to rename your city">
-          <span id="city-title-display">Tribe of New Jericho</span> ✏️
-        </button>
       </div>
     </div>
 
@@ -83,18 +80,24 @@
   </header>
 
   <main class="game-layout">
-    <!-- Left Column: The City Core & Clicker -->
+    <!-- LEFT COLUMN: THE GIANT CP NUMBER & CLICKER SHRINE -->
     <section class="panel left-panel">
-      <div class="resource-header">
-        <div class="primary-counter">
-          <span id="res-amount" class="counter-value">0</span>
-          <span class="counter-unit">Civilization Points (CP)</span>
+      <button id="btn-rename-city" class="city-name-banner" title="Click to rename your civilization">
+        <span id="city-title-display">Tribe of New Jericho</span> <span class="edit-pen">✏️</span>
+      </button>
+
+      <div class="cp-hero-box" id="cp-hero-box">
+        <div class="cp-number-wrap">
+          <span id="res-amount" class="cp-giant-number">0</span>
+          <span class="cp-label-main">CIVILIZATION POINTS</span>
+        </div>
+        <div class="cp-rate-banner">
+          per second: <strong id="res-cps">0.0</strong>
         </div>
         <div class="sub-counters">
-          <div class="stat-pill">⚡ <span id="res-cps">0.0</span> / sec</div>
           <div class="stat-pill">🔨 <span id="res-cpc">1</span> / click</div>
           <div class="stat-pill">👥 Pop: <span id="res-pop">1</span></div>
-          <div class="stat-pill shard-pill" id="shard-pill" title="Permanent +10% CP/s per Time Shard">💎 <span id="res-shards">0</span> Shards</div>
+          <div class="stat-pill shard-pill" id="shard-pill" title="Permanent +10% CP/s per Time Shard">💎 <span id="res-shards">0</span></div>
         </div>
 
         <!-- Active Frenzy / Buff Banner -->
@@ -104,8 +107,9 @@
         </div>
       </div>
 
-      <div class="city-stage" id="city-stage">
-        <canvas id="city-canvas" width="560" height="280"></canvas>
+      <div class="clicker-sanctum" id="clicker-sanctum">
+        <div class="sanctum-rays"></div>
+        <div class="sanctum-ring-outer"></div>
 
         <!-- Combo / Momentum Indicator -->
         <div class="combo-overlay">
@@ -125,9 +129,6 @@
             <div class="clicker-caption" id="clicker-caption">Knap Flint</div>
           </button>
         </div>
-
-        <!-- Floating Golden Anomaly -->
-        <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a temporal boost!">✨</button>
       </div>
 
       <!-- Civilization Doctrine Selector -->
@@ -146,38 +147,46 @@
         </div>
       </div>
 
+      <div class="era-timeline" id="era-timeline"></div>
+    </section>
+
+    <!-- CENTER COLUMN: THE LIVING CITY PANORAMA & INFRASTRUCTURE DISTRICTS -->
+    <section class="panel center-panel">
       <div class="news-ticker">
         <span class="ticker-tag">CHRONICLE</span>
         <p id="news-text">Your tribe gathers around a flickering fire, dreaming of walls that touch the sky...</p>
       </div>
 
-      <div class="era-timeline" id="era-timeline"></div>
-    </section>
-
-    <!-- Center Column: Tech Upgrades, Wonders, Achievements & Stats -->
-    <section class="panel center-panel">
       <div class="tabs">
-        <button class="tab-btn active" data-tab="upgrades">🔬 Tech <span id="upgrade-badge" class="badge">0</span></button>
+        <button class="tab-btn active" data-tab="city">🏙️ City &amp; Infrastructure <span id="bld-total-badge" class="badge">0</span></button>
         <button class="tab-btn" data-tab="wonders">🏛️ Wonders <span id="wonder-badge" class="badge">0/?</span></button>
         <button class="tab-btn" data-tab="achievements">🏆 Achievements <span id="ach-badge" class="badge">0/0</span></button>
         <button class="tab-btn" data-tab="stats">📊 Archives</button>
       </div>
 
-      <!-- Upgrades View -->
-      <div class="tab-content active" id="tab-upgrades">
-        <div class="section-subtitle">
-          <span>Available Technologies</span>
-          <button id="btn-buy-all-upgrades" class="mini-btn">⚡ Research All Affordable</button>
+      <!-- TAB 1 (DEFAULT): LIVING CITY PANORAMA & VISUAL INFRASTRUCTURE DISTRICTS -->
+      <div class="tab-content active" id="tab-city">
+        <div class="city-panorama-frame" id="city-stage">
+          <canvas id="city-canvas" width="760" height="230"></canvas>
+          <div class="panorama-overlay-label">
+            <span id="panorama-era-title">Stone Age Settlement</span>
+            <span id="panorama-cps-share">Total Output: 0.0 CP/s</span>
+          </div>
+          <!-- Floating Golden Anomaly -->
+          <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a temporal boost!">✨</button>
         </div>
-        <div id="upgrades-list" class="upgrades-grid"></div>
 
-        <div class="section-subtitle" style="margin-top: 18px;">
-          <span>Researched Technologies (<span id="researched-count">0</span>)</span>
+        <div class="section-subtitle" style="margin-top: 14px;">
+          <span>🏗️ Constructed Infrastructure Districts</span>
+          <span id="districts-summary-note" style="font-size:0.74rem;color:var(--text-muted);text-transform:none;">Construct buildings on the right to expand your city districts</span>
         </div>
-        <div id="researched-list" class="researched-chips"></div>
+
+        <div id="infrastructure-districts" class="infrastructure-districts">
+          <!-- Populated dynamically with visual building strips (like Cookie Clicker rows!) -->
+        </div>
       </div>
 
-      <!-- Wonders View -->
+      <!-- TAB 2: WONDERS VIEW -->
       <div class="tab-content" id="tab-wonders">
         <div class="ach-summary">
           <div>
@@ -188,7 +197,7 @@
         <div id="wonders-grid" class="wonders-grid"></div>
       </div>
 
-      <!-- Achievements View -->
+      <!-- TAB 3: ACHIEVEMENTS VIEW -->
       <div class="tab-content" id="tab-achievements">
         <div class="ach-summary">
           <div>
@@ -205,16 +214,33 @@
         <div id="achievements-grid" class="achievements-grid"></div>
       </div>
 
-      <!-- Stats View -->
+      <!-- TAB 4: STATS / ARCHIVES VIEW -->
       <div class="tab-content" id="tab-stats">
         <div class="stats-card" id="stats-container"></div>
+        <div class="section-subtitle" style="margin-top: 18px;">
+          <span>🔬 Researched Technologies (<span id="researched-count">0</span>)</span>
+        </div>
+        <div id="researched-list" class="researched-chips"></div>
       </div>
     </section>
 
-    <!-- Right Column: City Buildings Store -->
+    <!-- RIGHT COLUMN: COOKIE-CLICKER STYLE STORE (UPGRADES TRAY + INFRASTRUCTURE SHOP) -->
     <section class="panel right-panel">
+      <!-- Top Upgrades Tray -->
+      <div class="store-upgrades-section">
+        <div class="store-subheader">
+          <span>🔬 Research &amp; Upgrades (<span id="upgrade-badge">0</span>)</span>
+          <button id="btn-buy-all-upgrades" class="mini-btn">Buy All</button>
+        </div>
+        <div id="upgrades-tray" class="upgrades-tray"></div>
+        <div id="upgrade-inspector" class="upgrade-inspector">
+          Hover over an upgrade tile above to inspect its effect and cost.
+        </div>
+      </div>
+
+      <!-- Bottom Buildings Store -->
       <div class="store-header">
-        <h2>🏗️ City Infrastructure</h2>
+        <h2>🏗️ Build Infrastructure</h2>
         <div class="buy-mode-group" role="group" aria-label="Buy multiplier">
           <button class="buy-mode-btn active" data-qty="1">1x</button>
           <button class="buy-mode-btn" data-qty="10">10x</button>

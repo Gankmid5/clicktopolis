@@ -177,7 +177,6 @@ const ERAS = [
   }
 ];
 
-// Slower-paced, deliberate building progression (cost scaling r = 1.18)
 const BUILDINGS = [
   // Era 0: Stone Age
   { id: "forager", name: "Forager Camp", era: 0, icon: "⛺", baseCost: 15, baseCps: 0.2, pop: 3, desc: "Nimble gatherers harvesting wild roots, flint, and timber." },
@@ -804,7 +803,6 @@ function getBuildingDiscount() {
   return hasWonder("w_cathedral") ? 0.92 : 1.0;
 }
 
-// Slower cost scaling r = 1.18
 function getBuildingBulkCost(b, count) {
   const owned = state.buildings[b.id] || 0;
   const r = 1.18;
@@ -831,10 +829,10 @@ function getPurchasePlan(b) {
 }
 
 // ============================================================================
-// PRODUCTION, DOCTRINE, WONDER & COMBO CALCULATIONS (SLOWER PACED)
+// PRODUCTION, DOCTRINE, WONDER & COMBO CALCULATIONS
 // ============================================================================
 function getMaxComboBonus() {
-  return hasWonder("w_colossus") ? 1.0 : 0.5; // 1.50x max base, 2.00x with Flavian Amphitheater
+  return hasWonder("w_colossus") ? 1.0 : 0.5;
 }
 
 function getComboMultiplier() {
@@ -842,7 +840,7 @@ function getComboMultiplier() {
 }
 
 function getCritChance() {
-  let chance = 0.05; // 5% base
+  let chance = 0.05;
   if (state.doctrine === "industrious") chance += 0.04;
   if (hasWonder("w_stonehenge")) chance += 0.03;
   if (hasWonder("w_workshop")) chance += 0.04;
@@ -851,9 +849,7 @@ function getCritChance() {
 
 function getGlobalMultiplier() {
   let mult = 1;
-  // +1% per achievement
   mult *= 1 + state.achievements.length * 0.01;
-  // +10% per Time Shard
   mult *= 1 + state.shards * 0.10;
 
   if (state.doctrine === "balanced") mult *= 1.10;
@@ -987,6 +983,7 @@ function checkEraProgression() {
     applyEraTheme();
     checkProximityReveals();
     renderBuildingsList();
+    renderInfrastructureDistricts();
     renderUpgrades();
     renderWonders();
     renderAchievements();
@@ -1028,13 +1025,22 @@ function renderEraTimeline() {
 function updateTopHUD() {
   const cps = getTotalCps();
   const cpc = getClickPower();
-  document.getElementById("res-amount").textContent = formatNum(state.cp, 1);
+  const resEl = document.getElementById("res-amount");
+  resEl.textContent = formatNum(state.cp, state.cp < 100 ? 1 : 0);
   document.getElementById("res-cps").textContent = formatNum(cps, 1);
   document.getElementById("res-cpc").textContent = formatNum(cpc, 1);
   document.getElementById("res-pop").textContent = formatNum(getPopulation(), 0);
   document.getElementById("res-shards").textContent = formatNum(state.shards, 0);
   document.getElementById("pending-shards").textContent = `+${formatNum(getPendingShards(), 0)}`;
   document.getElementById("city-title-display").textContent = getFullCityTitle();
+
+  // Panorama overlay label
+  const panEraEl = document.getElementById("panorama-era-title");
+  if (panEraEl) panEraEl.textContent = `${ERAS[state.currentEra].icon} ${getFullCityTitle()} (${ERAS[state.currentEra].name})`;
+  const panCpsEl = document.getElementById("panorama-cps-share");
+  if (panCpsEl) panCpsEl.textContent = `City Output: +${formatNum(cps, 1)} CP/s`;
+
+  document.getElementById("bld-total-badge").textContent = getTotalBuildings();
 
   document.getElementById("combo-mult").textContent = `${getComboMultiplier().toFixed(2)}x`;
   document.getElementById("combo-bar-fill").style.width = `${(comboVal * 100).toFixed(0)}%`;
@@ -1067,7 +1073,236 @@ function updateTopHUD() {
 }
 
 // ============================================================================
-// STORE, UPGRADES, WONDERS & ACHIEVEMENTS (WITH SPOILER PROTECTION)
+// VISUAL INFRASTRUCTURE DISTRICTS (Cookie Clicker-Style Building Rows!)
+// ============================================================================
+function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
+  switch (bId) {
+    case "forager":
+      // Warm tan hide tent + pine tree
+      drawPolygon(ctx, [[x, gy - 26], [x - 13, gy], [x + 13, gy]], "#d99b52", "#6b3e19", 1.2);
+      drawPolygon(ctx, [[x, gy - 16], [x - 8, gy - 5], [x + 8, gy - 5]], "#b43c27");
+      drawPolygon(ctx, [[x, gy - 8], [x - 4, gy], [x + 4, gy]], "#3b2110");
+      break;
+    case "megalith":
+      // Granite standing stone trilithon
+      ctx.fillStyle = "#7c8594";
+      ctx.fillRect(x - 11, gy - 22, 6, 22);
+      ctx.fillRect(x + 5, gy - 22, 6, 22);
+      ctx.fillStyle = "#9ca3af";
+      ctx.fillRect(x - 14, gy - 28, 28, 6);
+      ctx.fillStyle = "#4d7c42";
+      ctx.fillRect(x - 12, gy - 29, 16, 2);
+      break;
+    case "foundry":
+      // Mud-brick kiln + glowing bronze crucible
+      ctx.fillStyle = "#9a4b32";
+      ctx.fillRect(x - 13, gy - 22, 26, 22);
+      ctx.fillStyle = "#7c3722";
+      ctx.fillRect(x - 5, gy - 32, 10, 10);
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath();
+      ctx.arc(x, gy - 4, 5, Math.PI, 0);
+      ctx.fill();
+      break;
+    case "ziggurat":
+      // Golden stepped ziggurat + lapis blue stairs
+      ctx.fillStyle = "#c28b46";
+      ctx.fillRect(x - 16, gy - 10, 32, 10);
+      ctx.fillStyle = "#d49e54";
+      ctx.fillRect(x - 11, gy - 20, 22, 10);
+      ctx.fillStyle = "#e3b268";
+      ctx.fillRect(x - 7, gy - 28, 14, 8);
+      ctx.fillStyle = "#1d4ed8";
+      ctx.fillRect(x - 3, gy - 33, 6, 33);
+      break;
+    case "aqueduct":
+      // Roman stone arch segment with water channel
+      ctx.fillStyle = "#d6d3d1";
+      ctx.fillRect(x - 18, gy - 28, 36, 6);
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x - 18, gy - 30, 36, 3);
+      ctx.fillStyle = "#e7e5e4";
+      ctx.fillRect(x - 14, gy - 22, 7, 22);
+      ctx.fillRect(x + 7, gy - 22, 7, 22);
+      break;
+    case "academy":
+      // Classical marble temple with red pediment
+      ctx.fillStyle = "#f5f5f4";
+      ctx.fillRect(x - 15, gy - 4, 30, 4);
+      ctx.fillRect(x - 12, gy - 22, 4, 18);
+      ctx.fillRect(x - 2, gy - 22, 4, 18);
+      ctx.fillRect(x + 8, gy - 22, 4, 18);
+      drawPolygon(ctx, [[x, gy - 32], [x - 17, gy - 22], [x + 17, gy - 22]], "#dc2626", "#f5f5f4", 1.2);
+      break;
+    case "watermill":
+      // Timber house + waterwheel
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillRect(x - 14, gy - 22, 22, 22);
+      drawPolygon(ctx, [[x - 3, gy - 33], [x - 16, gy - 22], [x + 10, gy - 22]], "#991b1b");
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x + 10, gy - 8, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "citadel":
+      // Stone castle keep with blue turret roofs
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(x - 14, gy - 26, 28, 26);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(x - 16, gy - 34, 8, 34);
+      ctx.fillRect(x + 8, gy - 34, 8, 34);
+      drawPolygon(ctx, [[x - 12, gy - 44], [x - 17, gy - 34], [x - 7, gy - 34]], "#2563eb");
+      drawPolygon(ctx, [[x + 12, gy - 44], [x + 7, gy - 34], [x + 17, gy - 34]], "#2563eb");
+      break;
+    case "press":
+      // Renaissance printing guildhall
+      ctx.fillStyle = "#b45309";
+      ctx.fillRect(x - 14, gy - 26, 28, 26);
+      drawPolygon(ctx, [[x, gy - 38], [x - 16, gy - 26], [x + 16, gy - 26]], "#7c2d12");
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(x - 8, gy - 18, 5, 6);
+      ctx.fillRect(x + 3, gy - 18, 5, 6);
+      break;
+    case "observatory":
+      // Copper dome observatory + brass telescope
+      ctx.fillStyle = "#d97706";
+      ctx.fillRect(x - 13, gy - 20, 26, 20);
+      ctx.fillStyle = "#10b981";
+      ctx.beginPath();
+      ctx.arc(x, gy - 20, 13, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, gy - 26);
+      ctx.lineTo(x + 13, gy - 36);
+      ctx.stroke();
+      break;
+    case "steamworks":
+      // Red brick factory + smokestack
+      ctx.fillStyle = "#991b1b";
+      ctx.fillRect(x - 15, gy - 24, 30, 24);
+      ctx.fillStyle = "#57534e";
+      ctx.fillRect(x + 6, gy - 42, 6, 18);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(x - 10, gy - 14, 6, 8);
+      ctx.fillRect(x - 1, gy - 14, 6, 8);
+      break;
+    case "railhub":
+      // Iron locomotive engine
+      ctx.fillStyle = "#1f2937";
+      ctx.fillRect(x - 14, gy - 18, 26, 14);
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(x - 14, gy - 6, 28, 4);
+      ctx.fillStyle = "#374151";
+      ctx.fillRect(x + 4, gy - 26, 5, 8);
+      break;
+    case "fission":
+      // Hyperbolic nuclear cooling tower + Cherenkov glow
+      drawPolygon(ctx, [[x - 8, gy - 34], [x - 13, gy], [x + 13, gy], [x + 8, gy - 34]], "#cbd5e1");
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x - 8, gy - 12, 16, 4);
+      break;
+    case "cosmodrome":
+      // White orbital rocket on launchpad
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(x - 5, gy - 36, 10, 32);
+      drawPolygon(ctx, [[x, gy - 46], [x - 5, gy - 36], [x + 5, gy - 36]], "#ef4444");
+      drawPolygon(ctx, [[x - 5, gy - 12], [x - 10, gy], [x - 5, gy]], "#ef4444");
+      drawPolygon(ctx, [[x + 5, gy - 12], [x + 10, gy], [x + 5, gy]], "#ef4444");
+      break;
+    case "fab":
+    case "quantum":
+      // High-tech cyan/teal server & silicon complex
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(x - 14, gy - 30, 28, 30);
+      ctx.strokeStyle = bId === "fab" ? "#2dd4bf" : "#38bdf8";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x - 14, gy - 30, 28, 30);
+      ctx.fillStyle = bId === "fab" ? "#2dd4bf" : "#38bdf8";
+      ctx.fillRect(x - 9, gy - 22, 18, 3);
+      ctx.fillRect(x - 9, gy - 14, 18, 3);
+      break;
+    default:
+      // Cyberpunk Neon Arcology / Orbital Node
+      ctx.fillStyle = "#1e1b4b";
+      ctx.fillRect(x - 13, gy - 42, 26, 42);
+      ctx.strokeStyle = idx % 2 === 0 ? "#f43f5e" : "#06b6d4";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x - 13, gy - 42, 26, 42);
+      ctx.fillStyle = "#fde047";
+      for (let wy = gy - 36; wy < gy - 4; wy += 8) {
+        ctx.fillRect(x - 7, wy, 4, 4);
+        ctx.fillRect(x + 3, wy, 4, 4);
+      }
+      break;
+  }
+}
+
+function renderInfrastructureDistricts() {
+  const container = document.getElementById("infrastructure-districts");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const totalCps = getTotalCps();
+  const ownedBuildings = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
+
+  if (ownedBuildings.length === 0) {
+    container.innerHTML = `<div class="district-empty">🔨 Click the Stone Age emblem on the left to gather your first <strong>15 CP</strong>, then construct a <strong>Forager Camp</strong> on the right to establish your first City District!</div>`;
+    return;
+  }
+
+  ownedBuildings.forEach((b) => {
+    const count = state.buildings[b.id] || 0;
+    const bCps = count * getBuildingSingleCps(b);
+    const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
+
+    const strip = document.createElement("div");
+    strip.className = "district-strip";
+    strip.innerHTML = `
+      <div class="district-strip-header">
+        <div class="district-title-group">
+          <span>${b.icon} ${b.name} District</span>
+          <span class="district-count-pill">x${count}</span>
+        </div>
+        <div class="district-stats-group">
+          <span class="district-cps">+${formatNum(bCps, 1)} CP/s</span>
+          <span class="district-share">(${sharePct}%)</span>
+        </div>
+      </div>
+      <canvas class="district-canvas" width="680" height="64"></canvas>
+    `;
+    container.appendChild(strip);
+
+    // Draw the custom visual strip for this building type
+    const cvs = strip.querySelector("canvas");
+    const ctx = cvs.getContext("2d");
+    const cw = cvs.width;
+    const ch = cvs.height;
+    const eraColors = ERAS[b.era].skyColors;
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
+    bgGrad.addColorStop(0, eraColors[0]);
+    bgGrad.addColorStop(1, eraColors[1]);
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Ground strip
+    ctx.fillStyle = b.era >= 5 ? "#27272a" : "#3f5232";
+    ctx.fillRect(0, ch - 12, cw, 12);
+
+    // Draw up to 16 visual units across the strip
+    const visibleUnits = Math.min(16, count);
+    const spacing = Math.min(40, (cw - 40) / Math.max(1, visibleUnits));
+    for (let i = 0; i < visibleUnits; i++) {
+      const ux = 28 + i * spacing;
+      drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 10, i);
+    }
+  });
+}
+
+// ============================================================================
+// RIGHT PANEL: UPGRADES TRAY & BUILDINGS SHOP (WITH SPOILER PROTECTION)
 // ============================================================================
 function renderBuildingsList() {
   const list = document.getElementById("buildings-list");
@@ -1160,16 +1395,44 @@ function buyBuilding(bId) {
 
   checkProximityReveals();
   renderBuildingsList();
+  renderInfrastructureDistricts();
   renderUpgrades();
   checkAchievements();
   updateTopHUD();
 }
 
+function setUpgradeInspector(u, isMystery = false, reqMet = false) {
+  const insp = document.getElementById("upgrade-inspector");
+  if (!insp) return;
+  if (isMystery) {
+    insp.innerHTML = `
+      <div class="insp-top">
+        <span>🔭 Undiscovered Breakthrough</span>
+        <span class="insp-cost">🔒 Shrouded</span>
+      </div>
+      <div>${reqMet ? `Gather ~${formatNum(Math.ceil(u.cost * 0.5))} CP to unveil this technology.` : "Construct more infrastructure to inspire new research."}</div>
+    `;
+    return;
+  }
+  if (!u) {
+    insp.textContent = "Hover over an upgrade tile above to inspect its effect and cost.";
+    return;
+  }
+  insp.innerHTML = `
+    <div class="insp-top">
+      <span>${u.icon} ${u.name}</span>
+      <span class="insp-cost">⚡ ${formatNum(u.cost)} CP</span>
+    </div>
+    <div>${u.desc}</div>
+  `;
+}
+
 function renderUpgrades() {
-  const container = document.getElementById("upgrades-list");
+  const tray = document.getElementById("upgrades-tray");
   const researchedContainer = document.getElementById("researched-list");
-  container.innerHTML = "";
-  researchedContainer.innerHTML = "";
+  if (!tray) return;
+  tray.innerHTML = "";
+  if (researchedContainer) researchedContainer.innerHTML = "";
 
   const available = UPGRADES.filter(
     (u) => !state.upgrades.includes(u.id) && (state.revealedUpgrades || []).includes(u.id)
@@ -1181,51 +1444,49 @@ function renderUpgrades() {
   ).sort((a, b) => a.cost - b.cost)[0];
 
   document.getElementById("upgrade-badge").textContent = available.length;
-  document.getElementById("researched-count").textContent = state.upgrades.length;
+  const resCntEl = document.getElementById("researched-count");
+  if (resCntEl) resCntEl.textContent = state.upgrades.length;
 
   available.forEach((u) => {
     const canAfford = state.cp >= u.cost;
-    const card = document.createElement("button");
-    card.className = `upgrade-card ${canAfford ? "affordable" : "locked"}`;
-    card.id = `upg-card-${u.id}`;
-    card.onclick = () => buyUpgrade(u.id);
-    card.innerHTML = `
-      <div class="upg-icon">${u.icon}</div>
-      <div class="upg-info">
-        <div class="upg-name">${u.name}</div>
-        <div class="upg-desc">${u.desc}</div>
-        <div class="upg-cost">⚡ ${formatNum(u.cost)} CP</div>
-      </div>
-    `;
-    container.appendChild(card);
+    const tile = document.createElement("button");
+    tile.className = `upgrade-tile ${canAfford ? "affordable" : "locked"}`;
+    tile.id = `upg-card-${u.id}`;
+    tile.textContent = u.icon;
+    tile.onmouseenter = () => setUpgradeInspector(u);
+    tile.onfocus = () => setUpgradeInspector(u);
+    tile.onclick = () => buyUpgrade(u.id);
+    tray.appendChild(tile);
   });
 
   if (nextHidden) {
-    const mysteryCard = document.createElement("div");
-    mysteryCard.className = "upgrade-card mystery";
     const reqMet = nextHidden.req(state);
-    mysteryCard.innerHTML = `
-      <div class="upg-icon">🔭</div>
-      <div class="upg-info">
-        <div class="upg-name">Undiscovered Breakthrough</div>
-        <div class="upg-desc">${reqMet ? `Gather ~${formatNum(Math.ceil(nextHidden.cost * 0.5))} CP to unveil this research.` : "Expand your city infrastructure to inspire new discoveries."}</div>
-        <div class="upg-cost">🔒 Shrouded Technology</div>
-      </div>
-    `;
-    container.appendChild(mysteryCard);
-  } else if (available.length === 0) {
-    container.innerHTML = `<div style="color:var(--text-muted);font-size:0.84rem;grid-column:1/-1;">All known technologies for this Epoch have been researched! Advance to the next Epoch to uncover more.</div>`;
+    const mTile = document.createElement("div");
+    mTile.className = "upgrade-tile mystery";
+    mTile.textContent = "🔭";
+    mTile.onmouseenter = () => setUpgradeInspector(nextHidden, true, reqMet);
+    tray.appendChild(mTile);
   }
 
-  state.upgrades.forEach((uId) => {
-    const u = UPGRADES.find((x) => x.id === uId);
-    if (!u) return;
-    const chip = document.createElement("div");
-    chip.className = "researched-chip";
-    chip.title = u.desc;
-    chip.textContent = `${u.icon} ${u.name}`;
-    researchedContainer.appendChild(chip);
-  });
+  if (available.length > 0) {
+    setUpgradeInspector(available[0]);
+  } else if (nextHidden) {
+    setUpgradeInspector(nextHidden, true, nextHidden.req(state));
+  } else {
+    setUpgradeInspector(null);
+  }
+
+  if (researchedContainer) {
+    state.upgrades.forEach((uId) => {
+      const u = UPGRADES.find((x) => x.id === uId);
+      if (!u) return;
+      const chip = document.createElement("div");
+      chip.className = "researched-chip";
+      chip.title = u.desc;
+      chip.textContent = `${u.icon} ${u.name}`;
+      researchedContainer.appendChild(chip);
+    });
+  }
 }
 
 function updateUpgradesAffordability() {
@@ -1249,6 +1510,7 @@ function buyUpgrade(uId) {
   checkProximityReveals();
   renderUpgrades();
   renderBuildingsList();
+  renderInfrastructureDistricts();
   checkAchievements();
   updateTopHUD();
 }
@@ -1354,6 +1616,7 @@ function buyWonder(wId) {
   showToast(w.icon, `World Wonder Erected: ${w.name}!`, w.effectText);
   renderWonders();
   renderBuildingsList();
+  renderInfrastructureDistricts();
   checkAchievements();
   updateTopHUD();
 }
@@ -1488,16 +1751,21 @@ function handleMainClick(e) {
   state.totalClicks += 1;
   if (isCrit) state.totalCrits = (state.totalCrits || 0) + 1;
 
+  // Pop the giant CP counter so every click feels directly connected to the big number!
+  const resEl = document.getElementById("res-amount");
+  resEl.classList.add("pop");
+  setTimeout(() => resEl.classList.remove("pop"), 75);
+
   const rect = e.currentTarget.getBoundingClientRect();
   const x = e.clientX || rect.left + rect.width / 2;
   const y = e.clientY || rect.top + rect.height / 2;
   spawnFloatingText(x, y, isCrit ? `💥 CRIT! +${formatNum(gain)}` : `+${formatNum(gain)}`, isCrit);
 
   canvasRipples.push({
-    x: 280,
-    y: 140,
-    r: 35,
-    maxR: isCrit ? 220 : 145,
+    x: 380,
+    y: 115,
+    r: 25,
+    maxR: isCrit ? 240 : 150,
     alpha: 0.75,
     color: isCrit ? "#fde047" : "#f97316"
   });
@@ -1505,8 +1773,8 @@ function handleMainClick(e) {
     const angle = Math.random() * Math.PI * 2;
     const speed = 1.5 + Math.random() * 3.5;
     canvasSparks.push({
-      x: 280,
-      y: 140,
+      x: 380,
+      y: 115,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       life: 1.0,
@@ -1578,33 +1846,33 @@ function handleAnomalyClick(e) {
 }
 
 // ============================================================================
-// FULL-COLOR ILLUSTRATED CITY DIORAMA CANVAS (NO SHADOW SILHOUETTES!)
+// FULL-COLOR ILLUSTRATED GRAND CITY PANORAMA CANVAS (760x230)
 // ============================================================================
-const stars = Array.from({ length: 36 }, () => ({
-  x: Math.random() * 560,
-  y: Math.random() * 120,
+const stars = Array.from({ length: 48 }, () => ({
+  x: Math.random() * 760,
+  y: Math.random() * 110,
   size: Math.random() > 0.7 ? 2 : 1.2,
   phase: Math.random() * Math.PI * 2
 }));
 
-const clouds = Array.from({ length: 5 }, (_, idx) => ({
-  x: idx * 120 + Math.random() * 40,
-  y: 22 + (idx % 3) * 20,
-  w: 48 + Math.random() * 32,
+const clouds = Array.from({ length: 6 }, (_, idx) => ({
+  x: idx * 130 + Math.random() * 40,
+  y: 22 + (idx % 3) * 18,
+  w: 54 + Math.random() * 34,
   speed: 0.12 + Math.random() * 0.12
 }));
 
-const vehicles = Array.from({ length: 12 }, () => ({
-  x: Math.random() * 560,
-  y: 35 + Math.random() * 115,
-  speed: 0.8 + Math.random() * 1.5,
+const vehicles = Array.from({ length: 14 }, () => ({
+  x: Math.random() * 760,
+  y: 35 + Math.random() * 100,
+  speed: 0.9 + Math.random() * 1.6,
   dir: Math.random() > 0.5 ? 1 : -1,
   color: Math.random() > 0.5 ? "#06b6d4" : "#f43f5e"
 }));
 
-const rainDrops = Array.from({ length: 40 }, () => ({
-  x: Math.random() * 560,
-  y: Math.random() * 280,
+const rainDrops = Array.from({ length: 50 }, () => ({
+  x: Math.random() * 760,
+  y: Math.random() * 230,
   len: 8 + Math.random() * 10,
   speed: 4 + Math.random() * 3
 }));
@@ -1655,23 +1923,22 @@ function drawCityCanvas() {
   animTick += 0.05;
 
   // 1. Rich 3-Stop Sky Gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, h - 40);
+  const grad = ctx.createLinearGradient(0, 0, 0, h - 36);
   grad.addColorStop(0, sky[0]);
   grad.addColorStop(0.55, sky[1]);
   grad.addColorStop(1, sky[2]);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // 2. Celestial Sun / Moon & Stars
+  // 2. Stars & Glowing Sun / Cyber Moon
   stars.forEach((st) => {
     const alpha = 0.2 + 0.45 * Math.sin(animTick + st.phase);
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
     ctx.fillRect(st.x, st.y, st.size, st.size);
   });
 
-  // Glowing Sun or Cyber Moon
-  const sunX = 465;
-  const sunY = 54;
+  const sunX = 640;
+  const sunY = 48;
   const sunGrad = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, 34);
   if (era === 8) {
     sunGrad.addColorStop(0, "#f43f5e");
@@ -1687,7 +1954,6 @@ function drawCityCanvas() {
   ctx.arc(sunX, sunY, 34, 0, Math.PI * 2);
   ctx.fill();
 
-  // Drifting Clouds (Era 0 - 7)
   if (era < 8) {
     clouds.forEach((c) => {
       c.x += c.speed;
@@ -1699,12 +1965,12 @@ function drawCityCanvas() {
     });
   }
 
-  // 3. Layered Colored Background Hills & Valley Terrain
+  // 3. Layered Colored Background Hills
   ctx.fillStyle = hills[0];
   ctx.beginPath();
-  ctx.moveTo(0, h - 55);
-  ctx.quadraticCurveTo(140, h - 105, 290, h - 68);
-  ctx.quadraticCurveTo(430, h - 110, w, h - 62);
+  ctx.moveTo(0, h - 52);
+  ctx.quadraticCurveTo(190, h - 102, 380, h - 64);
+  ctx.quadraticCurveTo(580, h - 108, w, h - 58);
   ctx.lineTo(w, h);
   ctx.lineTo(0, h);
   ctx.closePath();
@@ -1712,316 +1978,249 @@ function drawCityCanvas() {
 
   ctx.fillStyle = hills[1];
   ctx.beginPath();
-  ctx.moveTo(0, h - 42);
-  ctx.quadraticCurveTo(190, h - 78, 360, h - 48);
-  ctx.quadraticCurveTo(470, h - 72, w, h - 44);
+  ctx.moveTo(0, h - 38);
+  ctx.quadraticCurveTo(250, h - 74, 480, h - 44);
+  ctx.quadraticCurveTo(630, h - 68, w, h - 40);
   ctx.lineTo(w, h);
   ctx.lineTo(0, h);
   ctx.closePath();
   ctx.fill();
 
-  // Ground Terrace & Shimmering River Foreground
+  // Ground Terrace & Road
   ctx.fillStyle = era >= 5 ? "#333942" : "#4d6b3c";
-  ctx.fillRect(0, h - 46, w, 24);
+  ctx.fillRect(0, h - 42, w, 22);
 
-  // Road / Promenade Strip
   ctx.fillStyle = era === 0 ? "#7c5836" : era <= 4 ? "#9ca3af" : "#1f2937";
-  ctx.fillRect(0, h - 30, w, 8);
+  ctx.fillRect(0, h - 28, w, 8);
   if (era >= 5) {
     ctx.fillStyle = era === 8 ? "#06b6d4" : "#fbbf24";
     for (let rx = 10; rx < w; rx += 28) {
-      ctx.fillRect(rx, h - 27, 12, 2);
+      ctx.fillRect(rx, h - 25, 12, 2);
     }
   }
 
-  // River at the bottom edge
-  const riverGrad = ctx.createLinearGradient(0, h - 22, 0, h);
+  // River Foreground
+  const riverGrad = ctx.createLinearGradient(0, h - 20, 0, h);
   riverGrad.addColorStop(0, era === 8 ? "#0e2942" : "#1d5c86");
   riverGrad.addColorStop(1, era === 8 ? "#1c1236" : "#0f3754");
   ctx.fillStyle = riverGrad;
-  ctx.fillRect(0, h - 22, w, 22);
+  ctx.fillRect(0, h - 20, w, 20);
 
-  // Animated water ripples
   ctx.fillStyle = era === 8 ? "rgba(6, 182, 212, 0.35)" : "rgba(186, 230, 253, 0.35)";
   for (let wx = 15; wx < w; wx += 45) {
     const offset = Math.sin(animTick * 2 + wx) * 6;
-    ctx.fillRect(wx + offset, h - 14 + (wx % 7), 18, 2);
+    ctx.fillRect(wx + offset, h - 13 + (wx % 6), 18, 2);
   }
 
-  // 4. FULL-COLOR ILLUSTRATED BUILDINGS BY ERA & OWNERSHIP
-  const gy = h - 44; // Ground baseline for buildings
+  // 4. FULL-COLOR PANORAMIC CITY ARCHITECTURE ACROSS THE ENTIRE SKYLINE
+  const gy = h - 40;
 
-  // Trees in earlier eras
   if (era <= 4) {
-    drawTree(ctx, 22, gy + 4, 0.9, "pine");
-    drawTree(ctx, 155, gy + 2, 0.85, "round");
-    drawTree(ctx, 415, gy + 3, 0.85, "pine");
-    drawTree(ctx, 535, gy + 4, 0.9, "round");
+    [28, 135, 290, 440, 610, 725].forEach((tx, idx) => {
+      drawTree(ctx, tx, gy + 3, 0.85, idx % 2 === 0 ? "pine" : "round");
+    });
   }
 
-  // --- ERA 0: STONE AGE STRUCTURES ---
   if (era === 0) {
-    const tents = Math.min(6, Math.max(1, state.buildings.forager || 1));
+    const tents = Math.min(9, Math.max(2, (state.buildings.forager || 1) + 1));
     for (let i = 0; i < tents; i++) {
-      const tx = 45 + i * 78;
-      if (tx > 210 && tx < 330) continue; // Keep center clear for clicker
-      // Hide tent body (warm ochre/tan with wooden poles & red stripe)
-      drawPolygon(ctx, [[tx, gy - 32], [tx - 18, gy + 4], [tx + 18, gy + 4]], "#d99b52", "#6b3e19", 1.5);
-      drawPolygon(ctx, [[tx, gy - 20], [tx - 11, gy - 6], [tx + 11, gy - 6]], "#b43c27");
-      drawPolygon(ctx, [[tx, gy - 10], [tx - 6, gy + 4], [tx + 6, gy + 4]], "#3b2110");
+      const tx = 55 + i * 76;
+      drawPolygon(ctx, [[tx, gy - 30], [tx - 17, gy + 3], [tx + 17, gy + 3]], "#d99b52", "#6b3e19", 1.5);
+      drawPolygon(ctx, [[tx, gy - 19], [tx - 10, gy - 6], [tx + 10, gy - 6]], "#b43c27");
+      drawPolygon(ctx, [[tx, gy - 9], [tx - 5, gy + 3], [tx + 5, gy + 3]], "#3b2110");
     }
     if ((state.buildings.megalith || 0) > 0 || hasWonder("w_stonehenge")) {
-      // Detailed Stonehenge / Megalith Trilithons (grey-blue granite with highlights)
-      const positions = [125, 455];
-      positions.forEach((mx) => {
+      [170, 380, 585].forEach((mx) => {
         ctx.fillStyle = "#7c8594";
-        ctx.fillRect(mx - 16, gy - 30, 8, 34);
-        ctx.fillRect(mx + 8, gy - 30, 8, 34);
+        ctx.fillRect(mx - 15, gy - 28, 8, 31);
+        ctx.fillRect(mx + 7, gy - 28, 8, 31);
         ctx.fillStyle = "#9ca3af";
-        ctx.fillRect(mx - 20, gy - 37, 40, 8);
-        ctx.fillStyle = "#4d7c42"; // Mossy top
-        ctx.fillRect(mx - 18, gy - 38, 22, 3);
+        ctx.fillRect(mx - 19, gy - 35, 38, 7);
+        ctx.fillStyle = "#4d7c42";
+        ctx.fillRect(mx - 16, gy - 36, 20, 3);
       });
     }
-    // Crackling Campfire
-    const fx = 195;
-    ctx.fillStyle = "#78716c";
-    ctx.fillRect(fx - 10, gy + 1, 20, 5);
-    ctx.fillStyle = `rgba(249, 115, 22, ${0.75 + 0.2 * Math.sin(animTick * 5)})`;
-    drawPolygon(ctx, [[fx, gy - 16 - Math.sin(animTick * 6) * 3], [fx - 8, gy + 2], [fx + 8, gy + 2]], "#f97316");
-    drawPolygon(ctx, [[fx, gy - 10], [fx - 4, gy + 2], [fx + 4, gy + 2]], "#fde047");
-  }
-
-  // --- ERA 1 & 2: BRONZE & CLASSICAL STRUCTURES ---
-  if (era === 1 || era === 2) {
-    // Stepped Ziggurat (Left side, golden sandstone + lapis blue stairs)
-    const zx = 85;
+    // Campfires
+    [110, 330, 510].forEach((fx) => {
+      ctx.fillStyle = "#78716c";
+      ctx.fillRect(fx - 9, gy + 1, 18, 4);
+      drawPolygon(ctx, [[fx, gy - 15 - Math.sin(animTick * 6 + fx) * 3], [fx - 7, gy + 2], [fx + 7, gy + 2]], "#f97316");
+      drawPolygon(ctx, [[fx, gy - 9], [fx - 3, gy + 2], [fx + 3, gy + 2]], "#fde047");
+    });
+  } else if (era === 1 || era === 2) {
+    // Stepped Ziggurat
+    const zx = 115;
     ctx.fillStyle = "#c28b46";
-    ctx.fillRect(zx - 42, gy - 22, 84, 26);
+    ctx.fillRect(zx - 44, gy - 22, 88, 25);
     ctx.fillStyle = "#d49e54";
-    ctx.fillRect(zx - 30, gy - 40, 60, 18);
+    ctx.fillRect(zx - 32, gy - 40, 64, 18);
     ctx.fillStyle = "#e3b268";
-    ctx.fillRect(zx - 18, gy - 54, 36, 14);
-    // Lapis Lazuli Shrine & Stairway
+    ctx.fillRect(zx - 20, gy - 54, 40, 14);
     ctx.fillStyle = "#1d4ed8";
-    ctx.fillRect(zx - 8, gy - 64, 16, 10);
-    ctx.fillRect(zx - 4, gy - 54, 8, 58);
+    ctx.fillRect(zx - 9, gy - 64, 18, 10);
+    ctx.fillRect(zx - 4, gy - 54, 8, 57);
 
-    // Bronze Foundry with glowing kiln
-    ctx.fillStyle = "#9a4b32";
-    ctx.fillRect(150, gy - 26, 36, 30);
-    ctx.fillStyle = "#7c3722";
-    ctx.fillRect(156, gy - 40, 10, 14);
-    ctx.fillStyle = "#fb923c";
-    ctx.beginPath();
-    ctx.arc(168, gy - 4, 6, Math.PI, 0);
-    ctx.fill();
+    // Bronze Foundries
+    [210, 270].forEach((fx) => {
+      ctx.fillStyle = "#9a4b32";
+      ctx.fillRect(fx, gy - 26, 38, 29);
+      ctx.fillStyle = "#7c3722";
+      ctx.fillRect(fx + 6, gy - 40, 10, 14);
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath();
+      ctx.arc(fx + 19, gy - 3, 6, Math.PI, 0);
+      ctx.fill();
+    });
 
-    // Classical Stone Aqueduct & Marble Temple (Right side)
     if (era === 2 || (state.buildings.aqueduct || 0) > 0) {
       ctx.fillStyle = "#d6d3d1";
-      ctx.fillRect(340, gy - 48, 200, 8);
+      ctx.fillRect(340, gy - 46, 250, 8);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(340, gy - 50, 200, 3);
-      for (let ax = 345; ax < 530; ax += 28) {
+      ctx.fillRect(340, gy - 48, 250, 3);
+      for (let ax = 348; ax < 580; ax += 28) {
         ctx.fillStyle = "#e7e5e4";
-        ctx.fillRect(ax, gy - 40, 9, 44);
+        ctx.fillRect(ax, gy - 38, 9, 41);
       }
     }
 
-    // Classical Marble Lyceum / Temple
-    const tx = 455;
+    // Classical Marble Temple
+    const tx = 655;
     ctx.fillStyle = "#f5f5f4";
-    ctx.fillRect(tx - 34, gy - 6, 68, 10);
-    for (let cx = tx - 28; cx <= tx + 22; cx += 12) {
+    ctx.fillRect(tx - 36, gy - 6, 72, 9);
+    for (let cx = tx - 30; cx <= tx + 24; cx += 13) {
       ctx.fillStyle = "#e7e5e4";
       ctx.fillRect(cx, gy - 34, 6, 28);
     }
-    drawPolygon(ctx, [[tx, gy - 50], [tx - 38, gy - 34], [tx + 38, gy - 34]], "#dc2626", "#f5f5f4", 2);
-  }
-
-  // --- ERA 3 & 4: MEDIEVAL & RENAISSANCE STRUCTURES ---
-  if (era === 3 || era === 4) {
-    // Star Citadel Castle (Left)
-    const cx = 82;
+    drawPolygon(ctx, [[tx, gy - 50], [tx - 40, gy - 34], [tx + 40, gy - 34]], "#dc2626", "#f5f5f4", 2);
+  } else if (era === 3 || era === 4) {
+    // Star Citadel Castle
+    const cx = 110;
     ctx.fillStyle = "#94a3b8";
-    ctx.fillRect(cx - 38, gy - 46, 76, 50);
+    ctx.fillRect(cx - 40, gy - 46, 80, 49);
     ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(cx - 44, gy - 66, 22, 70);
-    ctx.fillRect(cx + 22, gy - 66, 22, 70);
-    // Blue Slate Conical Turret Roofs
-    drawPolygon(ctx, [[cx - 33, gy - 90], [cx - 47, gy - 66], [cx - 19, gy - 66]], "#2563eb");
-    drawPolygon(ctx, [[cx + 33, gy - 90], [cx + 19, gy - 66], [cx + 47, gy - 66]], "#2563eb");
-    // Castle Gate & Lit Windows
+    ctx.fillRect(cx - 46, gy - 66, 22, 69);
+    ctx.fillRect(cx + 24, gy - 66, 22, 69);
+    drawPolygon(ctx, [[cx - 35, gy - 90], [cx - 49, gy - 66], [cx - 21, gy - 66]], "#2563eb");
+    drawPolygon(ctx, [[cx + 35, gy - 90], [cx + 21, gy - 66], [cx + 49, gy - 66]], "#2563eb");
     ctx.fillStyle = "#451a03";
-    ctx.fillRect(cx - 10, gy - 20, 20, 24);
-    ctx.fillStyle = "#fde047";
-    ctx.fillRect(cx - 36, gy - 48, 6, 10);
-    ctx.fillRect(cx + 30, gy - 48, 6, 10);
+    ctx.fillRect(cx - 10, gy - 20, 20, 23);
 
-    // Timber-framed Guild Houses & Watermill
-    ctx.fillStyle = "#fef3c7";
-    ctx.fillRect(150, gy - 32, 38, 36);
-    drawPolygon(ctx, [[169, gy - 50], [146, gy - 32], [192, gy - 32]], "#991b1b");
-    ctx.fillStyle = "#f59e0b";
-    ctx.fillRect(158, gy - 22, 7, 7);
-    ctx.fillRect(172, gy - 22, 7, 7);
+    // Guild Houses across the middle
+    [205, 265, 330, 395].forEach((hx, idx) => {
+      ctx.fillStyle = idx % 2 === 0 ? "#fef3c7" : "#b45309";
+      ctx.fillRect(hx, gy - 34, 42, 37);
+      drawPolygon(ctx, [[hx + 21, gy - 52], [hx - 4, gy - 34], [hx + 46, gy - 34]], "#991b1b");
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(hx + 8, gy - 24, 7, 7);
+      ctx.fillRect(hx + 25, gy - 24, 7, 7);
+    });
 
-    // Renaissance Grand Observatory & Printing House (Right)
-    const ox = 460;
+    // Renaissance Grand Observatory
+    const ox = 560;
     ctx.fillStyle = "#d97706";
-    ctx.fillRect(ox - 32, gy - 42, 64, 46);
-    // Copper-green dome
+    ctx.fillRect(ox - 34, gy - 42, 68, 45);
     ctx.fillStyle = "#10b981";
     ctx.beginPath();
     ctx.arc(ox, gy - 42, 28, Math.PI, 0);
     ctx.fill();
-    // Brass Telescope
     ctx.strokeStyle = "#fde047";
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(ox + 6, gy - 56);
     ctx.lineTo(ox + 26, gy - 72);
     ctx.stroke();
-
-    // Town Houses
-    ctx.fillStyle = "#b45309";
-    ctx.fillRect(370, gy - 38, 42, 42);
-    drawPolygon(ctx, [[391, gy - 56], [366, gy - 38], [416, gy - 38]], "#7c2d12");
-    ctx.fillStyle = "#fef08a";
-    ctx.fillRect(378, gy - 28, 8, 8);
-    ctx.fillRect(395, gy - 28, 8, 8);
-  }
-
-  // --- ERA 5 & 6: INDUSTRIAL & ATOMIC STRUCTURES ---
-  if (era === 5 || era === 6) {
-    // Red-Brick Steam Ironworks (Left)
+  } else if (era === 5 || era === 6) {
+    // Red-Brick Steam Ironworks
     ctx.fillStyle = "#991b1b";
-    ctx.fillRect(28, gy - 48, 86, 52);
-    // Sawtooth roof
-    drawPolygon(ctx, [[28, gy - 48], [56, gy - 64], [56, gy - 48]], "#7f1d1d");
-    drawPolygon(ctx, [[56, gy - 48], [84, gy - 64], [84, gy - 48]], "#7f1d1d");
-    drawPolygon(ctx, [[84, gy - 48], [114, gy - 64], [114, gy - 48]], "#7f1d1d");
-    // Smokestacks
+    ctx.fillRect(36, gy - 48, 100, 51);
     ctx.fillStyle = "#57534e";
-    ctx.fillRect(40, gy - 92, 12, 44);
-    ctx.fillRect(88, gy - 86, 12, 38);
-    // Rising Steam Puffs
+    ctx.fillRect(52, gy - 92, 12, 44);
+    ctx.fillRect(104, gy - 86, 12, 38);
     ctx.fillStyle = "rgba(214, 211, 209, 0.5)";
     const puffOffset = (animTick * 12) % 28;
     ctx.beginPath();
-    ctx.arc(46, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
-    ctx.arc(94, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
+    ctx.arc(58, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
+    ctx.arc(110, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
     ctx.fill();
-    // Lit Factory Windows
-    ctx.fillStyle = "#fbbf24";
-    for (let wx = 38; wx < 104; wx += 16) {
-      ctx.fillRect(wx, gy - 34, 8, 12);
-    }
 
-    // Mid-rise Steel Skyscrapers
-    ctx.fillStyle = "#475569";
-    ctx.fillRect(130, gy - 82, 46, 86);
-    ctx.fillStyle = "#64748b";
-    ctx.fillRect(136, gy - 96, 34, 14);
-    ctx.fillStyle = "#fef08a";
-    for (let wy = gy - 74; wy < gy - 8; wy += 12) {
-      ctx.fillRect(138, wy, 7, 6);
-      ctx.fillRect(150, wy, 7, 6);
-      ctx.fillRect(162, wy, 7, 6);
-    }
+    // High-rise blocks across center
+    [165, 235, 310, 390, 465].forEach((bx, idx) => {
+      const bh = 68 + (idx % 3) * 20;
+      ctx.fillStyle = idx % 2 === 0 ? "#475569" : "#334155";
+      ctx.fillRect(bx, gy - bh, 52, bh + 3);
+      ctx.fillStyle = "#fef08a";
+      for (let wy = gy - bh + 10; wy < gy - 6; wy += 12) {
+        ctx.fillRect(bx + 8, wy, 7, 6);
+        ctx.fillRect(bx + 22, wy, 7, 6);
+        ctx.fillRect(bx + 36, wy, 7, 6);
+      }
+    });
 
-    // Atomic Cooling Tower & Orbital Rocket (Right)
     if (era === 6) {
-      // Cooling tower
-      drawPolygon(ctx, [[380, gy - 68], [368, gy + 4], [418, gy + 4], [406, gy - 68]], "#cbd5e1", "#94a3b8", 1);
+      drawPolygon(ctx, [[565, gy - 68], [552, gy + 3], [604, gy + 3], [591, gy - 68]], "#cbd5e1", "#94a3b8", 1);
       ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(380, gy - 22, 26, 8);
+      ctx.fillRect(565, gy - 22, 26, 8);
 
-      // Orbital Cosmodrome Rocket on Pad
-      const rx = 485;
+      const rx = 675;
       ctx.fillStyle = "#f8fafc";
       ctx.fillRect(rx - 8, gy - 84, 16, 68);
       drawPolygon(ctx, [[rx, gy - 106], [rx - 8, gy - 84], [rx + 8, gy - 84]], "#ef4444");
-      drawPolygon(ctx, [[rx - 8, gy - 32], [rx - 16, gy - 14], [rx - 8, gy - 14]], "#ef4444");
-      drawPolygon(ctx, [[rx + 8, gy - 32], [rx + 16, gy - 14], [rx + 8, gy - 14]], "#ef4444");
-    } else {
-      // Industrial Rail Station & Clocktower
-      ctx.fillStyle = "#78350f";
-      ctx.fillRect(380, gy - 54, 120, 58);
-      ctx.fillStyle = "#92400e";
-      ctx.fillRect(425, gy - 92, 30, 96);
-      ctx.fillStyle = "#fef08a";
-      ctx.beginPath();
-      ctx.arc(440, gy - 74, 8, 0, Math.PI * 2);
-      ctx.fill();
     }
-  }
-
-  // --- ERA 7 & 8: INFORMATION & CYBERPUNK METROPOLIS ---
-  if (era >= 7) {
+  } else {
+    // Information & Cyberpunk Panoramic Megacity Skyline
     const towers = [
-      { x: 18, w: 42, h: 115, base: "#1e293b", trim: "#06b6d4", roof: "spire" },
-      { x: 68, w: 50, h: 145, base: "#1e1b4b", trim: "#f43f5e", roof: "slant" },
-      { x: 126, w: 44, h: 98, base: "#0f172a", trim: "#2dd4bf", roof: "dome" },
-      { x: 382, w: 46, h: 108, base: "#172554", trim: "#38bdf8", roof: "flat" },
-      { x: 436, w: 54, h: 152, base: "#2e1065", trim: "#f43f5e", roof: "spire" },
-      { x: 498, w: 44, h: 122, base: "#0f172a", trim: "#06b6d4", roof: "slant" }
+      { x: 20, w: 46, h: 110, base: "#1e293b", trim: "#06b6d4", roof: "spire" },
+      { x: 76, w: 54, h: 142, base: "#1e1b4b", trim: "#f43f5e", roof: "slant" },
+      { x: 140, w: 48, h: 98, base: "#0f172a", trim: "#2dd4bf", roof: "flat" },
+      { x: 198, w: 58, h: 154, base: "#2e1065", trim: "#06b6d4", roof: "spire" },
+      { x: 266, w: 50, h: 120, base: "#172554", trim: "#38bdf8", roof: "slant" },
+      { x: 326, w: 62, h: 162, base: "#1e1b4b", trim: "#f43f5e", roof: "spire" },
+      { x: 398, w: 52, h: 116, base: "#0f172a", trim: "#2dd4bf", roof: "flat" },
+      { x: 460, w: 56, h: 146, base: "#2e1065", trim: "#f43f5e", roof: "slant" },
+      { x: 526, w: 48, h: 108, base: "#172554", trim: "#06b6d4", roof: "spire" },
+      { x: 584, w: 58, h: 138, base: "#1e293b", trim: "#38bdf8", roof: "slant" },
+      { x: 652, w: 50, h: 118, base: "#0f172a", trim: "#f43f5e", roof: "spire" }
     ];
 
     towers.forEach((t, idx) => {
-      // Colored Glass Curtain Wall Body
       const bGrad = ctx.createLinearGradient(t.x, gy - t.h, t.x + t.w, gy);
       bGrad.addColorStop(0, t.base);
       bGrad.addColorStop(1, "#334155");
       ctx.fillStyle = bGrad;
-      ctx.fillRect(t.x, gy - t.h, t.w, t.h + 4);
+      ctx.fillRect(t.x, gy - t.h, t.w, t.h + 3);
 
-      // Neon Edge Trim
       ctx.strokeStyle = t.trim;
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(t.x, gy - t.h, t.w, t.h + 4);
+      ctx.strokeRect(t.x, gy - t.h, t.w, t.h + 3);
 
-      // Roof details
       if (t.roof === "spire") {
         ctx.fillStyle = t.trim;
-        ctx.fillRect(t.x + t.w / 2 - 2, gy - t.h - 24, 4, 24);
+        ctx.fillRect(t.x + t.w / 2 - 2, gy - t.h - 22, 4, 22);
       } else if (t.roof === "slant") {
-        drawPolygon(ctx, [[t.x, gy - t.h], [t.x + t.w, gy - t.h - 18], [t.x + t.w, gy - t.h]], t.trim);
+        drawPolygon(ctx, [[t.x, gy - t.h], [t.x + t.w, gy - t.h - 16], [t.x + t.w, gy - t.h]], t.trim);
       }
 
-      // Bright Colored Window Grids
       for (let wy = gy - t.h + 10; wy < gy - 8; wy += 11) {
         for (let wx = t.x + 6; wx < t.x + t.w - 8; wx += 10) {
           ctx.fillStyle = (wx + wy + idx) % 3 === 0 ? t.trim : "rgba(224, 242, 254, 0.75)";
           ctx.fillRect(wx, wy, 5, 6);
         }
       }
-
-      // Holographic Neon Signs in Cyberpunk Era
-      if (era === 8 && idx % 2 === 1) {
-        ctx.fillStyle = "rgba(244, 63, 94, 0.85)";
-        ctx.fillRect(t.x + 6, gy - t.h + 26, t.w - 12, 14);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(t.x + 10, gy - t.h + 31, t.w - 20, 4);
-      }
     });
   }
 
-  // Bifrost Space Elevator Wonder
   if (hasWonder("w_orbital_elevator")) {
     ctx.strokeStyle = "rgba(6, 182, 212, 0.85)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(w - 75, 0);
-    ctx.lineTo(w - 75, gy + 4);
+    ctx.moveTo(w - 40, 0);
+    ctx.lineTo(w - 40, gy + 3);
     ctx.stroke();
     const podY = gy - ((animTick * 28) % gy);
     ctx.fillStyle = "#fde047";
-    ctx.fillRect(w - 80, podY, 10, 14);
+    ctx.fillRect(w - 45, podY, 10, 14);
   }
 
-  // Flying Traffic in High-Tech Eras
   if (era >= 6) {
     vehicles.forEach((v) => {
       v.x += v.speed * v.dir;
@@ -2029,12 +2228,9 @@ function drawCityCanvas() {
       if (v.x < -24) v.x = w + 24;
       ctx.fillStyle = era === 8 ? v.color : "#38bdf8";
       ctx.fillRect(v.x, v.y, 14, 3);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(v.dir > 0 ? v.x + 12 : v.x, v.y, 3, 3);
     });
   }
 
-  // Cyberpunk Neon Rain
   if (era === 8) {
     ctx.strokeStyle = "rgba(6, 182, 212, 0.28)";
     ctx.lineWidth = 1;
@@ -2051,7 +2247,6 @@ function drawCityCanvas() {
     });
   }
 
-  // Click Shockwave Ripples & Sparks
   for (let i = canvasRipples.length - 1; i >= 0; i--) {
     const rp = canvasRipples[i];
     rp.r += 5.5;
@@ -2173,6 +2368,7 @@ function triggerPrestige() {
   SoundFX.eraAdvance();
   applyEraTheme();
   renderBuildingsList();
+  renderInfrastructureDistricts();
   renderUpgrades();
   renderWonders();
   checkAchievements();
@@ -2190,19 +2386,18 @@ function init() {
   loadGame();
   checkProximityReveals();
 
-  // Prompt user to name their city at the start of a new game
   if (!state.cityName || !state.cityName.trim()) {
     openCityNameModal();
   }
 
   applyEraTheme();
   renderBuildingsList();
+  renderInfrastructureDistricts();
   renderUpgrades();
   renderWonders();
   renderAchievements();
   updateTopHUD();
 
-  // City Naming Modal Listeners
   document.getElementById("btn-rename-city").addEventListener("click", openCityNameModal);
   document.getElementById("btn-random-name").addEventListener("click", () => {
     const pick = RANDOM_CITY_NAMES[Math.floor(Math.random() * RANDOM_CITY_NAMES.length)];
@@ -2231,6 +2426,7 @@ function init() {
       btn.classList.add("active");
       SoundFX.research();
       renderBuildingsList();
+      renderInfrastructureDistricts();
       updateTopHUD();
     });
   });
@@ -2257,6 +2453,7 @@ function init() {
       document.getElementById(`tab-${tabId}`).classList.add("active");
       if (tabId === "stats") renderStats();
       if (tabId === "wonders") renderWonders();
+      if (tabId === "city") renderInfrastructureDistricts();
     });
   });
 
@@ -2286,6 +2483,7 @@ function init() {
       checkProximityReveals();
       renderUpgrades();
       renderBuildingsList();
+      renderInfrastructureDistricts();
       checkAchievements();
       updateTopHUD();
     }
@@ -2316,6 +2514,7 @@ function init() {
       checkProximityReveals();
       applyEraTheme();
       renderBuildingsList();
+      renderInfrastructureDistricts();
       renderUpgrades();
       renderWonders();
       renderAchievements();
@@ -2336,6 +2535,7 @@ function init() {
       checkProximityReveals();
       applyEraTheme();
       renderBuildingsList();
+      renderInfrastructureDistricts();
       renderUpgrades();
       renderWonders();
       renderAchievements();
@@ -2379,7 +2579,6 @@ function init() {
     }
   }, 50);
 
-  // News Ticker with City Name interpolation
   setInterval(() => {
     const headlines = ERAS[state.currentEra].news;
     const rawPick = headlines[Math.floor(Math.random() * headlines.length)];
