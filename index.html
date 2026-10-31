@@ -168,17 +168,24 @@
       <!-- TAB 1 (DEFAULT): LIVING CITY PANORAMA & VISUAL INFRASTRUCTURE DISTRICTS -->
       <div class="tab-content active" id="tab-city">
         <div class="city-panorama-frame" id="city-stage">
-          <canvas id="city-canvas" width="760" height="230"></canvas>
+          <div class="city-scroll-viewport" id="city-scroll-viewport" title="Drag or scroll left & right to tour your expanding city!">
+            <canvas id="city-canvas" width="860" height="230"></canvas>
+          </div>
           <div class="panorama-overlay-label">
             <span id="panorama-era-title">Stone Age Settlement</span>
-            <span id="panorama-cps-share">City Output: +0.0 CP/s</span>
+            <span id="panorama-time-badge">☀️ Midday</span>
+            <div class="panorama-right-controls">
+              <span id="panorama-cps-share">City Output: +0.0 CP/s</span>
+              <button id="btn-pan-left" class="pan-btn" title="Pan City Left">◀</button>
+              <button id="btn-pan-right" class="pan-btn" title="Pan City Right">▶</button>
+            </div>
           </div>
           <!-- Floating Golden Anomaly -->
           <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a civic boom!">✨</button>
         </div>
 
         <div class="section-subtitle" style="margin-top: 14px;">
-          <span>🏘️ City Zones &amp; Infrastructure Districts</span>
+          <span>🏘️ City Zones &amp; Infrastructure Districts <small style="font-weight:500;opacity:0.75;">(Scrollable ↔)</small></span>
           <span id="districts-summary-note" style="font-size:0.74rem;color:var(--text-muted);text-transform:none;">Construct buildings on the right to expand your city districts</span>
         </div>
 

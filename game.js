@@ -1525,6 +1525,38 @@ function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
   }
 }
 
+function enableHorizontalDragScroll(el) {
+  if (!el || el.dataset.dragBound) return;
+  el.dataset.dragBound = "1";
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  el.addEventListener("mousedown", (e) => {
+    isDown = true;
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  });
+  el.addEventListener("mouseleave", () => {
+    isDown = false;
+  });
+  el.addEventListener("mouseup", () => {
+    isDown = false;
+  });
+  el.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX) * 1.4;
+  });
+  el.addEventListener("wheel", (e) => {
+    if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY * 0.8;
+    }
+  }, { passive: false });
+}
+
 function renderInfrastructureDistricts() {
   const container = document.getElementById("infrastructure-districts");
   if (!container) return;
@@ -1536,7 +1568,7 @@ function renderInfrastructureDistricts() {
   const summaryNote = document.getElementById("districts-summary-note");
   if (summaryNote) {
     summaryNote.textContent = ownedBuildings.length > 0
-      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Total Structures`
+      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Structures (Drag or scroll ↔)`
       : "Construct buildings on the right to expand your city districts";
   }
 
@@ -1549,6 +1581,10 @@ function renderInfrastructureDistricts() {
     const count = state.buildings[b.id] || 0;
     const bCps = count * getBuildingSingleCps(b);
     const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
+
+    const visibleUnits = Math.min(60, count);
+    const cw = Math.max(680, visibleUnits * 40 + 135);
+    const ch = 64;
 
     const strip = document.createElement("div");
     strip.className = "district-strip";
@@ -1564,15 +1600,18 @@ function renderInfrastructureDistricts() {
           <span class="district-share" id="dist-share-${b.id}">(${sharePct}%)</span>
         </div>
       </div>
-      <canvas class="district-canvas" width="680" height="64"></canvas>
+      <div class="district-scroll-wrap">
+        <canvas class="district-canvas" width="${cw}" height="${ch}"></canvas>
+      </div>
     `;
     container.appendChild(strip);
+
+    const scrollWrap = strip.querySelector(".district-scroll-wrap");
+    enableHorizontalDragScroll(scrollWrap);
 
     // Draw the custom visual strip for this building type
     const cvs = strip.querySelector("canvas");
     const ctx = cvs.getContext("2d");
-    const cw = cvs.width;
-    const ch = cvs.height;
     const eraColors = ERAS[b.era].skyColors;
     const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
     bgGrad.addColorStop(0, eraColors[0]);
@@ -1580,28 +1619,39 @@ function renderInfrastructureDistricts() {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, cw, ch);
 
+    // Subtle background hill / horizon line
+    ctx.fillStyle = ERAS[b.era].hillColors[0];
+    ctx.beginPath();
+    ctx.moveTo(0, ch - 12);
+    for (let hx = 0; hx <= cw; hx += 120) {
+      ctx.quadraticCurveTo(hx + 60, ch - 28, hx + 120, ch - 12);
+    }
+    ctx.lineTo(cw, ch);
+    ctx.lineTo(0, ch);
+    ctx.closePath();
+    ctx.fill();
+
     // Ground strip
     ctx.fillStyle = b.era >= 5 ? "#27272a" : "#3f5232";
     ctx.fillRect(0, ch - 12, cw, 12);
 
-    // Draw up to 16 visual units across the strip
-    const visibleUnits = Math.min(16, count);
-    const spacing = Math.min(38, (cw - 140) / Math.max(1, visibleUnits));
+    // Draw up to 60 visual units across the scrollable strip
+    const spacing = 40;
     for (let i = 0; i < visibleUnits; i++) {
-      const ux = 26 + i * spacing;
+      const ux = 28 + i * spacing;
       drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 10, i);
     }
 
-    // Crisp in-canvas graphic label pill on the right side of the strip
-    const labelText = `${ERAS[b.era].short.toUpperCase()} • ${b.zoneTag.toUpperCase()}`;
-    ctx.font = "bold 10px Inter, sans-serif";
+    // Crisp in-canvas graphic label pill on the top-left of the strip
+    const labelText = `${ERAS[b.era].short.toUpperCase()} • ${b.zoneTag.toUpperCase()} (${count} BUILT)`;
+    ctx.font = "bold 9.5px Inter, sans-serif";
     const textW = ctx.measureText(labelText).width;
-    ctx.fillStyle = "rgba(9, 10, 16, 0.65)";
+    ctx.fillStyle = "rgba(9, 10, 16, 0.68)";
     ctx.beginPath();
-    ctx.roundRect(cw - textW - 22, 8, textW + 14, 18, 9);
+    ctx.roundRect(10, 6, textW + 14, 17, 8);
     ctx.fill();
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.fillText(labelText, cw - textW - 15, 20);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
+    ctx.fillText(labelText, 17, 17.5);
   });
 }
 
@@ -1941,6 +1991,9 @@ function buyWonder(wId) {
   state.cp -= w.cost;
   state.wonders.push(wId);
   SoundFX.wonder();
+  for (let i = 0; i < 4; i++) {
+    spawnCityFirework(140 + i * 165, 36 + Math.random() * 44);
+  }
 
   showToast(w.icon, `World Wonder Erected: ${w.name}!`, w.effectText);
   renderWonders();
@@ -2197,38 +2250,97 @@ function handleAnomalyClick(e) {
 }
 
 // ============================================================================
-// FULL-COLOR ILLUSTRATED GRAND CITY PANORAMA CANVAS (760x230)
+// LIVING SCROLLABLE CITY PANORAMA, DAY/NIGHT CYCLE, WONDERS & ANIMATIONS
 // ============================================================================
-const stars = Array.from({ length: 48 }, () => ({
-  x: Math.random() * 760,
-  y: Math.random() * 110,
-  size: Math.random() > 0.7 ? 2 : 1.2,
+const stars = Array.from({ length: 90 }, () => ({
+  xRatio: Math.random(),
+  y: 8 + Math.random() * 115,
+  size: Math.random() > 0.7 ? 2.1 : 1.3,
   phase: Math.random() * Math.PI * 2
 }));
 
-const clouds = Array.from({ length: 6 }, (_, idx) => ({
-  x: idx * 130 + Math.random() * 40,
-  y: 22 + (idx % 3) * 18,
-  w: 54 + Math.random() * 34,
+const clouds = Array.from({ length: 10 }, (_, idx) => ({
+  x: idx * 180 + Math.random() * 60,
+  y: 18 + (idx % 3) * 18,
+  w: 58 + Math.random() * 38,
   speed: 0.12 + Math.random() * 0.12
 }));
 
-const vehicles = Array.from({ length: 14 }, () => ({
-  x: Math.random() * 760,
-  y: 35 + Math.random() * 100,
+const vehicles = Array.from({ length: 16 }, () => ({
+  x: Math.random() * 1400,
+  y: 38 + Math.random() * 95,
   speed: 0.9 + Math.random() * 1.6,
   dir: Math.random() > 0.5 ? 1 : -1,
   color: Math.random() > 0.5 ? "#06b6d4" : "#f43f5e"
 }));
 
-const rainDrops = Array.from({ length: 50 }, () => ({
-  x: Math.random() * 760,
+const riverBoats = Array.from({ length: 6 }, (_, idx) => ({
+  x: idx * 240 + Math.random() * 90,
+  speed: 0.35 + Math.random() * 0.35,
+  dir: idx % 2 === 0 ? 1 : -1,
+  color: idx % 2 === 0 ? "#dc2626" : "#f59e0b"
+}));
+
+const roadTraffic = Array.from({ length: 14 }, (_, idx) => ({
+  x: idx * 110 + Math.random() * 50,
+  speed: 0.45 + Math.random() * 0.65,
+  dir: idx % 2 === 0 ? 1 : -1,
+  color: ["#ef4444", "#3b82f6", "#eab308", "#10b981", "#f8fafc"][idx % 5]
+}));
+
+const birdFlocks = Array.from({ length: 3 }, (_, idx) => ({
+  x: idx * 380 + 80,
+  y: 34 + idx * 18,
+  speed: 0.55 + idx * 0.12
+}));
+
+const skyCraft = {
+  x: 180,
+  y: 44,
+  speed: 0.42,
+  dir: 1
+};
+
+const cityFireworks = [];
+const shootingStars = [];
+
+const rainDrops = Array.from({ length: 65 }, () => ({
+  xRatio: Math.random(),
   y: Math.random() * 230,
   len: 8 + Math.random() * 10,
   speed: 4 + Math.random() * 3
 }));
 
+const sanctumMotes = Array.from({ length: 28 }, () => ({
+  x: Math.random() * 340,
+  y: Math.random() * 240,
+  r: 1 + Math.random() * 2,
+  vy: 0.25 + Math.random() * 0.45,
+  alpha: 0.2 + Math.random() * 0.55
+}));
+
 let animTick = 0;
+// Slow Day/Night cycle: 0.0 = Midday, 0.25 = Sunset/Dusk, 0.5 = Midnight, 0.75 = Dawn
+let dayCyclePhase = 0.08;
+
+function spawnCityFirework(x, y) {
+  const palette = ["#fde047", "#f43f5e", "#38bdf8", "#a855f7", "#34d399", "#fb923c"];
+  const color = palette[Math.floor(Math.random() * palette.length)];
+  const sparks = [];
+  for (let i = 0; i < 20; i++) {
+    const ang = (Math.PI * 2 * i) / 20;
+    const spd = 1.2 + Math.random() * 1.8;
+    sparks.push({
+      x,
+      y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      alpha: 1.0,
+      color
+    });
+  }
+  cityFireworks.push(...sparks);
+}
 
 function drawPolygon(ctx, points, fill, stroke = null, lineWidth = 1) {
   ctx.beginPath();
@@ -2262,30 +2374,188 @@ function drawTree(ctx, x, y, scale = 1, type = "pine") {
   }
 }
 
-function drawSkylineTag(ctx, x, y, text) {
+function drawSkylineTag(ctx, x, y, text, isWonder = false, canvasWidth = 860) {
   ctx.font = "bold 9.5px Inter, sans-serif";
   const tw = ctx.measureText(text).width;
   const pw = tw + 12;
   const ph = 15;
-  const px = Math.max(6, Math.min(754 - pw, x - pw / 2));
-  const py = y - ph;
+  const px = Math.max(6, Math.min(canvasWidth - pw - 6, x - pw / 2));
+  const py = Math.max(36, y - ph);
 
-  ctx.fillStyle = "rgba(9, 10, 16, 0.72)";
+  ctx.fillStyle = isWonder ? "rgba(120, 53, 15, 0.88)" : "rgba(9, 10, 16, 0.74)";
   ctx.beginPath();
   ctx.roundRect(px, py, pw, ph, 7);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = isWonder ? "#facc15" : "rgba(255, 255, 255, 0.24)";
+  ctx.lineWidth = isWonder ? 1.3 : 1;
   ctx.stroke();
 
-  ctx.fillStyle = "#f8fafc";
+  ctx.fillStyle = isWonder ? "#fef08a" : "#f8fafc";
   ctx.fillText(text, px + 6, py + 10.5);
+}
+
+function drawWonderOnPanorama(ctx, wId, x, gy, isNight, canvasWidth) {
+  // Subtle upward golden monument spotlight at night
+  if (isNight) {
+    const beam = ctx.createLinearGradient(x, gy, x, gy - 140);
+    beam.addColorStop(0, "rgba(250, 204, 21, 0.24)");
+    beam.addColorStop(1, "rgba(250, 204, 21, 0)");
+    drawPolygon(ctx, [[x - 26, gy], [x - 48, gy - 135], [x + 48, gy - 135], [x + 26, gy]], beam);
+  }
+
+  switch (wId) {
+    case "w_stonehenge":
+      // Solstice Sanctuary Ring
+      [-22, 0, 22].forEach((dx) => {
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(x + dx - 7, gy - 32, 5, 34);
+        ctx.fillRect(x + dx + 2, gy - 32, 5, 34);
+        ctx.fillStyle = "#cbd5e1";
+        ctx.fillRect(x + dx - 9, gy - 38, 18, 6);
+      });
+      drawSkylineTag(ctx, x, gy - 44, "★ Solstice Ring", true, canvasWidth);
+      break;
+
+    case "w_gardens":
+      // Hanging Gardens Terrace
+      ctx.fillStyle = "#d97706";
+      ctx.fillRect(x - 36, gy - 18, 72, 20);
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillRect(x - 26, gy - 34, 52, 16);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(x - 16, gy - 48, 32, 14);
+      // Lush cascading greenery & waterfalls
+      ctx.fillStyle = "#16a34a";
+      [-28, -12, 6, 22].forEach((gx) => {
+        ctx.beginPath();
+        ctx.arc(x + gx, gy - 18, 7, 0, Math.PI * 2);
+        ctx.arc(x + gx * 0.6, gy - 34, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x - 3, gy - 48, 6, 48);
+      drawSkylineTag(ctx, x, gy - 58, "★ Hanging Gardens", true, canvasWidth);
+      break;
+
+    case "w_colossus":
+      // Grand Civic Colosseum
+      ctx.fillStyle = "#e7e5e4";
+      ctx.fillRect(x - 42, gy - 44, 84, 46);
+      ctx.fillStyle = "#d6d3d1";
+      ctx.fillRect(x - 36, gy - 56, 72, 12);
+      for (let row = 0; row < 3; row++) {
+        for (let ax = x - 34; ax <= x + 28; ax += 12) {
+          ctx.fillStyle = isNight ? "#fde047" : "#44403c";
+          ctx.fillRect(ax, gy - 12 - row * 13, 6, 8);
+        }
+      }
+      drawSkylineTag(ctx, x, gy - 62, "★ Grand Colosseum", true, canvasWidth);
+      break;
+
+    case "w_cathedral":
+      // Astronomical Clock Spire
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(x - 28, gy - 52, 56, 54);
+      ctx.fillRect(x - 10, gy - 92, 20, 40);
+      drawPolygon(ctx, [[x, gy - 126], [x - 12, gy - 92], [x + 12, gy - 92]], "#1d4ed8");
+      // Golden astronomical clock face
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(x, gy - 68, 7, 0, Math.PI * 2);
+      ctx.fill();
+      drawSkylineTag(ctx, x, gy - 130, "★ Clock Spire", true, canvasWidth);
+      break;
+
+    case "w_workshop":
+      // Grand Palazzo & Octagonal Dome
+      ctx.fillStyle = "#fef3c7";
+      ctx.fillRect(x - 36, gy - 40, 72, 42);
+      ctx.fillStyle = "#c2410c";
+      ctx.beginPath();
+      ctx.arc(x, gy - 40, 28, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(x - 4, gy - 76, 8, 10);
+      drawSkylineTag(ctx, x, gy - 82, "★ Grand Palazzo Dome", true, canvasWidth);
+      break;
+
+    case "w_crystal_palace":
+      // Crystal Exhibition Hall
+      ctx.fillStyle = "rgba(125, 211, 252, 0.72)";
+      ctx.fillRect(x - 44, gy - 38, 88, 40);
+      ctx.beginPath();
+      ctx.arc(x, gy - 38, 28, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x - 44, gy - 38, 88, 40);
+      drawSkylineTag(ctx, x, gy - 72, "★ Crystal Palace", true, canvasWidth);
+      break;
+
+    case "w_apollo":
+      // World Trade Broadcast Tower (600m Observation Needle)
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(x - 4, gy - 118, 8, 120);
+      ctx.fillStyle = "#0284c7";
+      ctx.fillRect(x - 18, gy - 96, 36, 10);
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(x - 14, gy - 93, 28, 4);
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.arc(x, gy - 134, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, gy - 118);
+      ctx.lineTo(x, gy - 134);
+      ctx.stroke();
+      drawSkylineTag(ctx, x, gy - 140, "★ Broadcast Needle", true, canvasWidth);
+      break;
+
+    case "w_cern":
+      // Central Smart-Grid Spire
+      drawPolygon(ctx, [[x, gy - 128], [x - 24, gy + 2], [x + 24, gy + 2]], "#0f172a", "#06b6d4", 2);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, gy - 65, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      drawSkylineTag(ctx, x, gy - 134, "★ Smart-Grid Spire", true, canvasWidth);
+      break;
+
+    case "w_orbital_elevator":
+      // Bifrost Sky-Elevator
+      ctx.fillStyle = "#1e1b4b";
+      ctx.fillRect(x - 22, gy - 44, 44, 46);
+      ctx.strokeStyle = "rgba(6, 182, 212, 0.9)";
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, gy + 2);
+      ctx.stroke();
+      const podY = gy - ((animTick * 28) % gy);
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(x - 6, podY, 12, 16);
+      drawSkylineTag(ctx, x, 54, "★ Bifrost Sky-Elevator", true, canvasWidth);
+      break;
+  }
 }
 
 function drawCityCanvas() {
   const canvas = document.getElementById("city-canvas");
   if (!canvas) return;
+
+  // Dynamically expand the city panorama width left-to-right as more districts & Wonders are built!
+  const ownedDistricts = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
+  const builtWonders = WONDERS.filter((w) => hasWonder(w.id));
+  const extraDistricts = ownedDistricts.filter((b) => b.era < state.currentEra || (state.buildings[b.id] || 0) >= 5);
+  const targetWidth = Math.max(860, 780 + extraDistricts.length * 95 + builtWonders.length * 115);
+  if (canvas.width !== targetWidth) {
+    canvas.width = targetWidth;
+  }
+
   const ctx = canvas.getContext("2d");
   const w = canvas.width;
   const h = canvas.height;
@@ -2294,7 +2564,23 @@ function drawCityCanvas() {
   const hills = ERAS[era].hillColors;
   animTick += 0.05;
 
-  // 1. Rich 3-Stop Sky Gradient
+  // Advance SLOW Day/Night Cycle (~3 minutes per full cycle)
+  dayCyclePhase = (dayCyclePhase + 0.00028) % 1;
+  // nightFactor: 0 at Midday (0.0), 1 at Midnight (0.5)
+  const nightFactor = (1 - Math.cos(dayCyclePhase * Math.PI * 2)) / 2;
+  const isNight = nightFactor > 0.45;
+  const isDuskOrDawn = nightFactor > 0.22 && nightFactor < 0.72;
+
+  const timeBadge = document.getElementById("panorama-time-badge");
+  if (timeBadge) {
+    let timeText = "☀️ Midday";
+    if (dayCyclePhase >= 0.18 && dayCyclePhase < 0.35) timeText = "🌅 Golden Dusk";
+    else if (dayCyclePhase >= 0.35 && dayCyclePhase < 0.65) timeText = "🌙 Starlight Night";
+    else if (dayCyclePhase >= 0.65 && dayCyclePhase < 0.82) timeText = "🌄 Rosy Dawn";
+    if (timeBadge.textContent !== timeText) timeBadge.textContent = timeText;
+  }
+
+  // 1. Rich 3-Stop Sky Gradient + Day/Night & Dusk Blending
   const grad = ctx.createLinearGradient(0, 0, 0, h - 36);
   grad.addColorStop(0, sky[0]);
   grad.addColorStop(0.55, sky[1]);
@@ -2302,47 +2588,146 @@ function drawCityCanvas() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // 2. Stars & Glowing Sun / Cyber Moon
+  if (isDuskOrDawn) {
+    const duskAlpha = (1 - Math.abs(nightFactor - 0.47) * 3.5) * 0.32;
+    if (duskAlpha > 0) {
+      const duskGrad = ctx.createLinearGradient(0, 0, 0, h - 36);
+      duskGrad.addColorStop(0, `rgba(88, 28, 135, ${duskAlpha.toFixed(2)})`);
+      duskGrad.addColorStop(1, `rgba(249, 115, 22, ${(duskAlpha * 1.25).toFixed(2)})`);
+      ctx.fillStyle = duskGrad;
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  if (nightFactor > 0.05) {
+    ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.62).toFixed(2)})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // 2. Stars, Shooting Stars & Sun / Moon Arc
+  const starVisibility = Math.max(era === 8 ? 0.6 : 0.1, nightFactor);
   stars.forEach((st) => {
-    const alpha = 0.2 + 0.45 * Math.sin(animTick + st.phase);
+    const alpha = starVisibility * (0.25 + 0.55 * Math.sin(animTick + st.phase));
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-    ctx.fillRect(st.x, st.y, st.size, st.size);
+    ctx.fillRect(st.xRatio * w, st.y, st.size, st.size);
   });
 
-  const sunX = 640;
-  const sunY = 48;
-  const sunGrad = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, 34);
+  // Occasional Shooting Star at night
+  if (isNight && Math.random() < 0.008 && shootingStars.length < 2) {
+    shootingStars.push({
+      x: 100 + Math.random() * (w - 200),
+      y: 12 + Math.random() * 45,
+      vx: 6 + Math.random() * 4,
+      vy: 2 + Math.random() * 1.5,
+      life: 1.0
+    });
+  }
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const ss = shootingStars[i];
+    ss.x += ss.vx;
+    ss.y += ss.vy;
+    ss.life -= 0.06;
+    if (ss.life <= 0) {
+      shootingStars.splice(i, 1);
+      continue;
+    }
+    ctx.strokeStyle = `rgba(254, 240, 138, ${ss.life.toFixed(2)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ss.x, ss.y);
+    ctx.lineTo(ss.x - ss.vx * 3, ss.y - ss.vy * 3);
+    ctx.stroke();
+  }
+
+  // Sun / Moon celestial body
+  const orbX = 580;
+  const orbY = 44 + Math.sin(dayCyclePhase * Math.PI * 2) * 14;
+  const sunGrad = ctx.createRadialGradient(orbX, orbY, 4, orbX, orbY, 34);
   if (era === 8) {
     sunGrad.addColorStop(0, "#f43f5e");
     sunGrad.addColorStop(0.5, "rgba(244, 63, 94, 0.35)");
     sunGrad.addColorStop(1, "rgba(244, 63, 94, 0)");
+  } else if (isNight) {
+    sunGrad.addColorStop(0, "#e0f2fe");
+    sunGrad.addColorStop(0.45, "rgba(186, 230, 253, 0.32)");
+    sunGrad.addColorStop(1, "rgba(186, 230, 253, 0)");
   } else {
     sunGrad.addColorStop(0, "#fef08a");
-    sunGrad.addColorStop(0.5, "rgba(253, 224, 71, 0.3)");
+    sunGrad.addColorStop(0.5, "rgba(253, 224, 71, 0.35)");
     sunGrad.addColorStop(1, "rgba(253, 224, 71, 0)");
   }
   ctx.fillStyle = sunGrad;
   ctx.beginPath();
-  ctx.arc(sunX, sunY, 34, 0, Math.PI * 2);
+  ctx.arc(orbX, orbY, 34, 0, Math.PI * 2);
   ctx.fill();
 
+  // Clouds
   if (era < 8) {
     clouds.forEach((c) => {
       c.x += c.speed;
-      if (c.x > w + 60) c.x = -70;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+      if (c.x > w + 80) c.x = -90;
+      ctx.fillStyle = isNight ? "rgba(148, 163, 184, 0.08)" : "rgba(255, 255, 255, 0.16)";
       ctx.beginPath();
       ctx.roundRect(c.x, c.y, c.w, 12, 6);
       ctx.fill();
     });
   }
 
-  // 3. Layered Colored Background Hills
+  // Daytime Bird Flocks (Era 0-5)
+  if (!isNight && era <= 5) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+    ctx.lineWidth = 1.2;
+    birdFlocks.forEach((bf) => {
+      bf.x += bf.speed;
+      if (bf.x > w + 60) bf.x = -60;
+      const flap = Math.sin(animTick * 4 + bf.x * 0.05) * 2.5;
+      [0, 10, 20].forEach((dx, bi) => {
+        const bx = bf.x - dx;
+        const by = bf.y + bi * 4;
+        ctx.beginPath();
+        ctx.moveTo(bx - 4, by - flap);
+        ctx.lineTo(bx, by);
+        ctx.lineTo(bx + 4, by - flap);
+        ctx.stroke();
+      });
+    });
+  }
+
+  // Era-fitting Sky Craft: Hot Air Balloon (Era 4-5) or Passenger Jetliner (Era 6-7)
+  if (era >= 4 && era <= 7) {
+    skyCraft.x += skyCraft.speed * skyCraft.dir;
+    if (skyCraft.x > w + 80) skyCraft.x = -80;
+    const scX = skyCraft.x;
+    const scY = skyCraft.y + Math.sin(animTick * 1.5) * 3;
+    if (era === 4 || era === 5) {
+      // Hot-air balloon drifting over the city
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.arc(scX, scY, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(scX - 9, scY - 2, 18, 4);
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(scX - 3, scY + 12, 6, 4);
+    } else {
+      // High-altitude commercial jetliner with blinking beacon
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(scX - 14, scY, 28, 5);
+      drawPolygon(ctx, [[scX - 14, scY], [scX - 20, scY - 7], [scX - 8, scY]], "#2563eb");
+      if (Math.floor(animTick * 4) % 2 === 0) {
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(scX + 12, scY - 1, 3, 3);
+      }
+    }
+  }
+
+  // 3. Repeating Layered Colored Background Hills across full width `w`
   ctx.fillStyle = hills[0];
   ctx.beginPath();
   ctx.moveTo(0, h - 52);
-  ctx.quadraticCurveTo(190, h - 102, 380, h - 64);
-  ctx.quadraticCurveTo(580, h - 108, w, h - 58);
+  for (let hx = 0; hx < w; hx += 380) {
+    ctx.quadraticCurveTo(hx + 190, h - 104, hx + 380, h - 58);
+  }
   ctx.lineTo(w, h);
   ctx.lineTo(0, h);
   ctx.closePath();
@@ -2351,14 +2736,15 @@ function drawCityCanvas() {
   ctx.fillStyle = hills[1];
   ctx.beginPath();
   ctx.moveTo(0, h - 38);
-  ctx.quadraticCurveTo(250, h - 74, 480, h - 44);
-  ctx.quadraticCurveTo(630, h - 68, w, h - 40);
+  for (let hx = 0; hx < w; hx += 340) {
+    ctx.quadraticCurveTo(hx + 170, h - 74, hx + 340, h - 40);
+  }
   ctx.lineTo(w, h);
   ctx.lineTo(0, h);
   ctx.closePath();
   ctx.fill();
 
-  // Ground Terrace & Road
+  // Ground Terrace & Road across full width `w`
   ctx.fillStyle = era >= 5 ? "#333942" : "#4d6b3c";
   ctx.fillRect(0, h - 42, w, 22);
 
@@ -2371,7 +2757,21 @@ function drawCityCanvas() {
     }
   }
 
-  // River Foreground
+  // Streetlamps along the boulevard that glow warmly at dusk/night!
+  if (era >= 2) {
+    for (let lx = 45; lx < w; lx += 95) {
+      ctx.fillStyle = "#475569";
+      ctx.fillRect(lx, h - 39, 2, 11);
+      if (isNight || isDuskOrDawn) {
+        ctx.fillStyle = era === 8 ? "rgba(6, 182, 212, 0.9)" : "rgba(254, 240, 138, 0.95)";
+        ctx.beginPath();
+        ctx.arc(lx + 1, h - 40, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // River Foreground across full width `w`
   const riverGrad = ctx.createLinearGradient(0, h - 20, 0, h);
   riverGrad.addColorStop(0, era === 8 ? "#0e2942" : "#1d5c86");
   riverGrad.addColorStop(1, era === 8 ? "#1c1236" : "#0f3754");
@@ -2384,29 +2784,27 @@ function drawCityCanvas() {
     ctx.fillRect(wx + offset, h - 13 + (wx % 6), 18, 2);
   }
 
-  // 4. FULL-COLOR PANORAMIC CITY ARCHITECTURE & LABELS ACROSS THE SKYLINE
+  // 4. MAIN SKYLINE & EXPANDING DISTRICTS + WORLD WONDERS
   const gy = h - 40;
 
   if (era <= 4) {
-    [28, 145, 295, 445, 610, 725].forEach((tx, idx) => {
-      drawTree(ctx, tx, gy + 3, 0.85, idx % 2 === 0 ? "pine" : "round");
-    });
+    for (let tx = 28; tx < w - 30; tx += 145) {
+      drawTree(ctx, tx, gy + 3, 0.85, (tx / 145) % 2 === 0 ? "pine" : "round");
+    }
   }
 
   if (era === 0) {
-    // Thatched Huts
     const huts = Math.min(6, Math.max(2, (state.buildings.forager || 1) + 1));
     for (let i = 0; i < huts; i++) {
       const hx = 60 + i * 68;
       ctx.fillStyle = "#b87d4b";
       ctx.fillRect(hx - 14, gy - 15, 28, 18);
       drawPolygon(ctx, [[hx, gy - 33], [hx - 19, gy - 14], [hx + 19, gy - 14]], "#e0a958", "#784719", 1.4);
-      ctx.fillStyle = "#3b2110";
+      ctx.fillStyle = isNight ? "#fde047" : "#3b2110";
       ctx.fillRect(hx - 4, gy - 9, 8, 12);
     }
-    drawSkylineTag(ctx, 160, gy - 38, "🛖 Thatched Huts");
+    drawSkylineTag(ctx, 160, gy - 38, "🛖 Thatched Huts", false, w);
 
-    // Riverbank Farms & Granaries
     if ((state.buildings.megalith || 0) > 0) {
       [485, 560, 635].forEach((fx) => {
         ctx.fillStyle = "#c28b46";
@@ -2417,38 +2815,25 @@ function drawCityCanvas() {
           ctx.fillRect(wx, gy - 14, 3, 16);
         }
       });
-      drawSkylineTag(ctx, 560, gy - 40, "🌾 Riverbank Farms");
-    }
-
-    if (hasWonder("w_stonehenge")) {
-      const mx = 700;
-      ctx.fillStyle = "#7c8594";
-      ctx.fillRect(mx - 15, gy - 28, 8, 31);
-      ctx.fillRect(mx + 7, gy - 28, 8, 31);
-      ctx.fillStyle = "#9ca3af";
-      ctx.fillRect(mx - 19, gy - 35, 38, 7);
-      drawSkylineTag(ctx, mx, gy - 40, "🗿 Solstice Ring");
+      drawSkylineTag(ctx, 560, gy - 40, "🌾 Riverbank Farms", false, w);
     }
   } else if (era === 1 || era === 2) {
-    // Walled Bazaar Quarter
     const bx = 110;
     ctx.fillStyle = "#d49e54";
     ctx.fillRect(bx - 46, gy - 36, 92, 39);
     ctx.fillStyle = "#e3b268";
     ctx.fillRect(bx - 28, gy - 50, 56, 14);
-    ctx.fillStyle = "#451a03";
+    ctx.fillStyle = isNight ? "#fde047" : "#451a03";
     ctx.beginPath();
     ctx.arc(bx, gy + 3, 11, Math.PI, 0);
     ctx.fill();
-    // Striped bazaar awnings
     [bx - 38, bx + 16].forEach((ax, idx) => {
       drawPolygon(ctx, [[ax, gy - 18], [ax + 22, gy - 12], [ax, gy - 12]], idx === 0 ? "#dc2626" : "#2563eb");
       ctx.fillStyle = "#fde047";
       ctx.fillRect(ax + 2, gy - 12, 18, 15);
     });
-    drawSkylineTag(ctx, bx, gy - 56, "🏺 Walled Bazaar");
+    drawSkylineTag(ctx, bx, gy - 56, "🏺 Walled Bazaar", false, w);
 
-    // Irrigation Canals & Levee Palms
     const cx = 255;
     ctx.fillStyle = "#d6d3d1";
     ctx.fillRect(cx - 50, gy - 8, 100, 11);
@@ -2459,7 +2844,7 @@ function drawCityCanvas() {
       ctx.fillRect(px - 2, gy - 32, 4, 24);
       drawPolygon(ctx, [[px, gy - 38], [px - 12, gy - 28], [px + 12, gy - 28]], "#15803d");
     });
-    drawSkylineTag(ctx, cx, gy - 44, "🛶 Irrigation Canals");
+    drawSkylineTag(ctx, cx, gy - 44, "🛶 Irrigation Canals", false, w);
 
     if (era === 2 || (state.buildings.aqueduct || 0) > 0) {
       ctx.fillStyle = "#d6d3d1";
@@ -2470,10 +2855,9 @@ function drawCityCanvas() {
         ctx.fillStyle = "#e7e5e4";
         ctx.fillRect(ax, gy - 38, 9, 41);
       }
-      drawSkylineTag(ctx, 455, gy - 54, "🌉 Stone Aqueduct");
+      drawSkylineTag(ctx, 455, gy - 54, "🌉 Stone Aqueduct", false, w);
     }
 
-    // Classical Marble Forum
     const tx = 655;
     ctx.fillStyle = "#f5f5f4";
     ctx.fillRect(tx - 38, gy - 6, 76, 9);
@@ -2482,9 +2866,8 @@ function drawCityCanvas() {
       ctx.fillRect(colX, gy - 34, 6, 28);
     }
     drawPolygon(ctx, [[tx, gy - 50], [tx - 42, gy - 34], [tx + 42, gy - 34]], "#dc2626", "#f5f5f4", 2);
-    drawSkylineTag(ctx, tx, gy - 56, "🏛️ Marble Forum");
+    drawSkylineTag(ctx, tx, gy - 56, "🏛️ Marble Forum", false, w);
   } else if (era === 3 || era === 4) {
-    // Old Town Charter Guildhall & Keep
     const cx = 105;
     ctx.fillStyle = "#94a3b8";
     ctx.fillRect(cx - 40, gy - 46, 80, 49);
@@ -2495,20 +2878,18 @@ function drawCityCanvas() {
     drawPolygon(ctx, [[cx + 35, gy - 90], [cx + 21, gy - 66], [cx + 49, gy - 66]], "#2563eb");
     ctx.fillStyle = "#451a03";
     ctx.fillRect(cx - 10, gy - 20, 20, 23);
-    drawSkylineTag(ctx, cx, gy - 94, "🏰 Charter Guildhall");
+    drawSkylineTag(ctx, cx, gy - 94, "🏰 Charter Guildhall", false, w);
 
-    // River Watermills & Merchant Exchange Houses
     [195, 260, 325, 390].forEach((hx, idx) => {
       ctx.fillStyle = idx % 2 === 0 ? "#fef3c7" : "#c2410c";
       ctx.fillRect(hx, gy - 34, 44, 37);
       drawPolygon(ctx, [[hx + 22, gy - 52], [hx - 4, gy - 34], [hx + 48, gy - 34]], "#991b1b");
-      ctx.fillStyle = "#fde047";
+      ctx.fillStyle = isNight ? "#fef08a" : "#fde047";
       ctx.fillRect(hx + 8, gy - 24, 7, 7);
       ctx.fillRect(hx + 26, gy - 24, 7, 7);
     });
-    drawSkylineTag(ctx, 305, gy - 58, era === 4 ? "🏦 Merchant Exchange" : "⚙️ River Watermills");
+    drawSkylineTag(ctx, 305, gy - 58, era === 4 ? "🏦 Merchant Exchange" : "⚙️ River Watermills", false, w);
 
-    // Civic University Dome
     const ox = 565;
     ctx.fillStyle = "#d97706";
     ctx.fillRect(ox - 40, gy - 42, 80, 45);
@@ -2522,9 +2903,8 @@ function drawCityCanvas() {
     ctx.fill();
     ctx.fillStyle = "#fde047";
     ctx.fillRect(ox - 3, gy - 78, 6, 8);
-    drawSkylineTag(ctx, ox, gy - 82, "🎓 Civic University");
+    drawSkylineTag(ctx, ox, gy - 82, "🎓 Civic University", false, w);
   } else if (era === 5 || era === 6) {
-    // Municipal Coal Power Station
     ctx.fillStyle = "#991b1b";
     ctx.fillRect(32, gy - 48, 96, 51);
     ctx.fillStyle = "#57534e";
@@ -2536,22 +2916,21 @@ function drawCityCanvas() {
     ctx.arc(54, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
     ctx.arc(104, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
     ctx.fill();
-    drawSkylineTag(ctx, 80, gy - 102, "🏭 Power Station");
+    drawSkylineTag(ctx, 80, gy - 102, "🏭 Power Station", false, w);
 
-    // Grand Central Station & Downtown Blocks
     ctx.fillStyle = "#334155";
     ctx.fillRect(150, gy - 44, 110, 47);
     ctx.fillStyle = "#38bdf8";
     ctx.beginPath();
     ctx.arc(205, gy - 44, 42, Math.PI, 0);
     ctx.fill();
-    drawSkylineTag(ctx, 205, gy - 90, "🚂 Grand Central Station");
+    drawSkylineTag(ctx, 205, gy - 90, "🚂 Grand Central Station", false, w);
 
     [280, 350, 420].forEach((bx, idx) => {
       const bh = 72 + (idx % 3) * 20;
       ctx.fillStyle = idx % 2 === 0 ? "#475569" : "#334155";
       ctx.fillRect(bx, gy - bh, 52, bh + 3);
-      ctx.fillStyle = "#fef08a";
+      ctx.fillStyle = isNight ? "#fde047" : "#fef08a";
       for (let wy = gy - bh + 10; wy < gy - 6; wy += 12) {
         ctx.fillRect(bx + 8, wy, 7, 6);
         ctx.fillRect(bx + 22, wy, 7, 6);
@@ -2560,13 +2939,11 @@ function drawCityCanvas() {
     });
 
     if (era === 6) {
-      // Nuclear Power Plant Cooling Tower & Reactor Dome
       drawPolygon(ctx, [[518, gy - 68], [505, gy + 3], [555, gy + 3], [542, gy - 68]], "#cbd5e1", "#94a3b8", 1);
       ctx.fillStyle = "#38bdf8";
       ctx.fillRect(518, gy - 22, 24, 8);
-      drawSkylineTag(ctx, 535, gy - 74, "⚛️ Nuclear Plant");
+      drawSkylineTag(ctx, 535, gy - 74, "⚛️ Nuclear Plant", false, w);
 
-      // International Airport Control Tower & Jetliner
       const ax = 655;
       ctx.fillStyle = "#cbd5e1";
       ctx.fillRect(ax - 7, gy - 82, 14, 85);
@@ -2574,10 +2951,9 @@ function drawCityCanvas() {
       ctx.fillStyle = "#f8fafc";
       ctx.fillRect(ax + 16, gy - 14, 44, 10);
       drawPolygon(ctx, [[ax + 50, gy - 14], [ax + 60, gy - 28], [ax + 60, gy - 14]], "#2563eb");
-      drawSkylineTag(ctx, ax + 10, gy - 102, "✈️ Int'l Airport");
+      drawSkylineTag(ctx, ax + 10, gy - 102, "✈️ Int'l Airport", false, w);
     }
   } else {
-    // Information & Cyberpunk Panoramic Megacity Skyline
     const towers = [
       { x: 20, w: 46, h: 110, base: "#1e293b", trim: "#06b6d4", roof: "spire" },
       { x: 76, w: 54, h: 142, base: "#1e1b4b", trim: "#f43f5e", roof: "slant" },
@@ -2612,13 +2988,13 @@ function drawCityCanvas() {
 
       for (let wy = gy - t.h + 10; wy < gy - 8; wy += 11) {
         for (let wx = t.x + 6; wx < t.x + t.w - 8; wx += 10) {
-          ctx.fillStyle = (wx + wy + idx) % 3 === 0 ? t.trim : "rgba(224, 242, 254, 0.75)";
+          ctx.fillStyle = (wx + wy + idx) % 3 === 0 ? t.trim : "rgba(224, 242, 254, 0.78)";
           ctx.fillRect(wx, wy, 5, 6);
         }
       }
     });
 
-    // Elevated Maglev Transit Line across foreground
+    // Elevated Maglev Transit Line across entire width
     ctx.fillStyle = "rgba(148, 163, 184, 0.85)";
     ctx.fillRect(0, gy - 18, w, 4);
     const trainX = ((animTick * 90) % (w + 120)) - 60;
@@ -2627,21 +3003,66 @@ function drawCityCanvas() {
     ctx.fillStyle = "#06b6d4";
     ctx.fillRect(trainX + 4, gy - 23, 50, 2.5);
 
-    drawSkylineTag(ctx, 225, gy - 162, era === 8 ? "🏙️ Neon Arcology Spires" : "🏢 Glass Financial Core");
-    drawSkylineTag(ctx, 540, gy - 148, era === 8 ? "🚀 Orbital Spaceport" : "🚄 Maglev Transit Hub");
+    drawSkylineTag(ctx, 225, gy - 162, era === 8 ? "🏙️ Neon Arcology Spires" : "🏢 Glass Financial Core", false, w);
+    drawSkylineTag(ctx, 540, gy - 148, era === 8 ? "🚀 Orbital Spaceport" : "🚄 Maglev Transit Hub", false, w);
   }
 
-  if (hasWonder("w_orbital_elevator")) {
-    ctx.strokeStyle = "rgba(6, 182, 212, 0.85)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(w - 40, 0);
-    ctx.lineTo(w - 40, gy + 3);
-    ctx.stroke();
-    const podY = gy - ((animTick * 28) % gy);
-    ctx.fillStyle = "#fde047";
-    ctx.fillRect(w - 45, podY, 10, 14);
-  }
+  // 5. DRAW ALL ERECTED WORLD WONDERS & EXPANDED DISTRICTS ALONG THE SCROLLABLE HORIZON
+  let cursorX = 765;
+  builtWonders.forEach((wonder) => {
+    drawWonderOnPanorama(ctx, wonder.id, cursorX, gy, isNight, w);
+    cursorX += 115;
+  });
+
+  extraDistricts.forEach((b, idx) => {
+    drawUnitGraphicOnStrip(ctx, b.id, cursorX - 18, gy + 2, idx);
+    drawUnitGraphicOnStrip(ctx, b.id, cursorX + 18, gy + 2, idx + 1);
+    drawSkylineTag(ctx, cursorX, gy - 46, `${b.icon} ${b.districtName}`, false, w);
+    cursorX += 95;
+  });
+
+  // 6. LIVING ROAD TRAFFIC & CITIZENS
+  roadTraffic.forEach((rt) => {
+    rt.x += rt.speed * rt.dir;
+    if (rt.x > w + 30) rt.x = -30;
+    if (rt.x < -30) rt.x = w + 30;
+    const ry = h - 26;
+    if (era <= 4) {
+      // Citizen & wooden cart
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillRect(rt.x, ry - 4, 6, 4);
+    } else {
+      // Automobile / Tram with glowing headlights at night
+      ctx.fillStyle = rt.color;
+      ctx.fillRect(rt.x, ry - 4, 11, 4);
+      if (isNight || isDuskOrDawn) {
+        ctx.fillStyle = "rgba(254, 240, 138, 0.75)";
+        const beamX = rt.dir > 0 ? rt.x + 11 : rt.x - 10;
+        ctx.fillRect(beamX, ry - 3, 10, 2);
+      }
+    }
+  });
+
+  // 7. LIVING RIVER BOATS & SHIPS
+  riverBoats.forEach((rb) => {
+    rb.x += rb.speed * rb.dir;
+    if (rb.x > w + 40) rb.x = -40;
+    if (rb.x < -40) rb.x = w + 40;
+    const by = h - 11;
+    // Water wake
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillRect(rb.dir > 0 ? rb.x - 10 : rb.x + 16, by + 2, 9, 1.5);
+    // Boat hull
+    drawPolygon(ctx, [[rb.x - 10, by - 3], [rb.x + 14, by - 3], [rb.x + 10, by + 2], [rb.x - 6, by + 2]], era >= 5 ? "#334155" : "#78350f");
+    if (era >= 1 && era <= 4) {
+      // Billowing sail
+      drawPolygon(ctx, [[rb.x + 2, by - 16], [rb.x - 6, by - 4], [rb.x + 10, by - 4]], "#f8fafc");
+    } else if (era >= 5) {
+      // Cabin & lit porthole
+      ctx.fillStyle = era === 8 ? "#06b6d4" : "#facc15";
+      ctx.fillRect(rb.x - 3, by - 6, 8, 3);
+    }
+  });
 
   if (era >= 6) {
     vehicles.forEach((v) => {
@@ -2653,6 +3074,26 @@ function drawCityCanvas() {
     });
   }
 
+  // Occasional Celebratory Fireworks at Dusk/Night!
+  if ((isNight || isDuskOrDawn) && Math.random() < 0.015 && cityFireworks.length < 40) {
+    spawnCityFirework(80 + Math.random() * (w - 160), 28 + Math.random() * 55);
+  }
+  for (let i = cityFireworks.length - 1; i >= 0; i--) {
+    const fw = cityFireworks[i];
+    fw.x += fw.vx;
+    fw.y += fw.vy;
+    fw.vy += 0.03;
+    fw.alpha -= 0.028;
+    if (fw.alpha <= 0) {
+      cityFireworks.splice(i, 1);
+      continue;
+    }
+    ctx.fillStyle = fw.color;
+    ctx.globalAlpha = Math.max(0, fw.alpha);
+    ctx.fillRect(fw.x, fw.y, 2.5, 2.5);
+    ctx.globalAlpha = 1;
+  }
+
   if (era === 8) {
     ctx.strokeStyle = "rgba(6, 182, 212, 0.28)";
     ctx.lineWidth = 1;
@@ -2660,22 +3101,89 @@ function drawCityCanvas() {
       r.y += r.speed;
       if (r.y > h) {
         r.y = -10;
-        r.x = Math.random() * w;
+        r.xRatio = Math.random();
       }
+      const rx = r.xRatio * w;
       ctx.beginPath();
-      ctx.moveTo(r.x, r.y);
-      ctx.lineTo(r.x - 2, r.y + r.len);
+      ctx.moveTo(rx, r.y);
+      ctx.lineTo(rx - 2, r.y + r.len);
       ctx.stroke();
     });
   }
 }
 
+// ============================================================================
+// LEFT CLICKER SANCTUM: ATMOSPHERIC BACKLIT SHADOW SKYLINE, MOTES & CLICK FX
+// ============================================================================
 function drawClickerFxCanvas() {
   const canvas = document.getElementById("clicker-fx-canvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const w = canvas.width;
+  const h = canvas.height;
+  const era = state.currentEra;
+  ctx.clearRect(0, 0, w, h);
 
+  // 1. Backlit Aura Halo behind the Clicker Button
+  const pulse = 74 + Math.sin(animTick * 2.2) * 7 + comboVal * 18;
+  const auraGrad = ctx.createRadialGradient(w / 2, h / 2 + 8, 12, w / 2, h / 2 + 8, pulse + 38);
+  auraGrad.addColorStop(0, era === 8 ? "rgba(6, 182, 212, 0.28)" : "rgba(249, 115, 22, 0.28)");
+  auraGrad.addColorStop(0.55, era === 8 ? "rgba(244, 63, 94, 0.12)" : "rgba(250, 204, 21, 0.10)");
+  auraGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = auraGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Floating Ambient Civilization Motes drifting upward
+  sanctumMotes.forEach((m) => {
+    m.y -= m.vy * (1 + comboVal * 1.2);
+    if (m.y < -6) {
+      m.y = h + 4;
+      m.x = Math.random() * w;
+    }
+    ctx.fillStyle = era === 8 ? `rgba(6, 182, 212, ${m.alpha})` : `rgba(253, 224, 71, ${m.alpha})`;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 3. Atmospheric Backlit City Shadow Silhouette along the bottom of the Left Clicker Sanctum!
+  const baseY = h;
+  // Distant shadow hill/skyline layer
+  ctx.fillStyle = "rgba(12, 14, 24, 0.65)";
+  ctx.beginPath();
+  ctx.moveTo(0, baseY - 22);
+  ctx.quadraticCurveTo(85, baseY - 48, 170, baseY - 26);
+  ctx.quadraticCurveTo(255, baseY - 52, w, baseY - 24);
+  ctx.lineTo(w, baseY);
+  ctx.lineTo(0, baseY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Foreground crisp dark silhouette structures with glowing windows
+  ctx.fillStyle = "rgba(6, 7, 13, 0.92)";
+  ctx.fillRect(0, baseY - 12, w, 12);
+
+  const silBlocks = era <= 1
+    ? [[18, 22, 22], [55, 26, 28], [250, 28, 26], [292, 24, 22]]
+    : era <= 4
+    ? [[14, 26, 36], [48, 28, 48], [84, 24, 30], [234, 26, 34], [268, 30, 52], [304, 24, 38]]
+    : [[10, 26, 58], [42, 28, 76], [76, 24, 48], [106, 22, 64], [216, 24, 62], [246, 30, 82], [282, 26, 54], [312, 22, 68]];
+
+  silBlocks.forEach(([sx, sw, sh], idx) => {
+    ctx.fillStyle = "rgba(7, 9, 16, 0.94)";
+    ctx.fillRect(sx, baseY - sh, sw, sh);
+    if (era >= 2 && era <= 4 && idx % 2 === 1) {
+      drawPolygon(ctx, [[sx + sw / 2, baseY - sh - 14], [sx - 2, baseY - sh], [sx + sw + 2, baseY - sh]], "rgba(7, 9, 16, 0.94)");
+    }
+    // Glowing silhouette windows
+    ctx.fillStyle = era === 8 ? (idx % 2 === 0 ? "#06b6d4" : "#f43f5e") : "#fde047";
+    for (let wy = baseY - sh + 6; wy < baseY - 10; wy += 9) {
+      ctx.fillRect(sx + 5, wy, 4, 4);
+      if (sw >= 24) ctx.fillRect(sx + sw - 9, wy, 4, 4);
+    }
+  });
+
+  // 4. Click Shockwave Ripples & Sparks
   for (let i = canvasRipples.length - 1; i >= 0; i--) {
     const rp = canvasRipples[i];
     rp.r += 5.2;
@@ -2862,6 +3370,23 @@ function init() {
 
   document.getElementById("main-clicker").addEventListener("click", handleMainClick);
   document.getElementById("golden-anomaly").addEventListener("click", handleAnomalyClick);
+
+  const cityViewport = document.getElementById("city-scroll-viewport");
+  if (cityViewport) {
+    enableHorizontalDragScroll(cityViewport);
+  }
+  const btnPanLeft = document.getElementById("btn-pan-left");
+  if (btnPanLeft && cityViewport) {
+    btnPanLeft.addEventListener("click", () => {
+      cityViewport.scrollBy({ left: -240, behavior: "smooth" });
+    });
+  }
+  const btnPanRight = document.getElementById("btn-pan-right");
+  if (btnPanRight && cityViewport) {
+    btnPanRight.addEventListener("click", () => {
+      cityViewport.scrollBy({ left: 240, behavior: "smooth" });
+    });
+  }
 
   document.querySelectorAll(".buy-mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
