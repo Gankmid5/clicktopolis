@@ -1267,8 +1267,8 @@ function renderInfrastructureDistricts() {
           <span class="district-count-pill">x${count}</span>
         </div>
         <div class="district-stats-group">
-          <span class="district-cps">+${formatNum(bCps, 1)} CP/s</span>
-          <span class="district-share">(${sharePct}%)</span>
+          <span class="district-cps" id="dist-cps-${b.id}">+${formatNum(bCps, 1)} CP/s</span>
+          <span class="district-share" id="dist-share-${b.id}">(${sharePct}%)</span>
         </div>
       </div>
       <canvas class="district-canvas" width="680" height="64"></canvas>
@@ -1298,6 +1298,21 @@ function renderInfrastructureDistricts() {
       const ux = 28 + i * spacing;
       drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 10, i);
     }
+  });
+}
+
+function updateDistrictsStats() {
+  const totalCps = getTotalCps();
+  BUILDINGS.forEach((b) => {
+    const count = state.buildings[b.id] || 0;
+    if (count <= 0) return;
+    const cpsEl = document.getElementById(`dist-cps-${b.id}`);
+    const shareEl = document.getElementById(`dist-share-${b.id}`);
+    if (!cpsEl && !shareEl) return;
+    const bCps = count * getBuildingSingleCps(b);
+    const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
+    if (cpsEl) cpsEl.textContent = `+${formatNum(bCps, 1)} CP/s`;
+    if (shareEl) shareEl.textContent = `(${sharePct}%)`;
   });
 }
 
@@ -1401,10 +1416,13 @@ function buyBuilding(bId) {
   updateTopHUD();
 }
 
+let hoveredUpgradeId = null;
+
 function setUpgradeInspector(u, isMystery = false, reqMet = false) {
   const insp = document.getElementById("upgrade-inspector");
   if (!insp) return;
   if (isMystery) {
+    hoveredUpgradeId = "__mystery__";
     insp.innerHTML = `
       <div class="insp-top">
         <span>🔭 Undiscovered Breakthrough</span>
@@ -1415,9 +1433,11 @@ function setUpgradeInspector(u, isMystery = false, reqMet = false) {
     return;
   }
   if (!u) {
+    hoveredUpgradeId = null;
     insp.textContent = "Hover over an upgrade tile above to inspect its effect and cost.";
     return;
   }
+  hoveredUpgradeId = u.id;
   insp.innerHTML = `
     <div class="insp-top">
       <span>${u.icon} ${u.name}</span>
@@ -1468,7 +1488,12 @@ function renderUpgrades() {
     tray.appendChild(mTile);
   }
 
-  if (available.length > 0) {
+  const stillHovered = available.find((u) => u.id === hoveredUpgradeId);
+  if (stillHovered) {
+    setUpgradeInspector(stillHovered);
+  } else if (hoveredUpgradeId === "__mystery__" && nextHidden) {
+    setUpgradeInspector(nextHidden, true, nextHidden.req(state));
+  } else if (available.length > 0) {
     setUpgradeInspector(available[0]);
   } else if (nextHidden) {
     setUpgradeInspector(nextHidden, true, nextHidden.req(state));
@@ -1757,24 +1782,37 @@ function handleMainClick(e) {
   setTimeout(() => resEl.classList.remove("pop"), 75);
 
   const rect = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX || rect.left + rect.width / 2;
-  const y = e.clientY || rect.top + rect.height / 2;
+  const hasMouse = e.clientX > 0 || e.clientY > 0;
+  const x = hasMouse ? e.clientX : rect.left + rect.width / 2;
+  const y = hasMouse ? e.clientY : rect.top + rect.height / 2;
   spawnFloatingText(x, y, isCrit ? `💥 CRIT! +${formatNum(gain)}` : `+${formatNum(gain)}`, isCrit);
 
+  // Map click coordinate into #clicker-fx-canvas (340x240) on the left panel
+  const fxCanvas = document.getElementById("clicker-fx-canvas");
+  let fxX = 170;
+  let fxY = 128;
+  if (fxCanvas) {
+    const fxRect = fxCanvas.getBoundingClientRect();
+    if (fxRect.width > 0 && fxRect.height > 0) {
+      fxX = ((x - fxRect.left) / fxRect.width) * fxCanvas.width;
+      fxY = ((y - fxRect.top) / fxRect.height) * fxCanvas.height;
+    }
+  }
+
   canvasRipples.push({
-    x: 380,
-    y: 115,
-    r: 25,
-    maxR: isCrit ? 240 : 150,
-    alpha: 0.75,
+    x: fxX,
+    y: fxY,
+    r: 18,
+    maxR: isCrit ? 155 : 105,
+    alpha: 0.85,
     color: isCrit ? "#fde047" : "#f97316"
   });
-  for (let i = 0; i < (isCrit ? 14 : 6); i++) {
+  for (let i = 0; i < (isCrit ? 16 : 8); i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 3.5;
+    const speed = 1.6 + Math.random() * 3.6;
     canvasSparks.push({
-      x: 380,
-      y: 115,
+      x: fxX,
+      y: fxY,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       life: 1.0,
@@ -1792,6 +1830,7 @@ function handleMainClick(e) {
   checkEraProgression();
   checkAchievements();
   updateTopHUD();
+  updateDistrictsStats();
   updateBuildingsAffordability();
   updateUpgradesAffordability();
   updateWondersAffordability();
@@ -1799,11 +1838,18 @@ function handleMainClick(e) {
 
 function triggerGoldenAnomaly() {
   const btn = document.getElementById("golden-anomaly");
-  if (!btn.classList.contains("hidden")) return;
+  if (!btn || !btn.classList.contains("hidden")) return;
 
   const stage = document.getElementById("city-stage");
-  const maxX = Math.max(40, stage.clientWidth - 70);
-  const maxY = Math.max(40, stage.clientHeight - 70);
+  const sanctum = document.getElementById("clicker-sanctum");
+  const host = stage && stage.clientWidth > 100 ? stage : sanctum;
+  if (!host) return;
+  if (btn.parentElement !== host) {
+    host.appendChild(btn);
+  }
+
+  const maxX = Math.max(40, host.clientWidth - 70);
+  const maxY = Math.max(40, host.clientHeight - 70);
   btn.style.left = `${20 + Math.random() * (maxX - 20)}px`;
   btn.style.top = `${36 + Math.random() * (maxY - 46)}px`;
   btn.classList.remove("hidden");
@@ -1843,6 +1889,7 @@ function handleAnomalyClick(e) {
   checkEraProgression();
   checkAchievements();
   updateTopHUD();
+  updateDistrictsStats();
 }
 
 // ============================================================================
@@ -2246,11 +2293,18 @@ function drawCityCanvas() {
       ctx.stroke();
     });
   }
+}
+
+function drawClickerFxCanvas() {
+  const canvas = document.getElementById("clicker-fx-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let i = canvasRipples.length - 1; i >= 0; i--) {
     const rp = canvasRipples[i];
-    rp.r += 5.5;
-    rp.alpha -= 0.032;
+    rp.r += 5.2;
+    rp.alpha -= 0.038;
     if (rp.alpha <= 0 || rp.r >= rp.maxR) {
       canvasRipples.splice(i, 1);
       continue;
@@ -2268,14 +2322,14 @@ function drawCityCanvas() {
     const sp = canvasSparks[i];
     sp.x += sp.vx;
     sp.y += sp.vy;
-    sp.life -= 0.04;
+    sp.life -= 0.045;
     if (sp.life <= 0) {
       canvasSparks.splice(i, 1);
       continue;
     }
     ctx.fillStyle = sp.color;
     ctx.globalAlpha = Math.max(0, sp.life);
-    ctx.fillRect(sp.x, sp.y, 3, 3);
+    ctx.fillRect(sp.x, sp.y, 3.5, 3.5);
     ctx.globalAlpha = 1;
   }
 }
@@ -2566,6 +2620,7 @@ function init() {
 
     updateTopHUD();
     drawCityCanvas();
+    drawClickerFxCanvas();
 
     uiRefreshAccum += dt;
     if (uiRefreshAccum >= 0.4) {
@@ -2573,9 +2628,14 @@ function init() {
       checkProximityReveals();
       checkEraProgression();
       checkAchievements();
+      updateDistrictsStats();
       updateBuildingsAffordability();
       updateUpgradesAffordability();
       updateWondersAffordability();
+      const statsTab = document.getElementById("tab-stats");
+      if (statsTab && statsTab.classList.contains("active")) {
+        renderStats();
+      }
     }
   }, 50);
 
