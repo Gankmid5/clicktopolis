@@ -493,34 +493,70 @@ const WONDERS = [
 ];
 
 // ============================================================================
-// CIVIC ORDINANCES & INFRASTRUCTURE UPGRADES
+// CIVIC ORDINANCES & INFRASTRUCTURE UPGRADES (155 Total Civic Upgrades!)
 // ============================================================================
 const UPGRADES = [];
 
+const UPGRADE_CATEGORY_LABELS = {
+  building_mult: "District Upgrade",
+  synergy: "District Synergy",
+  census: "Citizen Census",
+  sprawl: "Urban Sprawl",
+  special: "Civic Ordinance",
+  click_boost: "Builder Tooling",
+  global_mult: "Urban Masterplan"
+};
+
+function hasUpgrade(uId) {
+  return (state.upgrades || []).includes(uId);
+}
+
 function registerUpgrades() {
+  // 1. DISTRICT INFRASTRUCTURE TIERS (5 Tiers per Building: 1, 10, 25, 50, 100 owned = 90 Upgrades)
   const tierNames = [
-    ["Woven Reed Roofs", "Clay Hearth Chimneys", "Dry-Stone Footings", "Paved Village Lanes"],
-    ["Silt Flood Ditches", "Ox-Drawn Plowshares", "Mud-Brick Granaries", "Terraced River Orchards"],
-    ["Counterweight Shadufs", "Baked-Brick Sluice Gates", "Masonry Lock Chambers", "Royal Waterworks Board"],
-    ["Shaded Linen Awnings", "Standardized Bronze Weights", "Caravanserai Courtyards", "Harbor Wharf Warehouses"],
-    ["Pozzolana Hydraulic Mortar", "Double-Tiered Stone Arches", "Settling Cisterns", "Municipal Thermae Baths"],
-    ["Paved Via Sacra", "Columned Civic Basilica", "Citizen Rostra Plaza", "Senatorial Municipal Mint"],
-    ["Overshot Timber Millwheels", "Stone-Lined Millraces", "Fulling & Bakery Guilds", "Twin-Weir River Dam"],
-    ["Cobblestone Thoroughfares", "Guildhall Bell Tower", "Free Market Town Charter", "Star-Bastion City Walls"],
-    ["Rialto Stone Arch Bridge", "Double-Entry Clearinghouse", "Maritime Harbor Insurance", "Grand Piazza Arcade"],
-    ["Public Reading Rotunda", "Botanical Teaching Gardens", "Astronomical Clock Cupola", "School of Civil Architecture"],
-    ["High-Pressure Steam Boilers", "Rotary Dynamo Generators", "Electric Streetlamp Network", "High-Voltage Substations"],
-    ["Bessemer Steel Rails", "Pneumatic Track Switches", "Vaulted Glass Train Shed", "Underground Subway Links"],
-    ["Pressurized Reactor Domes", "Hyperbolic Cooling Towers", "Automated Grid Dispatch", "Superconducting City Ring"],
-    ["Instrument Landing Radar", "Parallel Jet Runways", "Automated People-Movers", "International Concourse Hub"],
-    ["Tuned Mass Wind Dampers", "Double-Deck Express Lifts", "Solar Curtain-Wall Glass", "Sky-Lobby Transit Bridges"],
-    ["Superconducting Guideways", "Aerodynamic Nose Cones", "AI Headway Control", "Vacuum-Tube Express Loops"],
-    ["Hydroponic Sky-Atriums", "Holographic Transit Decks", "Atmospheric Rain Catchers", "Autonomous Drone Skyways"],
-    ["Electromagnetic Launch Track", "Cryogenic Fuel Plazas", "Orbital Commuter Lounges", "Planetary Gateway Ring"]
+    ["Woven Reed Roofs", "Clay Hearth Chimneys", "Dry-Stone Footings", "Paved Village Lanes", "Ancestor Longhouse Commons"],
+    ["Silt Flood Ditches", "Ox-Drawn Plowshares", "Mud-Brick Granaries", "Terraced River Orchards", "Nilometer Floodgates"],
+    ["Counterweight Shadufs", "Baked-Brick Sluice Gates", "Masonry Lock Chambers", "Royal Waterworks Board", "Archimedean Screw Batteries"],
+    ["Shaded Linen Awnings", "Standardized Bronze Weights", "Caravanserai Courtyards", "Harbor Wharf Warehouses", "Grand Incense & Spice Souk"],
+    ["Pozzolana Hydraulic Mortar", "Double-Tiered Stone Arches", "Settling Cisterns", "Municipal Thermae Baths", "Cloaca Maxima Vaults"],
+    ["Paved Via Sacra", "Columned Civic Basilica", "Citizen Rostra Plaza", "Senatorial Municipal Mint", "Imperial Marble Curia"],
+    ["Overshot Timber Millwheels", "Stone-Lined Millraces", "Fulling & Bakery Guilds", "Twin-Weir River Dam", "Royal River Locks & Sluices"],
+    ["Cobblestone Thoroughfares", "Guildhall Bell Tower", "Free Market Town Charter", "Star-Bastion City Walls", "Sovereign Free-City League"],
+    ["Rialto Stone Arch Bridge", "Double-Entry Clearinghouse", "Maritime Harbor Insurance", "Grand Piazza Arcade", "Bourse of the Seven Seas"],
+    ["Public Reading Rotunda", "Botanical Teaching Gardens", "Astronomical Clock Cupola", "School of Civil Architecture", "Grand Academy of Urban Sciences"],
+    ["High-Pressure Steam Boilers", "Rotary Dynamo Generators", "Electric Streetlamp Network", "High-Voltage Substations", "Regional Pumped-Hydro Grid"],
+    ["Bessemer Steel Rails", "Pneumatic Track Switches", "Vaulted Glass Train Shed", "Underground Subway Links", "Transcontinental Sleeper Express"],
+    ["Pressurized Reactor Domes", "Hyperbolic Cooling Towers", "Automated Grid Dispatch", "Superconducting City Ring", "Tokamak Fusion Pilot Core"],
+    ["Instrument Landing Radar", "Parallel Jet Runways", "Automated People-Movers", "International Concourse Hub", "Supersonic Stratosphere Wing"],
+    ["Tuned Mass Wind Dampers", "Double-Deck Express Lifts", "Solar Curtain-Wall Glass", "Sky-Lobby Transit Bridges", "Diamond-Frame Supertall Core"],
+    ["Superconducting Guideways", "Aerodynamic Nose Cones", "AI Headway Control", "Vacuum-Tube Express Loops", "Sub-Continental Hyperloop Mesh"],
+    ["Hydroponic Sky-Atriums", "Holographic Transit Decks", "Atmospheric Rain Catchers", "Autonomous Drone Skyways", "Stratospheric Cloud-Gardens"],
+    ["Electromagnetic Launch Track", "Cryogenic Fuel Plazas", "Orbital Commuter Lounges", "Planetary Gateway Ring", "Geostationary Orbital Terminus"]
   ];
 
-  const tierThresholds = [1, 10, 25, 50];
-  const tierCostMults = [12, 160, 2200, 35000];
+  const tierFlavors = [
+    "Warm hearths and dry thatch turn a camp into a permanent home.",
+    "Every annual flood leaves behind black river silt worth its weight in gold.",
+    "Where water flows by the surveyor's rod, the desert blooms into orchard.",
+    "Copper scales and sealed clay jars keep every caravan merchant honest.",
+    "Fresh mountain water arcs across the valley on two hundred stone piers.",
+    "Under marble colonnades, citizens debate laws, taxes, and tomorrow's harvest.",
+    "The river never sleeps, turning oak gears day and night for the city's bakers.",
+    "City air makes you free—provided you pay your guild dues on market day.",
+    "Bills of exchange signed on the Rialto finance ships three oceans away.",
+    "An educated citizenry builds straighter bridges and deeper harbors.",
+    "Copper wires hum overhead as gaslight gives way to the electric age.",
+    "All timetables in the republic are set by the Grand Central station clock.",
+    "Split atoms warm a million apartments without a single wisp of coal smoke.",
+    "Every ninety seconds, another silver airliner touches down from across the globe.",
+    "Steel and Low-E glass reach past the clouds to anchor the financial core.",
+    "Frictionless magnetic cushions turn a two-hour commute into a ten-minute glide.",
+    "Whole neighborhoods blossom two hundred floors above the street-level rain.",
+    "The morning commuter shuttle now docks at Low Earth Orbit Platform Four."
+  ];
+
+  const tierThresholds = [1, 10, 25, 50, 100];
+  const tierCostMults = [12, 160, 2200, 35000, 650000];
 
   BUILDINGS.forEach((b, bIdx) => {
     tierThresholds.forEach((reqCount, tIdx) => {
@@ -531,7 +567,9 @@ function registerUpgrades() {
         era: b.era,
         cost: Math.round(b.baseCost * tierCostMults[tIdx]),
         desc: `${b.name} (${b.districtName}) output is DOUBLED (2x).`,
+        flavor: tierFlavors[bIdx],
         type: "building_mult",
+        cat: "building_mult",
         target: b.id,
         mult: 2,
         req: (s) => (s.buildings[b.id] || 0) >= reqCount
@@ -539,16 +577,299 @@ function registerUpgrades() {
     });
   });
 
+  // 2. INTER-DISTRICT SYNERGIES (18 Upgrades linking pairs of city districts!)
+  const synergyUpgrades = [
+    {
+      id: "syn_hearth_grain", era: 0, icon: "🧺", name: "Communal Granary Baskets",
+      cost: 1600, bA: "forager", bB: "megalith", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Woven reed storage baskets carry riverbank harvests straight to every family hearth."
+    },
+    {
+      id: "syn_silt_sluice", era: 1, icon: "💧", name: "Flooded Orchard Channels",
+      cost: 22000, bA: "megalith", bB: "foundry", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Feeder ditches from the main canal keep every riverside field green through the dry season."
+    },
+    {
+      id: "syn_barge_wharf", era: 1, icon: "🛶", name: "Canal Barge Wharves",
+      cost: 260000, bA: "foundry", bB: "ziggurat", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Flat-bottomed canal barges unload figs, cedar, and pottery right at the bazaar gates."
+    },
+    {
+      id: "syn_caravan_lead", era: 2, icon: "🐪", name: "Caravan Watering Basins",
+      cost: 3500000, bA: "ziggurat", bB: "aqueduct", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Aqueduct-fed marble troughs refresh merchant camel trains arriving at the market quarter."
+    },
+    {
+      id: "syn_nymphaeum", era: 2, icon: "⛲", name: "Forum Nymphaeum Fountains",
+      cost: 48000000, bA: "aqueduct", bB: "academy", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Cascading public fountains cool the marble colonnades where senators and citizens gather."
+    },
+    {
+      id: "syn_senate_assize", era: 3, icon: "⚖️", name: "Municipal Bread & Flour Assize",
+      cost: 700000000, bA: "academy", bB: "watermill", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Civic magistrates regulate flour weights and watermill tolls along the riverfront."
+    },
+    {
+      id: "syn_guild_mills", era: 3, icon: "🥖", name: "Fullers & Bakers Guild Charter",
+      cost: 10500000000, bA: "watermill", bB: "citadel", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "River-powered trip hammers and flour mills supply the Old Town guild workshops."
+    },
+    {
+      id: "syn_hans_clearing", era: 4, icon: "🧾", name: "Merchant Contor Bills of Credit",
+      cost: 150000000000, bA: "citadel", bB: "press", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Guild aldermen settle international trade balances with a stroke of the banker's quill."
+    },
+    {
+      id: "syn_chair_econ", era: 4, icon: "📚", name: "Chair of Civic Jurisprudence",
+      cost: 2300000000000, bA: "press", bB: "observatory", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Merchant princes endow university chairs in maritime law, mathematics, and architecture."
+    },
+    {
+      id: "syn_polytechnic", era: 5, icon: "🔬", name: "Polytechnic Thermodynamics Lab",
+      cost: 35000000000000, bA: "observatory", bB: "steamworks", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "University engineers design high-efficiency steam turbines for the municipal power grid."
+    },
+    {
+      id: "syn_traction_grid", era: 5, icon: "⚡", name: "Electrified Third-Rail Switchyards",
+      cost: 520000000000000, bA: "steamworks", bB: "railhub", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Dedicated rotary converters feed high-voltage traction power straight to the rail terminus."
+    },
+    {
+      id: "syn_atomic_express", era: 6, icon: "🚆", name: "Grid-Powered Express Corridors",
+      cost: 8000000000000000, bA: "railhub", bB: "fission", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Abundant nuclear baseload power lets electric commuter trains run every ninety seconds."
+    },
+    {
+      id: "syn_jet_grid", era: 6, icon: "🛫", name: "Runway Radar & Hydrogen Plant",
+      cost: 130000000000000000, bA: "fission", bB: "cosmodrome", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Dedicated reactor lines power airport radar arrays, terminal climate systems, and fuel synthesis."
+    },
+    {
+      id: "syn_corporate_shuttle", era: 7, icon: "🚁", name: "Executive Skyport Air-Link",
+      cost: 2100000000000000000, bA: "cosmodrome", bB: "fab", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Rooftop vertiports and customs lounges connect global flights directly to downtown towers."
+    },
+    {
+      id: "syn_sub_concourse", era: 7, icon: "🚄", name: "Subterranean Maglev Concourse",
+      cost: 34000000000000000000, bA: "fab", bB: "quantum", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "High-speed maglev platforms open directly into the underground lobbies of every skyscraper."
+    },
+    {
+      id: "syn_skybridge_loop", era: 8, icon: "🚝", name: "Vertical Maglev Sky-Bridges",
+      cost: 560000000000000000000, bA: "quantum", bB: "arcology", reqA: 15, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Maglev cars transition seamlessly from horizontal city tracks into vertical arcology shafts."
+    },
+    {
+      id: "syn_orbital_hook", era: 8, icon: "🚀", name: "Arcology Launch-Loop Concourse",
+      cost: 9500000000000000000000, bA: "arcology", bB: "dyson", reqA: 10, reqB: 5, boostA: 0.02, boostB: 0.01,
+      flavor: "Upper arcology sky-decks connect directly to the sub-orbital shuttle boarding rings."
+    },
+    {
+      id: "syn_alpha_omega", era: 8, icon: "🏛️", name: "Founders' Heritage Biosphere Domes",
+      cost: 25000000000000000000000, bA: "forager", bB: "dyson", reqA: 50, reqB: 5, boostA: 0.05, boostB: 0.005,
+      flavor: "Preserved under climate-controlled glass domes, the city's original thatched huts inspire orbital travelers."
+    }
+  ];
+
+  synergyUpgrades.forEach((syn) => {
+    const bObjA = BUILDINGS.find((b) => b.id === syn.bA);
+    const bObjB = BUILDINGS.find((b) => b.id === syn.bB);
+    UPGRADES.push({
+      id: syn.id,
+      era: syn.era,
+      name: syn.name,
+      icon: syn.icon,
+      cost: syn.cost,
+      desc: `${bObjA.name} gains +${(syn.boostA * 100).toFixed(0)}% CP/s per ${bObjB.name}, and ${bObjB.name} gains +${(syn.boostB * 100).toFixed(1).replace(/\.0$/, "")}% CP/s per ${bObjA.name}.`,
+      flavor: syn.flavor,
+      type: "synergy",
+      cat: "synergy",
+      bA: syn.bA,
+      bB: syn.bB,
+      boostA: syn.boostA,
+      boostB: syn.boostB,
+      req: (s) => (s.buildings[syn.bA] || 0) >= syn.reqA && (s.buildings[syn.bB] || 0) >= syn.reqB
+    });
+  });
+
+  // 3. CITIZEN CENSUS & HOUSING ORDINANCES (9 Upgrades, 1 per Era — boosts Population & Global CP/s!)
+  const censusUpgrades = [
+    { id: "cen_0", era: 0, name: "Hearth Tally Sticks", icon: "🪵", cost: 420, popMult: 1.20, cpsMult: 1.10, reqCp: 160, flavor: "Notched willow wands record every family sharing the village granary." },
+    { id: "cen_1", era: 1, name: "Cuneiform Clay Census", icon: "🏺", cost: 28000, popMult: 1.25, cpsMult: 1.12, reqCp: 10000, flavor: "Baked clay tablets list every canal plot, orchard, and artisan household." },
+    { id: "cen_2", era: 2, name: "Censor's Marble Citizen Roll", icon: "📜", cost: 1600000, popMult: 1.25, cpsMult: 1.15, reqCp: 550000, flavor: "Every five years, citizens gather in the Campus Martius to register their household." },
+    { id: "cen_3", era: 3, name: "Burghers' Domesday Ledger", icon: "📖", cost: 110000000, popMult: 1.30, cpsMult: 1.15, reqCp: 38000000, flavor: "Bound in calfskin and locked in the Guildhall chest, not a single watermill escapes the tally." },
+    { id: "cen_4", era: 4, name: "Parish & Piazza Registry", icon: "🏮", cost: 8500000000, popMult: 1.30, cpsMult: 1.18, reqCp: 2800000000, flavor: "Oil streetlamps and night-watchmen keep the growing canal wards safe after sundown." },
+    { id: "cen_5", era: 5, name: "Penny Post & Street Directory", icon: "📮", cost: 650000000000, popMult: 1.35, cpsMult: 1.20, reqCp: 220000000000, flavor: "Numbered rowhouses and twice-daily mail delivery knit a million citizens into one metropolis." },
+    { id: "cen_6", era: 6, name: "Metropolitan Beltway Zoning", icon: "🛣️", cost: 52000000000000, popMult: 1.40, cpsMult: 1.22, reqCp: 18000000000000, flavor: "Leafy garden suburbs and express commuter lines welcome the post-war baby boom." },
+    { id: "cen_7", era: 7, name: "Unified Smart-Citizen Pass", icon: "💳", cost: 4500000000000000, popMult: 1.50, cpsMult: 1.25, reqCp: 1500000000000000, flavor: "One contactless card opens your maglev gate, library account, and sky-park conservatory." },
+    { id: "cen_8", era: 8, name: "Neural Census Hive-Consensus", icon: "🧠", cost: 450000000000000000, popMult: 1.65, cpsMult: 1.35, reqCp: 150000000000000000, flavor: "Billions of citizens vote on municipal budget allocations in picoseconds via the city mesh." }
+  ];
+
+  censusUpgrades.forEach((cen) => {
+    UPGRADES.push({
+      id: cen.id,
+      era: cen.era,
+      name: cen.name,
+      icon: cen.icon,
+      cost: cen.cost,
+      desc: `City Population +${Math.round((cen.popMult - 1) * 100)}% and all infrastructure output +${Math.round((cen.cpsMult - 1) * 100)}%.`,
+      flavor: cen.flavor,
+      type: "census",
+      cat: "census",
+      popMult: cen.popMult,
+      mult: cen.cpsMult,
+      req: (s) => s.currentEra >= cen.era && s.totalCp >= cen.reqCp
+    });
+  });
+
+  // 4. URBAN SPRAWL MILESTONES (7 Upgrades scaling with Total Buildings Constructed!)
+  const sprawlUpgrades = [
+    { id: "spr_15", era: 0, reqBld: 15, name: "Boundary Marker Cairns", icon: "🪨", cost: 900, perBld: 0.001, flavor: "Stacked river stones mark where the village commons end and the farmlands begin." },
+    { id: "spr_40", era: 1, reqBld: 40, name: "Hippodamian Gridiron Plan", icon: "📏", cost: 45000, perBld: 0.001, flavor: "Straight avenues intersecting at right angles make every new city block twice as efficient." },
+    { id: "spr_80", era: 2, reqBld: 80, name: "Pomerium Ring-Wall Expansion", icon: "🧱", cost: 2800000, perBld: 0.001, flavor: "As the suburbs outgrow the old ramparts, a wider circuit of stone walls embraces the city." },
+    { id: "spr_140", era: 4, reqBld: 140, name: "Grand Radial Boulevards", icon: "🌳", cost: 16000000000, perBld: 0.001, flavor: "Tree-lined diagonal avenues link every district plaza to the central riverfront." },
+    { id: "spr_220", era: 5, reqBld: 220, name: "Electric Streetcar Suburbs", icon: "🚋", cost: 1200000000000, perBld: 0.001, flavor: "Overhead trolley wires turn distant pastures into thriving residential boroughs." },
+    { id: "spr_320", era: 7, reqBld: 320, name: "Elevated Pedway & Skywalk Network", icon: "🌉", cost: 9000000000000000, perBld: 0.001, flavor: "Climate-controlled glass skybridges connect seventy downtown blocks above the traffic." },
+    { id: "spr_450", era: 8, reqBld: 450, name: "Continental Megacity Charter", icon: "🌐", cost: 900000000000000000, perBld: 0.0015, flavor: "From the coastal spaceports to the mountain arcologies, one unbroken skyline spans the horizon." }
+  ];
+
+  sprawlUpgrades.forEach((sp) => {
+    UPGRADES.push({
+      id: sp.id,
+      era: sp.era,
+      name: sp.name,
+      icon: sp.icon,
+      cost: sp.cost,
+      desc: `All city infrastructure gains +${(sp.perBld * 100).toFixed(2).replace(/0$/, "")}% CP/s per total building owned in your city.`,
+      flavor: sp.flavor,
+      type: "sprawl",
+      cat: "sprawl",
+      perBld: sp.perBld,
+      req: (s) => s.currentEra >= sp.era && getTotalBuildings(s) >= sp.reqBld
+    });
+  });
+
+  // 5. CIVIC FESTIVALS, CRITICAL ARCHITECTURE & MUNICIPAL FINANCE LAWS (14 Upgrades)
+  const specialUpgrades = [
+    {
+      id: "sp_bonfire", era: 0, name: "Harvest Bonfire Festival", icon: "🎪", cost: 650,
+      desc: "All infrastructure output +10% and Golden Civic Booms appear 20% more frequently.",
+      flavor: "Roasted grain, cider, and drums by the river rally the whole settlement.",
+      mult: 1.10, anomalyFreq: 0.80,
+      req: (s) => getTotalBuildings(s) >= 8
+    },
+    {
+      id: "sp_brick_kilns", era: 1, name: "Standardized Royal Brick Kilns", icon: "🧱", cost: 19000,
+      desc: "All city infrastructure costs 3% less CP to construct.",
+      flavor: "Stamped with the city seal, uniform mud bricks cut construction waste across every ward.",
+      discount: 0.97,
+      req: (s) => getTotalBuildings(s) >= 20 && s.currentEra >= 1
+    },
+    {
+      id: "sp_volunteer_brigade", era: 1, name: "Citizen Corvée Brigades", icon: "⚒️", cost: 55000,
+      desc: "Click power +20% and +1.5% Global CP/s per order of magnitude (log10) of City Population.",
+      flavor: "Between harvest and flood, every citizen lends a hand on the levee walls.",
+      clickMult: 1.20, popLogCps: 0.015,
+      req: (s) => s.currentEra >= 1 && s.totalClicks >= 40
+    },
+    {
+      id: "sp_groma", era: 2, name: "Roman Surveyor's Groma", icon: "🎯", cost: 1200000,
+      desc: "Critical Click chance +2% and Critical Click multiplier increased by +0.25x.",
+      flavor: "Plumb bobs and bronze sighting crosses align aqueducts and avenues to the millimeter.",
+      critChance: 0.02, critMultBonus: 0.25,
+      req: (s) => s.currentEra >= 2 && (s.totalCrits || 0) >= 10
+    },
+    {
+      id: "sp_bread_circus", era: 2, name: "Public Grain Dole & Games", icon: "🎭", cost: 3800000,
+      desc: "Golden Civic Booms grant +25% larger CP rewards and Overdrive lasts +4s longer.",
+      flavor: "Free loaves and chariot races keep the forum cheering through every season.",
+      anomalyReward: 1.25, anomalyBuffSec: 4,
+      req: (s) => s.currentEra >= 2 && s.totalCp >= 1200000
+    },
+    {
+      id: "sp_crane_yards", era: 3, name: "Municipal Timber & Stone Yards", icon: "🏗️", cost: 85000000,
+      desc: "All city infrastructure costs an additional 4% less CP to construct.",
+      flavor: "Seasoned oak beams and dressed limestone blocks sit ready by the river wharf.",
+      discount: 0.96,
+      req: (s) => s.currentEra >= 3 && getTotalBuildings(s) >= 55
+    },
+    {
+      id: "sp_theodolite", era: 4, name: "Brass Optical Theodolite", icon: "🔭", cost: 6000000000,
+      desc: "Critical Click chance +2% and Critical Click multiplier increased by +0.25x.",
+      flavor: "Telescopic lenses and vernier scales let Renaissance architects span the widest canals.",
+      critChance: 0.02, critMultBonus: 0.25,
+      req: (s) => s.currentEra >= 4 && (s.totalCrits || 0) >= 35
+    },
+    {
+      id: "sp_carnival", era: 4, name: "Grand Canal Regatta & Carnival", icon: "🚣", cost: 18000000000,
+      desc: "Golden Civic Booms stay visible 25% longer and grant +25% larger rewards.",
+      flavor: "Gilded barges and masked revelers fill the lantern-lit piazzas from dusk till dawn.",
+      anomalyReward: 1.25, anomalyStay: 1.25,
+      req: (s) => s.currentEra >= 4 && s.totalCp >= 6000000000
+    },
+    {
+      id: "sp_bessemer_prefab", era: 5, name: "Prefabricated Cast-Iron Frames", icon: "🔩", cost: 480000000000,
+      desc: "All city infrastructure costs an additional 5% less CP to construct.",
+      flavor: "Numbered iron columns cast at the foundry bolt together on-site in a single week.",
+      discount: 0.95,
+      req: (s) => s.currentEra >= 5 && getTotalBuildings(s) >= 110
+    },
+    {
+      id: "sp_world_fair", era: 5, name: "Centennial World's Exposition", icon: "🎡", cost: 1500000000000,
+      desc: "All infrastructure output +15% and Chrono Overdrive buffs gain +0.5x extra multiplier.",
+      flavor: "Visitors from every continent marvel at the Palace of Electricity and the giant Ferris wheel.",
+      mult: 1.15, overdriveBonus: 0.5,
+      req: (s) => s.currentEra >= 5 && s.totalCp >= 500000000000
+    },
+    {
+      id: "sp_laser_level", era: 6, name: "Laser Gyroscope Surveying", icon: "🔬", cost: 38000000000000,
+      desc: "Critical Click chance +3% and Critical Click multiplier increased by +0.25x.",
+      flavor: "Coherent ruby-laser beams guide tunnel-boring machines beneath the entire metro area.",
+      critChance: 0.03, critMultBonus: 0.25,
+      req: (s) => s.currentEra >= 6 && (s.totalCrits || 0) >= 75
+    },
+    {
+      id: "sp_civic_pride", era: 6, name: "Metropolitan Civic Pride Campaign", icon: "🗽", cost: 110000000000000,
+      desc: "Click power +25% and +2% Global CP/s per order of magnitude (log10) of City Population.",
+      flavor: "Neon welcome signs, botanical parks, and symphony halls make every citizen proud of their city.",
+      clickMult: 1.25, popLogCps: 0.02,
+      req: (s) => s.currentEra >= 6 && s.totalCp >= 35000000000000
+    },
+    {
+      id: "sp_muni_bonds", era: 7, name: "AAA Municipal Infrastructure Bonds", icon: "💹", cost: 3200000000000000,
+      desc: "All city infrastructure costs 5% less CP and produces +15% CP/s.",
+      flavor: "Global pension funds compete to finance your city's next maglev line at near-zero interest.",
+      discount: 0.95, mult: 1.15,
+      req: (s) => s.currentEra >= 7 && getTotalBuildings(s) >= 180
+    },
+    {
+      id: "sp_quantum_cad", era: 8, name: "Quantum Structural Simulation", icon: "⚡", cost: 320000000000000000,
+      desc: "Critical Click chance +3% and Critical Click multiplier increased by +0.25x.",
+      flavor: "Qubit stress-tensors optimize every carbon-nanotube truss before the first drone lifts off.",
+      critChance: 0.03, critMultBonus: 0.25,
+      req: (s) => s.currentEra >= 8 && (s.totalCrits || 0) >= 120
+    }
+  ];
+
+  specialUpgrades.forEach((sp) => {
+    UPGRADES.push({
+      ...sp,
+      type: "special",
+      cat: "special"
+    });
+  });
+
+  // 6. CONSTRUCTION TOOLING & CLICK UPGRADES (9 Upgrades, 1 per Era)
   const clickUpgrades = [
-    { id: "c_flint", era: 0, name: "Timber Framing Mallets", icon: "🔨", cost: 100, desc: "Base click +1 CP and +0.25% of your CP/s per click.", flat: 1, cpsPct: 0.0025, reqCp: 35 },
-    { id: "c_lever", era: 1, name: "Mud-Brick Molds & Plumb Lines", icon: "🧱", cost: 8000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", mult: 1.25, cpsPct: 0.0025, reqCp: 2500 },
-    { id: "c_crane", era: 2, name: "Roman Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", mult: 1.25, cpsPct: 0.0025, reqCp: 150000 },
-    { id: "c_guild", era: 3, name: "Master Mason Guild Square", icon: "📐", cost: 35000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", mult: 1.35, cpsPct: 0.0035, reqCp: 10000000 },
-    { id: "c_da_vinci", era: 4, name: "Geared Hoist & Scaffolding", icon: "⚙️", cost: 2500000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", mult: 1.35, cpsPct: 0.0035, reqCp: 600000000 },
-    { id: "c_pneumatic", era: 5, name: "Steam Riveting Gantry", icon: "🔩", cost: 180000000000, desc: "Click power x1.4 and +0.35% of your CP/s per click.", mult: 1.4, cpsPct: 0.0035, reqCp: 50000000000 },
-    { id: "c_laser", era: 6, name: "Tower Crane Fleet", icon: "🏗️", cost: 15000000000000, desc: "Click power x1.4 and +0.4% of your CP/s per click.", mult: 1.4, cpsPct: 0.004, reqCp: 4000000000000 },
-    { id: "c_exo", era: 7, name: "Automated Prefab Robotics", icon: "🦾", cost: 1200000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", mult: 1.5, cpsPct: 0.004, reqCp: 350000000000000 },
-    { id: "c_neural", era: 8, name: "Nano-Swarm Assembler Grid", icon: "🏙️", cost: 120000000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", mult: 1.5, cpsPct: 0.004, reqCp: 35000000000000000 }
+    { id: "c_flint", era: 0, name: "Timber Framing Mallets", icon: "🔨", cost: 100, desc: "Base click +1 CP and +0.25% of your CP/s per click.", flavor: "Seasoned oak mallets and mortise chisels raise sturdy ridgepoles in half the time.", flat: 1, cpsPct: 0.0025, reqCp: 35 },
+    { id: "c_lever", era: 1, name: "Mud-Brick Molds & Plumb Lines", icon: "🧱", cost: 8000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", flavor: "Wooden brick frames let a single mason form four hundred sun-dried bricks a day.", mult: 1.25, cpsPct: 0.0025, reqCp: 2500 },
+    { id: "c_crane", era: 2, name: "Roman Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", flavor: "Compound pulleys and a timber walking-wheel lift six-ton marble architraves with ease.", mult: 1.25, cpsPct: 0.0025, reqCp: 150000 },
+    { id: "c_guild", era: 3, name: "Master Mason Guild Square", icon: "📐", cost: 35000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", flavor: "Geometric ratios guarded by the cathedral lodge turn raw stone into soaring ribs.", mult: 1.35, cpsPct: 0.0035, reqCp: 10000000 },
+    { id: "c_da_vinci", era: 4, name: "Geared Hoist & Scaffolding", icon: "⚙️", cost: 2500000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", flavor: "Reversible worm-gear winches allow domes to be raised without centering timbers.", mult: 1.35, cpsPct: 0.0035, reqCp: 600000000 },
+    { id: "c_pneumatic", era: 5, name: "Steam Riveting Gantry", icon: "🔩", cost: 180000000000, desc: "Click power x1.4 and +0.35% of your CP/s per click.", flavor: "White-hot iron rivets clinch bridge girders together with a deafening staccato roar.", mult: 1.4, cpsPct: 0.0035, reqCp: 50000000000 },
+    { id: "c_laser", era: 6, name: "Tower Crane Fleet", icon: "🏗️", cost: 15000000000000, desc: "Click power x1.4 and +0.4% of your CP/s per click.", flavor: "Self-climbing slewing cranes crown every block of the expanding downtown skyline.", mult: 1.4, cpsPct: 0.004, reqCp: 4000000000000 },
+    { id: "c_exo", era: 7, name: "Automated Prefab Robotics", icon: "🦾", cost: 1200000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", flavor: "Robotic gantry welders assemble entire skyscraper floors in twenty-four hours.", mult: 1.5, cpsPct: 0.004, reqCp: 350000000000000 },
+    { id: "c_neural", era: 8, name: "Nano-Swarm Assembler Grid", icon: "🏙️", cost: 120000000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", flavor: "Programmable utility fog extrudes diamondoid spires directly from atmospheric carbon.", mult: 1.5, cpsPct: 0.004, reqCp: 35000000000000000 }
   ];
 
   clickUpgrades.forEach((cu) => {
@@ -559,7 +880,9 @@ function registerUpgrades() {
       icon: cu.icon,
       cost: cu.cost,
       desc: cu.desc,
+      flavor: cu.flavor,
       type: "click_boost",
+      cat: "click_boost",
       flat: cu.flat || 0,
       mult: cu.mult || 1,
       cpsPct: cu.cpsPct || 0,
@@ -567,15 +890,16 @@ function registerUpgrades() {
     });
   });
 
+  // 7. EPOCH URBAN MASTERPLANS (8 Upgrades, Era 1–8)
   const eraTechs = [
-    { id: "g_wheel", era: 1, name: "Paved Processional Roads", icon: "🛣️", cost: 15000, mult: 1.15, desc: "All city infrastructure output +15%." },
-    { id: "g_alphabet", era: 2, name: "Municipal Zoning Code", icon: "📜", cost: 900000, mult: 1.15, desc: "All city infrastructure output +15%." },
-    { id: "g_compass", era: 3, name: "Hanseatic Port Authority", icon: "⚓", cost: 60000000, mult: 1.20, desc: "All city infrastructure output +20%." },
-    { id: "g_scientific", era: 4, name: "Grand Urban Masterplan", icon: "🗺️", cost: 4500000000, mult: 1.20, desc: "All city infrastructure output +20%." },
-    { id: "g_dynamo", era: 5, name: "Alternating Current City Grid", icon: "💡", cost: 350000000000, mult: 1.25, desc: "All city infrastructure output +25%." },
-    { id: "g_internet", era: 6, name: "Metropolitan Ring-Road & Metro", icon: "🚇", cost: 28000000000000, mult: 1.25, desc: "All city infrastructure output +25%." },
-    { id: "g_agi", era: 7, name: "Fiber-Optic Smart City Mesh", icon: "📡", cost: 2500000000000000, mult: 1.30, desc: "All city infrastructure output +30%." },
-    { id: "g_singularity", era: 8, name: "Autonomous Megacity AI Core", icon: "🌌", cost: 250000000000000000, mult: 1.50, desc: "All city infrastructure output +50%." }
+    { id: "g_wheel", era: 1, name: "Paved Processional Roads", icon: "🛣️", cost: 15000, mult: 1.15, desc: "All city infrastructure output +15%.", flavor: "Limestone flagstones and curbstones keep wheeled carts rolling through winter rains." },
+    { id: "g_alphabet", era: 2, name: "Municipal Zoning Code", icon: "📜", cost: 900000, mult: 1.15, desc: "All city infrastructure output +15%.", flavor: "Bronze tablets on the forum wall set building heights, fire lanes, and market hours." },
+    { id: "g_compass", era: 3, name: "Hanseatic Port Authority", icon: "⚓", cost: 60000000, mult: 1.20, desc: "All city infrastructure output +20%.", flavor: "Dredged river channels and timber treadwheel cranes welcome deep-draft merchant cogs." },
+    { id: "g_scientific", era: 4, name: "Grand Urban Masterplan", icon: "🗺️", cost: 4500000000, mult: 1.20, desc: "All city infrastructure output +20%.", flavor: "Symmetric piazzas, straight canal vistas, and harmonious classical facades unify the city." },
+    { id: "g_dynamo", era: 5, name: "Alternating Current City Grid", icon: "💡", cost: 350000000000, mult: 1.25, desc: "All city infrastructure output +25%.", flavor: "Step-up transformers carry clean polyphase power to every borough and factory floor." },
+    { id: "g_internet", era: 6, name: "Metropolitan Ring-Road & Metro", icon: "🚇", cost: 28000000000000, mult: 1.25, desc: "All city infrastructure output +25%.", flavor: "Deep-bore subway tubes and multi-lane beltways keep millions moving without gridlock." },
+    { id: "g_agi", era: 7, name: "Fiber-Optic Smart City Mesh", icon: "📡", cost: 2500000000000000, mult: 1.30, desc: "All city infrastructure output +30%.", flavor: "Millisecond telemetry balances water pressure, maglev headways, and solar storage citywide." },
+    { id: "g_singularity", era: 8, name: "Autonomous Megacity AI Core", icon: "🌌", cost: 250000000000000000, mult: 1.50, desc: "All city infrastructure output +50%.", flavor: "A sentient municipal mind orchestrates ten billion lives with effortless civic harmony." }
   ];
 
   eraTechs.forEach((et) => {
@@ -586,7 +910,9 @@ function registerUpgrades() {
       icon: et.icon,
       cost: et.cost,
       desc: et.desc,
+      flavor: et.flavor,
       type: "global_mult",
+      cat: "global_mult",
       mult: et.mult,
       req: (s) => s.currentEra >= et.era
     });
@@ -727,18 +1053,18 @@ function registerAchievements() {
   });
 
   const techMilestones = [
-    [1, "Curious Mind", "🔍"],
-    [10, "Natural Philosopher", "📜"],
-    [25, "Chief Technologist", "🔬"],
-    [50, "Transhuman Savant", "🧬"],
-    [75, "Omniscient Archive", "🧠"]
+    [1, "Village Ordinance", "🔍"],
+    [15, "Town Alderman", "📜"],
+    [40, "Civic Lawgiver", "⚖️"],
+    [80, "Grand Masterplanner", "🗺️"],
+    [125, "Omniscient Urbanist", "🧠"]
   ];
   techMilestones.forEach(([cnt, title, icon]) => {
     ACHIEVEMENTS.push({
       id: `ach_tech_${cnt}`,
       era: 0,
       name: title,
-      desc: `Research ${cnt} technologies.`,
+      desc: `Enact ${cnt} Civic Upgrades.`,
       icon,
       check: (s) => s.upgrades.length >= cnt
     });
@@ -993,12 +1319,24 @@ function getPopulation() {
   BUILDINGS.forEach((b) => {
     pop += (state.buildings[b.id] || 0) * b.pop;
   });
-  if (hasWonder("w_gardens")) pop = Math.round(pop * 1.5);
-  return pop;
+  let popMult = 1;
+  if (hasWonder("w_gardens")) popMult *= 1.5;
+  UPGRADES.forEach((u) => {
+    if (u.type === "census" && u.popMult && state.upgrades.includes(u.id)) {
+      popMult *= u.popMult;
+    }
+  });
+  return Math.round(pop * popMult);
 }
 
 function getBuildingDiscount() {
-  return hasWonder("w_cathedral") ? 0.92 : 1.0;
+  let disc = hasWonder("w_cathedral") ? 0.92 : 1.0;
+  UPGRADES.forEach((u) => {
+    if (u.type === "special" && u.discount && state.upgrades.includes(u.id)) {
+      disc *= u.discount;
+    }
+  });
+  return disc;
 }
 
 function getBuildingBulkCost(b, count) {
@@ -1035,7 +1373,22 @@ function getCritChance() {
   else if (state.doctrine === "industrious") chance += 0.05;
   if (hasWonder("w_stonehenge")) chance += 0.03;
   if (hasWonder("w_workshop")) chance += 0.04;
+  UPGRADES.forEach((u) => {
+    if (u.type === "special" && u.critChance && state.upgrades.includes(u.id)) {
+      chance += u.critChance;
+    }
+  });
   return chance;
+}
+
+function getCritMultiplier() {
+  let mult = 2.0;
+  UPGRADES.forEach((u) => {
+    if (u.type === "special" && u.critMultBonus && state.upgrades.includes(u.id)) {
+      mult += u.critMultBonus;
+    }
+  });
+  return mult;
 }
 
 function getGlobalMultiplier() {
@@ -1053,9 +1406,24 @@ function getGlobalMultiplier() {
   if (hasWonder("w_crystal_palace")) mult *= 1.25;
   if (hasWonder("w_orbital_elevator")) mult *= 1.50;
 
+  const totBlds = getTotalBuildings();
+  let popOrders = 0;
+  let needPopOrders = false;
+
   UPGRADES.forEach((u) => {
-    if (u.type === "global_mult" && state.upgrades.includes(u.id)) {
+    if (!state.upgrades.includes(u.id)) return;
+    if ((u.type === "global_mult" || u.type === "census" || u.type === "special") && u.mult) {
       mult *= u.mult;
+    }
+    if (u.type === "sprawl" && u.perBld) {
+      mult *= 1 + totBlds * u.perBld;
+    }
+    if (u.type === "special" && u.popLogCps) {
+      if (!needPopOrders) {
+        needPopOrders = true;
+        popOrders = Math.max(0, Math.log10(Math.max(1, getPopulation())));
+      }
+      mult *= 1 + popOrders * u.popLogCps;
     }
   });
 
@@ -1068,8 +1436,15 @@ function getGlobalMultiplier() {
 function getBuildingSingleCps(b) {
   let cps = b.baseCps;
   UPGRADES.forEach((u) => {
-    if (u.type === "building_mult" && u.target === b.id && state.upgrades.includes(u.id)) {
+    if (!state.upgrades.includes(u.id)) return;
+    if (u.type === "building_mult" && u.target === b.id) {
       cps *= u.mult;
+    } else if (u.type === "synergy") {
+      if (u.bA === b.id) {
+        cps *= 1 + (state.buildings[u.bB] || 0) * u.boostA;
+      } else if (u.bB === b.id) {
+        cps *= 1 + (state.buildings[u.bA] || 0) * u.boostB;
+      }
     }
   });
   return cps * getGlobalMultiplier();
@@ -1092,10 +1467,13 @@ function getClickPower() {
   let cpsPct = 0;
 
   UPGRADES.forEach((u) => {
-    if (u.type === "click_boost" && state.upgrades.includes(u.id)) {
+    if (!state.upgrades.includes(u.id)) return;
+    if (u.type === "click_boost") {
       base += u.flat || 0;
       mult *= u.mult || 1;
       cpsPct += u.cpsPct || 0;
+    } else if (u.type === "special" && u.clickMult) {
+      mult *= u.clickMult;
     }
   });
 
@@ -1249,7 +1627,11 @@ function updateTopHUD() {
   document.getElementById("bld-total-badge").textContent = getTotalBuildings();
 
   const critEl = document.getElementById("crit-chance");
-  if (critEl) critEl.textContent = `${Math.round(getCritChance() * 100)}%`;
+  if (critEl) {
+    const cMult = getCritMultiplier();
+    const cMultStr = cMult % 1 === 0 ? `${cMult.toFixed(0)}x` : `${cMult}x`;
+    critEl.textContent = `${Math.round(getCritChance() * 100)}% (${cMultStr})`;
+  }
 
   const buffBar = document.getElementById("active-buff-bar");
   const remMs = boostExpiresAt - Date.now();
@@ -2076,17 +2458,45 @@ function buyBuilding(bId) {
 
 let hoveredUpgradeId = null;
 
+function getUpgradeLiveBonusText(u) {
+  if (u.type === "synergy") {
+    const bObjA = BUILDINGS.find((b) => b.id === u.bA);
+    const bObjB = BUILDINGS.find((b) => b.id === u.bB);
+    const cntA = state.buildings[u.bA] || 0;
+    const cntB = state.buildings[u.bB] || 0;
+    const pctA = Math.round(cntB * u.boostA * 100);
+    const pctB = (cntA * u.boostB * 100).toFixed(1).replace(/\.0$/, "");
+    return `Live Synergy: ${bObjA.name} +${pctA}% | ${bObjB.name} +${pctB}%`;
+  }
+  if (u.type === "sprawl" && u.perBld) {
+    const tot = getTotalBuildings();
+    const pct = (tot * u.perBld * 100).toFixed(1);
+    return `Live Sprawl Bonus: +${pct}% Global CP/s (${tot} buildings)`;
+  }
+  if (u.type === "special" && u.popLogCps) {
+    const orders = Math.max(0, Math.log10(Math.max(1, getPopulation())));
+    const pct = (orders * u.popLogCps * 100).toFixed(1);
+    return `Live Citizen Bonus: +${pct}% Global CP/s`;
+  }
+  return "";
+}
+
 function setUpgradeInspector(u, isMystery = false, reqMet = false) {
   const insp = document.getElementById("upgrade-inspector");
   if (!insp) return;
   if (isMystery) {
     hoveredUpgradeId = "__mystery__";
+    const catKey = u.cat || u.type || "building_mult";
+    const catLabel = UPGRADE_CATEGORY_LABELS[catKey] || "Civic Upgrade";
     insp.innerHTML = `
       <div class="insp-top">
-        <span>📜 Undiscovered Civic Upgrade</span>
+        <div class="insp-title-wrap">
+          <span>📜 Undiscovered ${catLabel}</span>
+          <span class="insp-cat-pill" data-cat="${catKey}">${catLabel}</span>
+        </div>
         <span class="insp-cost">🔒 Shrouded</span>
       </div>
-      <div>${reqMet ? `Gather ~${formatNum(Math.ceil(u.cost * 0.5))} CP to unveil this civic upgrade.` : "Expand your city infrastructure to unlock new municipal upgrades."}</div>
+      <div>${reqMet ? `Gather ~${formatNum(Math.ceil(u.cost * 0.5))} CP to unveil this civic upgrade.` : "Expand your city infrastructure to unlock new municipal ordinances & synergies."}</div>
     `;
     return;
   }
@@ -2096,12 +2506,20 @@ function setUpgradeInspector(u, isMystery = false, reqMet = false) {
     return;
   }
   hoveredUpgradeId = u.id;
+  const catKey = u.cat || u.type || "building_mult";
+  const catLabel = UPGRADE_CATEGORY_LABELS[catKey] || "Civic Upgrade";
+  const liveBonus = getUpgradeLiveBonusText(u);
   insp.innerHTML = `
     <div class="insp-top">
-      <span>${u.icon} ${u.name}</span>
+      <div class="insp-title-wrap">
+        <span>${u.icon} ${u.name}</span>
+        <span class="insp-cat-pill" data-cat="${catKey}">${catLabel}</span>
+      </div>
       <span class="insp-cost">⚡ ${formatNum(u.cost)} CP</span>
     </div>
     <div>${u.desc}</div>
+    ${liveBonus ? `<div class="insp-live-bonus">✨ ${liveBonus}</div>` : ""}
+    ${u.flavor ? `<div class="insp-flavor">"${u.flavor}"</div>` : ""}
   `;
 }
 
@@ -2123,13 +2541,14 @@ function renderUpgrades() {
 
   document.getElementById("upgrade-badge").textContent = available.length;
   const resCntEl = document.getElementById("researched-count");
-  if (resCntEl) resCntEl.textContent = state.upgrades.length;
+  if (resCntEl) resCntEl.textContent = `${state.upgrades.length} / ${UPGRADES.length}`;
 
   available.forEach((u) => {
     const canAfford = state.cp >= u.cost;
     const tile = document.createElement("button");
     tile.className = `upgrade-tile ${canAfford ? "affordable" : "locked"}`;
     tile.id = `upg-card-${u.id}`;
+    tile.setAttribute("data-cat", u.cat || u.type || "building_mult");
     tile.textContent = u.icon;
     tile.onmouseenter = () => setUpgradeInspector(u);
     tile.onfocus = () => setUpgradeInspector(u);
@@ -2165,7 +2584,7 @@ function renderUpgrades() {
       if (!u) return;
       const chip = document.createElement("div");
       chip.className = "researched-chip";
-      chip.title = u.desc;
+      chip.title = `${u.desc}${u.flavor ? ` — "${u.flavor}"` : ""}`;
       chip.textContent = `${u.icon} ${u.name}`;
       researchedContainer.appendChild(chip);
     });
@@ -2362,6 +2781,9 @@ function renderAchievements() {
 function renderStats() {
   const container = document.getElementById("stats-container");
   if (!container) return;
+  const cMult = getCritMultiplier();
+  const cMultStr = cMult % 1 === 0 ? `${cMult.toFixed(0)}x` : `${cMult}x`;
+  const discountPct = Math.round((1 - getBuildingDiscount()) * 100);
   const rows = [
     ["Civilization Title", getFullCityTitle()],
     ["Current Epoch", `${ERAS[state.currentEra].icon} ${ERAS[state.currentEra].name}`],
@@ -2372,16 +2794,17 @@ function renderStats() {
     ["All-Time CP (Across Timelines)", formatNum(state.allTimeCp)],
     ["Production per Second (CP/s)", formatNum(getTotalCps())],
     ["Points per Click", formatNum(getClickPower())],
-    ["Critical Click Chance", `${Math.round(getCritChance() * 100)}% (2x Damage)`],
+    ["Critical Click Chance", `${Math.round(getCritChance() * 100)}% (${cMultStr} Damage)`],
     ["Critical Clicks Landed", (state.totalCrits || 0).toLocaleString()],
     ["Global Production Multiplier", `${(getGlobalMultiplier() * 100).toFixed(0)}%`],
+    ["Infrastructure Cost Discount", `${discountPct}% Off`],
     ["Total Manual Clicks", state.totalClicks.toLocaleString()],
     ["Total City Population", formatNum(getPopulation(), 0)],
     ["Total Buildings Constructed", getTotalBuildings().toLocaleString()],
-    ["World Wonders Erected", `${(state.wonders || []).length}`],
-    ["Technologies Researched", `${state.upgrades.length}`],
+    ["World Wonders Erected", `${(state.wonders || []).length} / ${WONDERS.length}`],
+    ["Civic Upgrades Enacted", `${state.upgrades.length} / ${UPGRADES.length}`],
     ["Achievements Unlocked", `${state.achievements.length} / ${ACHIEVEMENTS.length}`],
-    ["Temporal Anomalies Captured", state.anomaliesClicked.toLocaleString()],
+    ["Golden Civic Booms Captured", state.anomaliesClicked.toLocaleString()],
     ["Time Rifts (Prestiges)", state.prestiges.toLocaleString()],
     ["Time Shards (+10% CP/s each)", state.shards.toLocaleString()]
   ];
@@ -2428,7 +2851,7 @@ function showToast(icon, title, body) {
 function handleMainClick(e) {
   const isCrit = Math.random() < getCritChance();
   const baseGain = getClickPower();
-  const gain = isCrit ? baseGain * 2 : baseGain;
+  const gain = isCrit ? baseGain * getCritMultiplier() : baseGain;
 
   state.cp += gain;
   state.totalCp += gain;
@@ -2529,7 +2952,8 @@ function triggerGoldenAnomaly() {
   btn.classList.remove("hidden");
   SoundFX.anomalySpawn();
 
-  const duration = hasWonder("w_apollo") ? 18000 : 12000;
+  let duration = hasWonder("w_apollo") ? 18000 : 12000;
+  if (hasUpgrade("sp_carnival")) duration = Math.round(duration * 1.25);
   if (anomalyTimeoutId) clearTimeout(anomalyTimeoutId);
   anomalyTimeoutId = setTimeout(() => {
     btn.classList.add("hidden");
@@ -2549,17 +2973,19 @@ function handleAnomalyClick(e) {
 
   SoundFX.anomalyCatch();
 
-  const rewardMult = hasWonder("w_apollo") ? 1.5 : 1.0;
+  let rewardMult = hasWonder("w_apollo") ? 1.5 : 1.0;
+  if (hasUpgrade("sp_bread_circus")) rewardMult *= 1.25;
+  if (hasUpgrade("sp_carnival")) rewardMult *= 1.25;
 
   if (Math.random() < 0.5) {
     const bonus = Math.max(25, (getTotalCps() * 20 + getClickPower() * 15) * rewardMult);
     state.cp += bonus;
     state.totalCp += bonus;
     state.allTimeCp += bonus;
-    showToast("✨", "Temporal Windfall!", `Gained +${formatNum(bonus)} Civilization Points instantly!`);
+    showToast("✨", "Civic Boom Windfall!", `Gained +${formatNum(bonus)} Civilization Points instantly!`);
   } else {
-    boostMultiplier = hasWonder("w_apollo") ? 2.5 : 2;
-    const secs = hasWonder("w_apollo") ? 35 : 25;
+    boostMultiplier = (hasWonder("w_apollo") ? 2.5 : 2.0) + (hasUpgrade("sp_world_fair") ? 0.5 : 0);
+    const secs = (hasWonder("w_apollo") ? 35 : 25) + (hasUpgrade("sp_bread_circus") ? 4 : 0);
     boostExpiresAt = Date.now() + secs * 1000;
     boostName = `⚡ Chrono Overdrive (${boostMultiplier}x)`;
     showToast("⚡", boostName, `All civilization production is multiplied by ${boostMultiplier}x for ${secs} seconds!`);
@@ -3842,7 +4268,8 @@ function init() {
   }, 9000);
 
   setInterval(() => {
-    if (Math.random() < 0.42) triggerGoldenAnomaly();
+    const spawnChance = hasUpgrade("sp_bonfire") ? 0.52 : 0.42;
+    if (Math.random() < spawnChance) triggerGoldenAnomaly();
   }, 26000);
 
   setInterval(() => saveGame(false), 15000);
