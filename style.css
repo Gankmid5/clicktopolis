@@ -489,16 +489,15 @@ body {
 .combo-overlay {
   position: absolute;
   top: 8px;
-  left: 8px;
   right: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   z-index: 3;
   pointer-events: none;
 }
 
-.combo-pill, .crit-pill {
+.crit-pill {
   background: rgba(10, 10, 16, 0.78);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -508,26 +507,10 @@ body {
   color: var(--text-main);
 }
 
-.combo-bar-bg {
-  width: 100px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 99px;
-  margin-top: 3px;
-  overflow: hidden;
-}
-
-.combo-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
-  transition: width 0.1s linear;
-}
-
 .click-target-wrapper {
   position: relative;
   z-index: 2;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .main-clicker {
@@ -539,12 +522,14 @@ body {
   box-shadow: 0 0 35px var(--accent-glow), inset 0 0 24px var(--accent-glow);
   color: var(--text-main);
   cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  transition: transform 0.06s ease, box-shadow 0.2s ease;
+  transition: transform 0.03s ease, box-shadow 0.15s ease;
   position: relative;
 }
 

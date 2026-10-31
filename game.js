@@ -433,7 +433,7 @@ const WONDERS = [
     name: "Grand Civic Colosseum",
     icon: "🏟️",
     cost: 6500000,
-    effectText: "Max Momentum Combo increased to 2.0x & decays 40% slower",
+    effectText: "+25% Click Power & +15% Global CP/s",
     lore: "A monumental marble amphitheater uniting 80,000 citizens in celebration."
   },
   {
@@ -478,7 +478,7 @@ const WONDERS = [
     name: "Central Smart-Grid Spire",
     icon: "🌐",
     cost: 16000000000000000,
-    effectText: "Clicks gain an additional +2% of your total CP/s",
+    effectText: "Clicks gain an additional +1% of your total CP/s",
     lore: "An AI-assisted municipal nerve center synchronizing every train, tower, and power line."
   },
   {
@@ -540,15 +540,15 @@ function registerUpgrades() {
   });
 
   const clickUpgrades = [
-    { id: "c_flint", era: 0, name: "Timber Framing Mallets", icon: "🔨", cost: 100, desc: "Base click +1 CP and +0.5% of your CP/s per click.", flat: 1, cpsPct: 0.005, reqCp: 35 },
-    { id: "c_lever", era: 1, name: "Mud-Brick Molds & Plumb Lines", icon: "🧱", cost: 8000, desc: "Click power x1.5 and +0.5% of your CP/s per click.", mult: 1.5, cpsPct: 0.005, reqCp: 2500 },
-    { id: "c_crane", era: 2, name: "Roman Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 150000 },
-    { id: "c_guild", era: 3, name: "Master Mason Guild Square", icon: "📐", cost: 35000000, desc: "Click power x1.5 and +1% of your CP/s per click.", mult: 1.5, cpsPct: 0.01, reqCp: 10000000 },
-    { id: "c_da_vinci", era: 4, name: "Geared Hoist & Scaffolding", icon: "⚙️", cost: 2500000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 600000000 },
-    { id: "c_pneumatic", era: 5, name: "Steam Riveting Gantry", icon: "🔩", cost: 180000000000, desc: "Click power x2 and +1% of your CP/s per click.", mult: 2, cpsPct: 0.01, reqCp: 50000000000 },
-    { id: "c_laser", era: 6, name: "Tower Crane Fleet", icon: "🏗️", cost: 15000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 4000000000000 },
-    { id: "c_exo", era: 7, name: "Automated Prefab Robotics", icon: "🦾", cost: 1200000000000000, desc: "Click power x2 and +1.5% of your CP/s per click.", mult: 2, cpsPct: 0.015, reqCp: 350000000000000 },
-    { id: "c_neural", era: 8, name: "Nano-Swarm Assembler Grid", icon: "🏙️", cost: 120000000000000000, desc: "Click power x2.5 and +2% of your CP/s per click.", mult: 2.5, cpsPct: 0.02, reqCp: 35000000000000000 }
+    { id: "c_flint", era: 0, name: "Timber Framing Mallets", icon: "🔨", cost: 100, desc: "Base click +1 CP and +0.25% of your CP/s per click.", flat: 1, cpsPct: 0.0025, reqCp: 35 },
+    { id: "c_lever", era: 1, name: "Mud-Brick Molds & Plumb Lines", icon: "🧱", cost: 8000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", mult: 1.25, cpsPct: 0.0025, reqCp: 2500 },
+    { id: "c_crane", era: 2, name: "Roman Treadwheel Crane", icon: "🏗️", cost: 500000, desc: "Click power x1.25 and +0.25% of your CP/s per click.", mult: 1.25, cpsPct: 0.0025, reqCp: 150000 },
+    { id: "c_guild", era: 3, name: "Master Mason Guild Square", icon: "📐", cost: 35000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", mult: 1.35, cpsPct: 0.0035, reqCp: 10000000 },
+    { id: "c_da_vinci", era: 4, name: "Geared Hoist & Scaffolding", icon: "⚙️", cost: 2500000000, desc: "Click power x1.35 and +0.35% of your CP/s per click.", mult: 1.35, cpsPct: 0.0035, reqCp: 600000000 },
+    { id: "c_pneumatic", era: 5, name: "Steam Riveting Gantry", icon: "🔩", cost: 180000000000, desc: "Click power x1.4 and +0.35% of your CP/s per click.", mult: 1.4, cpsPct: 0.0035, reqCp: 50000000000 },
+    { id: "c_laser", era: 6, name: "Tower Crane Fleet", icon: "🏗️", cost: 15000000000000, desc: "Click power x1.4 and +0.4% of your CP/s per click.", mult: 1.4, cpsPct: 0.004, reqCp: 4000000000000 },
+    { id: "c_exo", era: 7, name: "Automated Prefab Robotics", icon: "🦾", cost: 1200000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", mult: 1.5, cpsPct: 0.004, reqCp: 350000000000000 },
+    { id: "c_neural", era: 8, name: "Nano-Swarm Assembler Grid", icon: "🏙️", cost: 120000000000000000, desc: "Click power x1.5 and +0.4% of your CP/s per click.", mult: 1.5, cpsPct: 0.004, reqCp: 35000000000000000 }
   ];
 
   clickUpgrades.forEach((cu) => {
@@ -635,9 +635,9 @@ function registerAchievements() {
     [2.5e18, "Orbital Ringworld", "🪐", 8],
     [1e20, "Solar Hegemony", "☀️", 8],
     [5e21, "Galactic Nexus", "🌌", 8],
-    [1e23, "Architect of Eternity", "♾️", 8]
+    [1e23, "Architect of Eternity", "♾️"]
   ];
-  cpMilestones.forEach(([amt, title, icon, minEra], i) => {
+  cpMilestones.forEach(([amt, title, icon, minEra = 8], i) => {
     ACHIEVEMENTS.push({
       id: `ach_cp_${i}`,
       era: minEra,
@@ -670,10 +670,10 @@ function registerAchievements() {
   });
 
   const critMilestones = [
-    [1, "Lucky Cleave", "🎯", (s) => (s.totalCrits || 0) >= 1, "Land your first Critical Click (3x)."],
+    [1, "Lucky Cleave", "🎯", (s) => (s.totalCrits || 0) >= 1, "Land your first Critical Click (2x)."],
     [50, "Precision Engineer", "💥", (s) => (s.totalCrits || 0) >= 50, "Land 50 Critical Clicks."],
     [250, "Grandmaster Striker", "☄️", (s) => (s.totalCrits || 0) >= 250, "Land 250 Critical Clicks."],
-    [1, "Unstoppable Momentum", "🔥", () => comboVal >= 0.98, "Reach maximum Momentum Combo on the city core."]
+    [1000, "Unstoppable Striker", "🔥", (s) => (s.totalCrits || 0) >= 1000, "Land 1,000 Critical Clicks."]
   ];
   critMilestones.forEach(([_, title, icon, fn, desc], idx) => {
     ACHIEVEMENTS.push({
@@ -835,8 +835,9 @@ const SoundFX = {
     noise.start(t0);
   },
 
-  click(era, combo = 0) {
-    const pitchBoost = 1 + combo * 0.3;
+  click(era) {
+    // Slight natural pitch variation (+/- 3%) so rapid clicking sounds organic and crisp
+    const pitchBoost = 0.97 + Math.random() * 0.06;
     if (era === 0) {
       this.noise(0.03, 1800 * pitchBoost, 0.05);
       this.note(190 * pitchBoost, 0.045, "triangle", 0.055, 0, 95);
@@ -951,7 +952,6 @@ let achFilter = "all";
 let boostMultiplier = 1;
 let boostExpiresAt = 0;
 let boostName = "⚡ Chrono Overdrive (2x)";
-let comboVal = 0;
 
 // ============================================================================
 // NUMBER FORMATTING & HELPERS
@@ -1027,19 +1027,12 @@ function getPurchasePlan(b) {
 }
 
 // ============================================================================
-// PRODUCTION, DOCTRINE, WONDER & COMBO CALCULATIONS
+// PRODUCTION, DOCTRINE, WONDER & CLICK POWER CALCULATIONS
 // ============================================================================
-function getMaxComboBonus() {
-  return hasWonder("w_colossus") ? 1.0 : 0.5;
-}
-
-function getComboMultiplier() {
-  return 1 + comboVal * getMaxComboBonus();
-}
-
 function getCritChance() {
   let chance = 0.05;
-  if (state.doctrine === "industrious") chance += 0.04;
+  if (state.doctrine === "balanced") chance += 0.02;
+  else if (state.doctrine === "industrious") chance += 0.05;
   if (hasWonder("w_stonehenge")) chance += 0.03;
   if (hasWonder("w_workshop")) chance += 0.04;
   return chance;
@@ -1055,6 +1048,7 @@ function getGlobalMultiplier() {
   else if (state.doctrine === "prosperity") mult *= 1.20;
 
   if (hasWonder("w_gardens")) mult *= 1.15;
+  if (hasWonder("w_colossus")) mult *= 1.15;
   if (hasWonder("w_workshop")) mult *= 1.20;
   if (hasWonder("w_crystal_palace")) mult *= 1.25;
   if (hasWonder("w_orbital_elevator")) mult *= 1.50;
@@ -1106,14 +1100,16 @@ function getClickPower() {
   });
 
   if (hasWonder("w_stonehenge")) mult *= 1.25;
-  if (hasWonder("w_cern")) cpsPct += 0.02;
+  if (hasWonder("w_colossus")) mult *= 1.25;
+  if (hasWonder("w_cern")) cpsPct += 0.01;
 
-  if (state.doctrine === "balanced") mult *= 1.10;
-  else if (state.doctrine === "industrious") mult *= 1.35;
+  if (state.doctrine === "industrious") mult *= 1.25;
   else if (state.doctrine === "prosperity") mult *= 0.85;
 
+  // Achievement & Shard bonus applies to base clicks without inflating the passive-doctrine multiplier
+  const progressionBonus = (1 + state.achievements.length * 0.01) * (1 + state.shards * 0.10) * (Date.now() < boostExpiresAt ? boostMultiplier : 1);
   const fromCps = getTotalCps() * cpsPct;
-  return ((base * mult * getGlobalMultiplier()) + fromCps) * getComboMultiplier();
+  return (base * mult * progressionBonus) + fromCps;
 }
 
 function getPendingShards() {
@@ -1252,9 +1248,8 @@ function updateTopHUD() {
 
   document.getElementById("bld-total-badge").textContent = getTotalBuildings();
 
-  document.getElementById("combo-mult").textContent = `${getComboMultiplier().toFixed(2)}x`;
-  document.getElementById("combo-bar-fill").style.width = `${(comboVal * 100).toFixed(0)}%`;
-  document.getElementById("crit-chance").textContent = `${Math.round(getCritChance() * 100)}%`;
+  const critEl = document.getElementById("crit-chance");
+  if (critEl) critEl.textContent = `${Math.round(getCritChance() * 100)}%`;
 
   const buffBar = document.getElementById("active-buff-bar");
   const remMs = boostExpiresAt - Date.now();
@@ -2376,8 +2371,8 @@ function renderStats() {
     ["Total CP (This Timeline)", formatNum(state.totalCp)],
     ["All-Time CP (Across Timelines)", formatNum(state.allTimeCp)],
     ["Production per Second (CP/s)", formatNum(getTotalCps())],
-    ["Points per Click (w/ Momentum)", formatNum(getClickPower())],
-    ["Critical Click Chance", `${Math.round(getCritChance() * 100)}% (3x Damage)`],
+    ["Points per Click", formatNum(getClickPower())],
+    ["Critical Click Chance", `${Math.round(getCritChance() * 100)}% (2x Damage)`],
     ["Critical Clicks Landed", (state.totalCrits || 0).toLocaleString()],
     ["Global Production Multiplier", `${(getGlobalMultiplier() * 100).toFixed(0)}%`],
     ["Total Manual Clicks", state.totalClicks.toLocaleString()],
@@ -2401,6 +2396,7 @@ function renderStats() {
 // ============================================================================
 const canvasRipples = [];
 const canvasSparks = [];
+let lastClickUiCheck = 0;
 
 function spawnFloatingText(x, y, text, isCrit = false) {
   const layer = document.getElementById("particles-layer");
@@ -2430,11 +2426,9 @@ function showToast(icon, title, body) {
 }
 
 function handleMainClick(e) {
-  comboVal = Math.min(1, comboVal + 0.065);
-
   const isCrit = Math.random() < getCritChance();
   const baseGain = getClickPower();
-  const gain = isCrit ? baseGain * 3 : baseGain;
+  const gain = isCrit ? baseGain * 2 : baseGain;
 
   state.cp += gain;
   state.totalCp += gain;
@@ -2442,12 +2436,17 @@ function handleMainClick(e) {
   state.totalClicks += 1;
   if (isCrit) state.totalCrits = (state.totalCrits || 0) + 1;
 
-  // Pop the giant CP counter so every click feels directly connected to the big number!
-  const resEl = document.getElementById("res-amount");
-  resEl.classList.add("pop");
-  setTimeout(() => resEl.classList.remove("pop"), 75);
+  // Instant visual feedback on the button and the giant CP counter for uncapped-speed clicking
+  const btnEl = e.currentTarget;
+  btnEl.classList.add("clicked");
+  setTimeout(() => btnEl.classList.remove("clicked"), 45);
 
-  const rect = e.currentTarget.getBoundingClientRect();
+  const resEl = document.getElementById("res-amount");
+  resEl.textContent = formatNum(state.cp, state.cp < 100 ? 1 : 0);
+  resEl.classList.add("pop");
+  setTimeout(() => resEl.classList.remove("pop"), 60);
+
+  const rect = btnEl.getBoundingClientRect();
   const hasMouse = e.clientX > 0 || e.clientY > 0;
   const x = hasMouse ? e.clientX : rect.left + rect.width / 2;
   const y = hasMouse ? e.clientY : rect.top + rect.height / 2;
@@ -2465,41 +2464,48 @@ function handleMainClick(e) {
     }
   }
 
-  canvasRipples.push({
-    x: fxX,
-    y: fxY,
-    r: 18,
-    maxR: isCrit ? 155 : 105,
-    alpha: 0.85,
-    color: isCrit ? "#fde047" : "#f97316"
-  });
-  for (let i = 0; i < (isCrit ? 16 : 8); i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.6 + Math.random() * 3.6;
-    canvasSparks.push({
+  if (canvasRipples.length < 24) {
+    canvasRipples.push({
       x: fxX,
       y: fxY,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 1.0,
-      color: isCrit ? "#fde047" : "#38bdf8"
+      r: 18,
+      maxR: isCrit ? 155 : 105,
+      alpha: 0.85,
+      color: isCrit ? "#fde047" : "#f97316"
     });
+  }
+  if (canvasSparks.length < 120) {
+    for (let i = 0; i < (isCrit ? 14 : 6); i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.6 + Math.random() * 3.6;
+      canvasSparks.push({
+        x: fxX,
+        y: fxY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        color: isCrit ? "#fde047" : "#38bdf8"
+      });
+    }
   }
 
   if (isCrit) {
     SoundFX.crit();
   } else {
-    SoundFX.click(state.currentEra, comboVal);
+    SoundFX.click(state.currentEra);
   }
 
-  checkProximityReveals();
-  checkEraProgression();
-  checkAchievements();
-  updateTopHUD();
-  updateDistrictsStats();
-  updateBuildingsAffordability();
-  updateUpgradesAffordability();
-  updateWondersAffordability();
+  // Throttle heavy DOM/progression checks during ultra-fast clicking so clicks have zero frame lag
+  const now = performance.now();
+  if (now - lastClickUiCheck >= 120) {
+    lastClickUiCheck = now;
+    checkProximityReveals();
+    checkEraProgression();
+    checkAchievements();
+    updateBuildingsAffordability();
+    updateUpgradesAffordability();
+    updateWondersAffordability();
+  }
 }
 
 let anomalyTimeoutId = null;
@@ -3395,7 +3401,7 @@ function drawClickerFxCanvas() {
   ctx.clearRect(0, 0, w, h);
 
   // 1. Backlit Aura Halo behind the Clicker Button
-  const pulse = 74 + Math.sin(animTick * 2.2) * 7 + comboVal * 18;
+  const pulse = 78 + Math.sin(animTick * 2.2) * 8;
   const auraGrad = ctx.createRadialGradient(w / 2, h / 2 + 8, 12, w / 2, h / 2 + 8, pulse + 38);
   auraGrad.addColorStop(0, era === 8 ? "rgba(6, 182, 212, 0.28)" : "rgba(249, 115, 22, 0.28)");
   auraGrad.addColorStop(0.55, era === 8 ? "rgba(244, 63, 94, 0.12)" : "rgba(250, 204, 21, 0.10)");
@@ -3405,7 +3411,7 @@ function drawClickerFxCanvas() {
 
   // 2. Floating Ambient Civilization Motes drifting upward
   sanctumMotes.forEach((m) => {
-    m.y -= m.vy * (1 + comboVal * 1.2);
+    m.y -= m.vy * 1.15;
     if (m.y < -6) {
       m.y = h + 4;
       m.x = Math.random() * w;
@@ -3609,7 +3615,7 @@ function init() {
   document.getElementById("btn-random-name").addEventListener("click", () => {
     const pick = RANDOM_CITY_NAMES[Math.floor(Math.random() * RANDOM_CITY_NAMES.length)];
     document.getElementById("city-name-input").value = pick;
-    SoundFX.click(0, 0.3);
+    SoundFX.click(0);
   });
   document.getElementById("btn-confirm-name").addEventListener("click", confirmCityName);
   document.getElementById("city-name-input").addEventListener("keydown", (e) => {
@@ -3638,7 +3644,17 @@ function init() {
     });
   });
 
-  document.getElementById("main-clicker").addEventListener("click", handleMainClick);
+  const mainClickerBtn = document.getElementById("main-clicker");
+  mainClickerBtn.addEventListener("pointerdown", (e) => {
+    if (e.button && e.button !== 0) return;
+    handleMainClick(e);
+  });
+  mainClickerBtn.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
+      e.preventDefault();
+      handleMainClick(e);
+    }
+  });
   document.getElementById("golden-anomaly").addEventListener("click", handleAnomalyClick);
 
   const cityViewport = document.getElementById("city-scroll-viewport");
@@ -3765,7 +3781,6 @@ function init() {
     if (confirm("Are you sure you want to completely wipe your save and found a new settlement?")) {
       localStorage.removeItem(SAVE_KEY);
       state = createDefaultState();
-      comboVal = 0;
       boostExpiresAt = 0;
       document.querySelectorAll(".doctrine-btn").forEach((btn) => {
         btn.classList.toggle("active", btn.getAttribute("data-doctrine") === state.doctrine);
@@ -3790,11 +3805,6 @@ function init() {
     const now = performance.now();
     const dt = (now - lastTick) / 1000;
     lastTick = now;
-
-    const decayRate = hasWonder("w_colossus") ? 0.08 : 0.14;
-    if (comboVal > 0) {
-      comboVal = Math.max(0, comboVal - decayRate * dt);
-    }
 
     const gained = getTotalCps() * dt;
     if (gained > 0) {
