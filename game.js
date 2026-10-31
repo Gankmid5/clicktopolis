@@ -85,7 +85,7 @@ const ERAS = [
     revealDesc: "Timber river watermills, cobblestone guild quarters, and turreted town walls fortify the city!",
     news: [
       "Row of new watermills along {CITY}'s riverfront doubles daily flour and textile output.",
-      "Merchant guilds in {CITY}receive a royal town charter and pave the Old Town square.",
+      "Merchant guilds in {CITY} receive a royal town charter and pave the Old Town square.",
       "Masons complete the northern gatehouse and watchtowers of {CITY}'s city walls.",
       "Bell chimes from {CITY}'s new Guildhall clocktower keep market hours across every ward."
     ]
@@ -1127,6 +1127,7 @@ function getPendingShards() {
 function checkProximityReveals() {
   if (!Array.isArray(state.revealedBuildings)) state.revealedBuildings = ["forager"];
   if (!Array.isArray(state.revealedUpgrades)) state.revealedUpgrades = [];
+  if (!Array.isArray(state.revealedWonders)) state.revealedWonders = [];
 
   let changedBld = false;
   BUILDINGS.forEach((b) => {
@@ -1148,8 +1149,19 @@ function checkProximityReveals() {
     }
   });
 
+  let changedWnd = false;
+  WONDERS.forEach((w) => {
+    if (!state.revealedWonders.includes(w.id)) {
+      if (hasWonder(w.id) || (state.highestEra >= w.era && (state.totalCp >= w.cost * 0.35 || state.cp >= w.cost * 0.25))) {
+        state.revealedWonders.push(w.id);
+        changedWnd = true;
+      }
+    }
+  });
+
   if (changedBld) renderBuildingsList();
   if (changedUpg) renderUpgrades();
+  if (changedWnd) renderWonders();
 }
 
 function showEraRevealBanner(era) {
@@ -1271,81 +1283,133 @@ function updateTopHUD() {
 }
 
 // ============================================================================
-// VISUAL INFRASTRUCTURE DISTRICTS (Cookie Clicker-Style Building Rows!)
+// VISUAL INFRASTRUCTURE DISTRICTS (Living Animated Cookie Clicker-Style Rows!)
 // ============================================================================
-function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
+function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx, isNight = false) {
+  const phase = animTick * 2.2 + idx * 1.1;
+
   switch (bId) {
-    case "forager":
-      // Thatched Hut: Mud-brick round/square walls + golden reed roof + warm doorway
+    case "forager": {
+      // Thatched Hut: Mud-brick walls + golden reed roof + flickering hearth + rising smoke puffs
       ctx.fillStyle = "#b87d4b";
       ctx.fillRect(x - 11, gy - 14, 22, 14);
       drawPolygon(ctx, [[x, gy - 29], [x - 15, gy - 13], [x + 15, gy - 13]], "#e0a958", "#784719", 1.2);
-      ctx.fillStyle = "#3b2110";
+      // Animated rising hearth smoke puff from apex
+      const smokeY = (animTick * 8 + idx * 5) % 14;
+      ctx.fillStyle = `rgba(226, 232, 240, ${(0.55 - smokeY / 28).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x + Math.sin(phase) * 2, gy - 31 - smokeY, 2 + smokeY * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      // Flickering warm doorway & window
+      ctx.fillStyle = isNight ? (Math.sin(phase * 2) > 0 ? "#fde047" : "#f97316") : "#3b2110";
       ctx.fillRect(x - 3, gy - 9, 6, 9);
       ctx.fillStyle = "#fef08a";
       ctx.fillRect(x + 4, gy - 11, 4, 4);
+      // Small outdoor campfire on even huts
+      if (idx % 2 === 0) {
+        const flameH = 3 + Math.sin(phase * 3) * 1.5;
+        ctx.fillStyle = "#f97316";
+        ctx.fillRect(x + 13, gy - flameH, 3, flameH);
+      }
       break;
+    }
 
-    case "megalith":
-      // Riverbank Farm: Mud-brick granary silo + golden irrigated wheat rows
+    case "megalith": {
+      // Riverbank Farm: Mud-brick granary silo + spinning wind-vane + swaying golden wheat
       ctx.fillStyle = "#c28b46";
       ctx.fillRect(x - 14, gy - 20, 10, 20);
       drawPolygon(ctx, [[x - 9, gy - 28], [x - 15, gy - 20], [x - 3, gy - 20]], "#d97706");
+      // Spinning wooden wind-vane atop granary
+      const vaneX = Math.cos(phase) * 3.5;
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x - 9 - vaneX, gy - 30);
+      ctx.lineTo(x - 9 + vaneX, gy - 30);
+      ctx.stroke();
+      // Irrigated soil & swaying golden wheat rows
       ctx.fillStyle = "#4d7c0f";
       ctx.fillRect(x - 2, gy - 4, 18, 4);
+      const sway = Math.sin(phase * 0.9) * 1.6;
       ctx.fillStyle = "#facc15";
       for (let wx = x; wx <= x + 13; wx += 4) {
-        ctx.fillRect(wx, gy - 14, 2, 10);
-        ctx.fillRect(wx - 1, gy - 16, 4, 3);
+        ctx.fillRect(wx + sway * 0.4, gy - 14, 2, 10);
+        ctx.fillRect(wx - 1 + sway, gy - 16, 4, 3);
       }
       break;
+    }
 
-    case "foundry":
-      // Irrigation Canal: Stone-lined blue water channel + shaduf lift + date palm
+    case "foundry": {
+      // Irrigation Canal: Flowing blue water channel + pivoting shaduf water-lift + swaying date palm
       ctx.fillStyle = "#d6d3d1";
       ctx.fillRect(x - 16, gy - 8, 32, 8);
       ctx.fillStyle = "#0ea5e9";
       ctx.fillRect(x - 14, gy - 6, 28, 5);
+      // Animated water ripple
+      const ripOffset = ((animTick * 10 + idx * 6) % 18) - 9;
       ctx.fillStyle = "#bae6fd";
-      ctx.fillRect(x - 10, gy - 4, 8, 1.5);
-      ctx.fillRect(x + 2, gy - 5, 8, 1.5);
-      // Palm tree on canal levee
+      ctx.fillRect(x + ripOffset - 4, gy - 4, 7, 1.5);
+      // Swaying palm tree
+      const palmSway = Math.sin(phase * 0.7) * 1.5;
       ctx.fillStyle = "#78350f";
-      ctx.fillRect(x - 6, gy - 24, 3, 16);
-      drawPolygon(ctx, [[x - 4, gy - 26], [x - 13, gy - 21], [x + 5, gy - 21]], "#15803d");
-      drawPolygon(ctx, [[x - 4, gy - 29], [x - 11, gy - 24], [x + 3, gy - 24]], "#22c55e");
+      ctx.fillRect(x - 9, gy - 24, 3, 16);
+      drawPolygon(ctx, [[x - 7 + palmSway, gy - 27], [x - 16, gy - 21], [x + 2, gy - 21]], "#15803d");
+      drawPolygon(ctx, [[x - 7 + palmSway, gy - 30], [x - 14, gy - 24], [x, gy - 24]], "#22c55e");
+      // Pivoting shaduf lever & dipping water bucket
+      const tilt = Math.sin(phase * 0.8) * 4;
+      ctx.fillStyle = "#92400e";
+      ctx.fillRect(x + 6, gy - 20, 2, 12);
+      ctx.strokeStyle = "#b45309";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x + 1, gy - 19 - tilt);
+      ctx.lineTo(x + 13, gy - 19 + tilt);
+      ctx.stroke();
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x + 12, gy - 15 + tilt, 3, 3);
       break;
+    }
 
-    case "ziggurat":
-      // Walled Bazaar: Sandstone arch gate + colorful striped merchant awning stall
+    case "ziggurat": {
+      // Walled Bazaar: Sandstone arch gate + fluttering merchant awning + glowing lantern
       ctx.fillStyle = "#d49e54";
       ctx.fillRect(x - 15, gy - 24, 18, 24);
-      ctx.fillStyle = "#451a03";
+      ctx.fillStyle = isNight ? "#fde047" : "#451a03";
       ctx.beginPath();
       ctx.arc(x - 6, gy, 5, Math.PI, 0);
       ctx.fill();
-      // Market awning stall
-      drawPolygon(ctx, [[x + 3, gy - 16], [x + 16, gy - 11], [x + 3, gy - 11]], idx % 2 === 0 ? "#dc2626" : "#2563eb");
+      // Fluttering market awning stall
+      const flap = Math.sin(phase * 1.4) * 1.3;
+      drawPolygon(ctx, [[x + 3, gy - 16], [x + 16, gy - 11 + flap], [x + 3, gy - 11]], idx % 2 === 0 ? "#dc2626" : "#2563eb");
       ctx.fillStyle = "#fde047";
       ctx.fillRect(x + 5, gy - 11, 9, 11);
       ctx.fillStyle = "#b45309";
       ctx.fillRect(x + 7, gy - 5, 5, 5);
+      // Glowing hanging bazaar lantern
+      ctx.fillStyle = Math.sin(phase * 2) > -0.3 ? "#fef08a" : "#f97316";
+      ctx.fillRect(x + 14, gy - 10 + flap, 2.5, 2.5);
       break;
+    }
 
-    case "aqueduct":
-      // Stone Aqueduct: Double-tier Roman masonry arch + flowing blue water channel
+    case "aqueduct": {
+      // Stone Aqueduct: Double-tier Roman masonry arch + animated flowing water crest
       ctx.fillStyle = "#d6d3d1";
       ctx.fillRect(x - 18, gy - 30, 36, 6);
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(x - 18, gy - 32, 36, 3);
+      ctx.fillStyle = "#0284c7";
+      ctx.fillRect(x - 18, gy - 33, 36, 3);
+      // Animated white water wave crest flowing across top channel
+      const waveX = ((animTick * 18 + idx * 9) % 30) - 15;
+      ctx.fillStyle = "#e0f2fe";
+      ctx.fillRect(x + waveX, gy - 33, 7, 2);
       ctx.fillStyle = "#e7e5e4";
       ctx.fillRect(x - 14, gy - 24, 7, 24);
       ctx.fillRect(x + 7, gy - 24, 7, 24);
       ctx.fillRect(x - 18, gy - 14, 36, 4);
       break;
+    }
 
-    case "academy":
-      // Marble Forum: Classical white marble colonnade + crimson pediment
+    case "academy": {
+      // Marble Forum: Classical white marble colonnade + crimson pediment + flickering braziers
       ctx.fillStyle = "#f5f5f4";
       ctx.fillRect(x - 16, gy - 4, 32, 4);
       ctx.fillRect(x - 13, gy - 22, 4, 18);
@@ -1353,54 +1417,92 @@ function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
       ctx.fillRect(x + 2, gy - 22, 4, 18);
       ctx.fillRect(x + 9, gy - 22, 4, 18);
       drawPolygon(ctx, [[x, gy - 33], [x - 18, gy - 22], [x + 18, gy - 22]], "#dc2626", "#f5f5f4", 1.2);
+      // Flickering golden forum brazier flame
+      const flame = 2.5 + Math.sin(phase * 3) * 1.2;
+      ctx.fillStyle = "#fde047";
+      ctx.beginPath();
+      ctx.arc(x, gy - 6, flame, 0, Math.PI * 2);
+      ctx.fill();
       break;
+    }
 
-    case "watermill":
-      // River Watermill: Half-timbered millhouse + spoked waterwheel over stream
+    case "watermill": {
+      // River Watermill: Half-timbered millhouse + ROTATING spoked wooden waterwheel & water splash!
       ctx.fillStyle = "#fef3c7";
       ctx.fillRect(x - 15, gy - 22, 20, 22);
       drawPolygon(ctx, [[x - 5, gy - 34], [x - 17, gy - 22], [x + 7, gy - 22]], "#991b1b");
+      ctx.fillStyle = isNight ? "#fde047" : "#78350f";
+      ctx.fillRect(x - 10, gy - 15, 5, 5);
+      // Millstream & splash
       ctx.fillStyle = "#0284c7";
-      ctx.fillRect(x + 2, gy - 4, 14, 4);
+      ctx.fillRect(x + 1, gy - 4, 16, 4);
+      const wx = x + 9;
+      const wy = gy - 9;
       ctx.strokeStyle = "#78350f";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x + 9, gy - 9, 8, 0, Math.PI * 2);
+      ctx.arc(wx, wy, 7.5, 0, Math.PI * 2);
       ctx.stroke();
+      // Rotating spokes
+      ctx.lineWidth = 1.4;
+      for (let s = 0; s < 4; s++) {
+        const ang = animTick * 1.8 + idx + (s * Math.PI) / 2;
+        ctx.beginPath();
+        ctx.moveTo(wx - Math.cos(ang) * 7, wy - Math.sin(ang) * 7);
+        ctx.lineTo(wx + Math.cos(ang) * 7, wy + Math.sin(ang) * 7);
+        ctx.stroke();
+      }
+      // Churning water droplets
+      ctx.fillStyle = "#bae6fd";
+      ctx.fillRect(wx + 5 + Math.sin(phase * 3) * 2, gy - 5, 2, 2);
       break;
+    }
 
-    case "citadel":
-      // Charter Guildhall: Steep-gabled guildhall + stone bell tower with blue spire
+    case "citadel": {
+      // Charter Guildhall: Steep-gabled guildhall + stone bell tower + waving guild banner
       ctx.fillStyle = "#fde68a";
       ctx.fillRect(x - 15, gy - 24, 20, 24);
       drawPolygon(ctx, [[x - 5, gy - 36], [x - 17, gy - 24], [x + 7, gy - 24]], "#b91c1c");
       ctx.fillStyle = "#94a3b8";
       ctx.fillRect(x + 5, gy - 34, 10, 34);
       drawPolygon(ctx, [[x + 10, gy - 46], [x + 4, gy - 34], [x + 16, gy - 34]], "#2563eb");
+      // Waving guild pennant atop spire
+      const flagWave = Math.sin(phase * 2) * 2;
+      drawPolygon(ctx, [[x + 10, gy - 46], [x + 18, gy - 44 + flagWave], [x + 10, gy - 41]], "#facc15");
+      // Glowing stained glass & swinging bell
       ctx.fillStyle = "#fef08a";
-      ctx.fillRect(x + 8, gy - 28, 4, 4);
+      ctx.fillRect(x + 8 + Math.sin(phase) * 0.8, gy - 28, 4, 4);
+      ctx.fillRect(x - 10, gy - 16, 4, 5);
       break;
+    }
 
-    case "press":
-      // Merchant Exchange: Renaissance terracotta palazzo + arched stone canal bridge
+    case "press": {
+      // Merchant Exchange: Terracotta palazzo + arched canal bridge + bobbing gondola
       ctx.fillStyle = "#c2410c";
       ctx.fillRect(x - 16, gy - 28, 20, 28);
       drawPolygon(ctx, [[x - 6, gy - 37], [x - 18, gy - 28], [x + 6, gy - 28]], "#7c2d12");
       ctx.fillStyle = "#fef08a";
       ctx.fillRect(x - 12, gy - 22, 4, 6);
       ctx.fillRect(x - 4, gy - 22, 4, 6);
-      // Canal arch bridge next to exchange
+      // Canal & arched stone bridge
       ctx.fillStyle = "#0284c7";
       ctx.fillRect(x + 4, gy - 5, 14, 5);
       ctx.fillStyle = "#e7e5e4";
-      ctx.fillRect(x + 4, gy - 12, 14, 5);
+      ctx.fillRect(x + 4, gy - 12, 14, 4);
+      // Gently bobbing merchant gondola under bridge
+      const boatX = x + 9 + Math.sin(phase * 0.8) * 3;
+      ctx.fillStyle = "#451a03";
+      ctx.fillRect(boatX - 3, gy - 6, 7, 2.5);
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(boatX + 2, gy - 7.5, 2, 2);
       break;
+    }
 
-    case "observatory":
-      // Civic University: Limestone university facade + emerald rotunda dome & lantern
+    case "observatory": {
+      // Civic University: Limestone university facade + emerald rotunda dome + rotating telescope & beacon
       ctx.fillStyle = "#d97706";
       ctx.fillRect(x - 15, gy - 22, 30, 22);
-      ctx.fillStyle = "#fef3c7";
+      ctx.fillStyle = isNight ? "#fef08a" : "#fef3c7";
       ctx.fillRect(x - 11, gy - 18, 4, 14);
       ctx.fillRect(x - 2, gy - 18, 4, 14);
       ctx.fillRect(x + 7, gy - 18, 4, 14);
@@ -1408,65 +1510,118 @@ function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
       ctx.beginPath();
       ctx.arc(x, gy - 22, 12, Math.PI, 0);
       ctx.fill();
-      ctx.fillStyle = "#fde047";
+      // Rotating dome aperture slit & pulsing lantern
+      const slitX = Math.sin(phase * 0.6) * 5;
+      ctx.strokeStyle = "#064e3b";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + slitX, gy - 22);
+      ctx.lineTo(x + slitX * 0.5, gy - 33);
+      ctx.stroke();
+      ctx.fillStyle = Math.sin(phase * 2) > 0 ? "#fef08a" : "#f59e0b";
       ctx.fillRect(x - 1.5, gy - 38, 3, 5);
       break;
+    }
 
-    case "steamworks":
-      // Coal Power Station: Red-brick turbine hall + twin tall smokestacks
+    case "steamworks": {
+      // Coal Power Station: Red-brick turbine hall + twin smokestacks + billowing steam puffs
       ctx.fillStyle = "#991b1b";
       ctx.fillRect(x - 15, gy - 24, 30, 24);
       ctx.fillStyle = "#57534e";
       ctx.fillRect(x + 2, gy - 42, 5, 18);
       ctx.fillRect(x + 9, gy - 40, 5, 16);
-      ctx.fillStyle = "#fbbf24";
+      // Billowing smoke/steam puffs rising from stacks
+      const puff1 = (animTick * 12 + idx * 4) % 16;
+      const puff2 = (animTick * 12 + idx * 4 + 8) % 16;
+      ctx.fillStyle = `rgba(214, 211, 209, ${(0.65 - puff1 / 26).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x + 4.5, gy - 44 - puff1, 2.5 + puff1 * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(214, 211, 209, ${(0.65 - puff2 / 26).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x + 11.5, gy - 42 - puff2, 2.2 + puff2 * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      // Pulsing boiler furnace windows
+      ctx.fillStyle = Math.sin(phase * 2) > 0 ? "#fde047" : "#f97316";
       ctx.fillRect(x - 11, gy - 16, 6, 9);
       ctx.fillRect(x - 2, gy - 16, 6, 9);
       break;
+    }
 
-    case "railhub":
-      // Grand Central Station: Vaulted glass train shed + steam locomotive
+    case "railhub": {
+      // Grand Central Station: Vaulted glass train shed + chugging steam locomotive with steam puffs
       ctx.fillStyle = "#334155";
       ctx.fillRect(x - 16, gy - 22, 20, 22);
       ctx.fillStyle = "#38bdf8";
       ctx.beginPath();
       ctx.arc(x - 6, gy - 22, 10, Math.PI, 0);
       ctx.fill();
-      // Locomotive emerging
+      // Chugging locomotive oscillating slightly
+      const chugX = Math.sin(phase * 1.2) * 2.5;
       ctx.fillStyle = "#1f2937";
-      ctx.fillRect(x + 2, gy - 14, 14, 10);
+      ctx.fillRect(x + 2 + chugX, gy - 14, 14, 10);
       ctx.fillStyle = "#dc2626";
-      ctx.fillRect(x + 2, gy - 4, 15, 4);
+      ctx.fillRect(x + 2 + chugX, gy - 4, 15, 4);
       ctx.fillStyle = "#475569";
-      ctx.fillRect(x + 11, gy - 20, 4, 6);
+      ctx.fillRect(x + 11 + chugX, gy - 20, 4, 6);
+      // Headlamp & steam puff
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(x + 15 + chugX, gy - 12, 2, 3);
+      const locoPuff = (animTick * 14 + idx * 5) % 12;
+      ctx.fillStyle = "rgba(248, 250, 252, 0.65)";
+      ctx.beginPath();
+      ctx.arc(x + 13 + chugX - locoPuff * 0.4, gy - 22 - locoPuff, 2.5 + locoPuff * 0.12, 0, Math.PI * 2);
+      ctx.fill();
       break;
+    }
 
-    case "fission":
-      // Nuclear Power Plant: Hyperbolic cooling tower + containment reactor dome
+    case "fission": {
+      // Nuclear Power Plant: Hyperbolic cooling tower + rising vapor plume + pulsing Cherenkov core glow
+      const vap = (animTick * 9 + idx * 6) % 15;
+      ctx.fillStyle = `rgba(241, 245, 249, ${(0.6 - vap / 26).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(x - 8.5, gy - 36 - vap, 3.5 + vap * 0.2, 0, Math.PI * 2);
+      ctx.fill();
       drawPolygon(ctx, [[x - 12, gy - 34], [x - 16, gy], [x - 1, gy], [x - 5, gy - 34]], "#e2e8f0");
       ctx.fillStyle = "#94a3b8";
       ctx.fillRect(x + 1, gy - 16, 14, 16);
       ctx.beginPath();
       ctx.arc(x + 8, gy - 16, 7, Math.PI, 0);
       ctx.fill();
-      ctx.fillStyle = "#38bdf8";
+      // Pulsing Cherenkov blue reactor core window
+      ctx.fillStyle = Math.sin(phase * 2) > 0 ? "#38bdf8" : "#0284c7";
       ctx.fillRect(x + 4, gy - 12, 8, 4);
       break;
+    }
 
-    case "cosmodrome":
-      // International Airport: Air-traffic control tower + sleek white jet airliner
+    case "cosmodrome": {
+      // International Airport: Control tower + rotating radar dish + blinking strobe + taxiing jetliner
       ctx.fillStyle = "#cbd5e1";
       ctx.fillRect(x - 13, gy - 36, 5, 36);
       drawPolygon(ctx, [[x - 16, gy - 42], [x - 5, gy - 42], [x - 7, gy - 35], [x - 14, gy - 35]], "#0284c7");
-      // White jetliner on runway
+      // Rotating radar dish atop control tower
+      const radW = Math.cos(phase * 1.6) * 4.5;
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 10.5 - radW, gy - 45);
+      ctx.lineTo(x - 10.5 + radW, gy - 45);
+      ctx.stroke();
+      if (Math.floor(animTick * 4 + idx) % 2 === 0) {
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(x - 11.5, gy - 48, 2, 2);
+      }
+      // White jetliner on runway with taxi movement
+      const jetShift = Math.sin(phase * 0.9) * 2;
       ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(x - 4, gy - 11, 20, 6);
-      drawPolygon(ctx, [[x + 12, gy - 11], [x + 16, gy - 20], [x + 16, gy - 11]], "#2563eb");
-      drawPolygon(ctx, [[x + 2, gy - 8], [x + 8, gy - 8], [x + 4, gy - 2]], "#94a3b8");
+      ctx.fillRect(x - 4 + jetShift, gy - 11, 20, 6);
+      drawPolygon(ctx, [[x + 12 + jetShift, gy - 11], [x + 16 + jetShift, gy - 20], [x + 16 + jetShift, gy - 11]], "#2563eb");
+      drawPolygon(ctx, [[x + 2 + jetShift, gy - 8], [x + 8 + jetShift, gy - 8], [x + 4 + jetShift, gy - 2]], "#94a3b8");
       break;
+    }
 
-    case "fab":
-      // Glass Skyscraper: Supertall reflective blue curtain-wall high-rise + antenna spire
+    case "fab": {
+      // Glass Skyscraper: Reflective blue high-rise + animated exterior glass elevator + blinking strobe
       ctx.fillStyle = "#0369a1";
       ctx.fillRect(x - 12, gy - 42, 24, 42);
       ctx.strokeStyle = "#38bdf8";
@@ -1474,41 +1629,62 @@ function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
       ctx.strokeRect(x - 12, gy - 42, 24, 42);
       ctx.fillStyle = "#e0f2fe";
       ctx.fillRect(x - 1, gy - 50, 2, 8);
+      if (Math.floor(animTick * 3 + idx) % 2 === 0) {
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(x - 1.5, gy - 52, 3, 3);
+      }
       for (let wy = gy - 37; wy < gy - 4; wy += 6) {
-        ctx.fillStyle = "#7dd3fc";
+        ctx.fillStyle = isNight ? "#bae6fd" : "#7dd3fc";
         ctx.fillRect(x - 8, wy, 16, 3);
       }
+      // Animated exterior glass sky-elevator riding up & down
+      const elevY = gy - 22 + Math.sin(phase * 0.85) * 15;
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(x + 9, elevY, 3, 5);
       break;
+    }
 
-    case "quantum":
-      // Maglev Transit Hub: Elevated concrete guideway + sleek 500 km/h bullet train
+    case "quantum": {
+      // Maglev Transit Hub: Elevated guideway + gliding 500 km/h bullet train + cyan magnetic sparks
       ctx.fillStyle = "#64748b";
       ctx.fillRect(x - 12, gy - 12, 4, 12);
       ctx.fillRect(x + 8, gy - 12, 4, 12);
       ctx.fillStyle = "#94a3b8";
       ctx.fillRect(x - 18, gy - 16, 36, 4);
-      // Sleek aerodynamic Maglev train car
+      // Gliding Maglev train car
+      const glideX = Math.sin(phase * 1.5) * 3.5;
       ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(x - 14, gy - 25, 24, 8);
-      drawPolygon(ctx, [[x + 10, gy - 25], [x + 18, gy - 17], [x + 10, gy - 17]], "#f8fafc");
+      ctx.fillRect(x - 14 + glideX, gy - 25, 24, 8);
+      drawPolygon(ctx, [[x + 10 + glideX, gy - 25], [x + 18 + glideX, gy - 17], [x + 10 + glideX, gy - 17]], "#f8fafc");
       ctx.fillStyle = "#06b6d4";
-      ctx.fillRect(x - 12, gy - 22, 22, 3);
+      ctx.fillRect(x - 12 + glideX, gy - 22, 22, 3);
+      // Cyan magnetic levitation glow under train
+      ctx.fillStyle = "rgba(6, 182, 212, 0.85)";
+      ctx.fillRect(x - 14 + glideX, gy - 17, 28, 1.5);
       break;
+    }
 
-    case "arcology":
-      // Neon Arcology Spire: Tiered pyramidal cyber-spire with neon sky-bridges
-      drawPolygon(ctx, [[x - 6, gy - 46], [x - 15, gy], [x + 15, gy], [x + 6, gy - 46]], "#1e1b4b", idx % 2 === 0 ? "#f43f5e" : "#06b6d4", 1.5);
-      ctx.fillStyle = "#10b981";
+    case "arcology": {
+      // Neon Arcology Spire: Cyber-spire + pulsing neon sky-bridges + darting flying spinner
+      const neonColor = idx % 2 === 0 ? "#f43f5e" : "#06b6d4";
+      drawPolygon(ctx, [[x - 6, gy - 46], [x - 15, gy], [x + 15, gy], [x + 6, gy - 46]], "#1e1b4b", neonColor, 1.5);
+      ctx.fillStyle = Math.sin(phase * 2) > 0 ? "#10b981" : "#06b6d4";
       ctx.fillRect(x - 9, gy - 26, 18, 3);
       ctx.fillStyle = "#fde047";
       for (let wy = gy - 38; wy < gy - 4; wy += 8) {
         ctx.fillRect(x - 5, wy, 3, 4);
         ctx.fillRect(x + 2, wy, 3, 4);
       }
+      // Orbiting flying cyber-spinner around spire
+      const spinX = x + Math.cos(phase * 1.4) * 14;
+      const spinY = gy - 34 + Math.sin(phase * 1.4) * 5;
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(spinX - 2, spinY, 5, 2);
       break;
+    }
 
-    default:
-      // Orbital Spaceport: Curved electromagnetic launch loop + delta orbital shuttle
+    default: {
+      // Orbital Spaceport: Curved electromagnetic launch loop + ascending delta shuttle & plasma trail
       ctx.fillStyle = "#1e293b";
       ctx.fillRect(x - 15, gy - 14, 30, 14);
       ctx.strokeStyle = "#06b6d4";
@@ -1517,11 +1693,18 @@ function drawUnitGraphicOnStrip(ctx, bId, x, gy, idx) {
       ctx.moveTo(x - 14, gy - 14);
       ctx.quadraticCurveTo(x, gy - 18, x + 14, gy - 44);
       ctx.stroke();
-      // Delta shuttle on launch track
-      drawPolygon(ctx, [[x + 14, gy - 46], [x + 4, gy - 32], [x + 12, gy - 30]], "#f8fafc");
-      ctx.fillStyle = "#fde047";
-      ctx.fillRect(x + 6, gy - 32, 4, 4);
+      // Animated launch shuttle accelerating up the electromagnetic track
+      const t = ((animTick * 0.75 + idx * 0.35) % 1);
+      const sx = (1 - t) * (1 - t) * (x - 12) + 2 * (1 - t) * t * x + t * t * (x + 14);
+      const sy = (1 - t) * (1 - t) * (gy - 14) + 2 * (1 - t) * t * (gy - 19) + t * t * (gy - 46);
+      // Golden plasma exhaust plume
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.arc(sx - 3, sy + 3, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      drawPolygon(ctx, [[sx + 4, sy - 5], [sx - 4, sy + 2], [sx + 3, sy + 3]], "#f8fafc");
       break;
+    }
   }
 }
 
@@ -1557,10 +1740,132 @@ function enableHorizontalDragScroll(el) {
   }, { passive: false });
 }
 
+function drawDistrictStripCanvas(cvs, b, count) {
+  if (!cvs) return;
+  const ctx = cvs.getContext("2d");
+  const cw = cvs.width;
+  const ch = cvs.height;
+
+  const nightFactor = (1 - Math.cos(dayCyclePhase * Math.PI * 2)) / 2;
+  const isNight = nightFactor > 0.45;
+  const isDuskOrDawn = nightFactor > 0.22 && nightFactor < 0.72;
+
+  // 1. Era Sky Gradient synced with the City Day/Dusk/Night Cycle
+  const eraColors = ERAS[b.era].skyColors;
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
+  bgGrad.addColorStop(0, eraColors[0]);
+  bgGrad.addColorStop(1, eraColors[1]);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, cw, ch);
+
+  if (isDuskOrDawn) {
+    ctx.fillStyle = "rgba(249, 115, 22, 0.16)";
+    ctx.fillRect(0, 0, cw, ch);
+  }
+  if (nightFactor > 0.05) {
+    ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.52).toFixed(2)})`;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // 2. Twinkling Night Stars or Drifting Day Clouds across the strip
+  if (isNight || b.era === 8) {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+    for (let sx = 24; sx < cw; sx += 65) {
+      const sy = 6 + ((sx * 7) % 18);
+      if (Math.sin(animTick * 2 + sx) > -0.2) {
+        ctx.fillRect(sx, sy, 1.5, 1.5);
+      }
+    }
+  } else {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+    for (let cx = 0; cx < cw; cx += 210) {
+      const cloudX = ((cx + animTick * 6) % (cw + 80)) - 40;
+      ctx.beginPath();
+      ctx.roundRect(cloudX, 7 + (cx % 10), 42, 8, 4);
+      ctx.fill();
+    }
+  }
+
+  // 3. Rolling Horizon Hills
+  ctx.fillStyle = ERAS[b.era].hillColors[0];
+  ctx.beginPath();
+  ctx.moveTo(0, ch - 14);
+  for (let hx = 0; hx <= cw; hx += 120) {
+    ctx.quadraticCurveTo(hx + 60, ch - 30, hx + 120, ch - 14);
+  }
+  ctx.lineTo(cw, ch);
+  ctx.lineTo(0, ch);
+  ctx.closePath();
+  ctx.fill();
+
+  // 4. Ground Terrace & District Thoroughfare Road
+  ctx.fillStyle = b.era >= 5 ? "#27272a" : "#3f5232";
+  ctx.fillRect(0, ch - 14, cw, 14);
+  ctx.fillStyle = b.era === 0 ? "#6b4c35" : b.era <= 4 ? "#78716c" : "#18181b";
+  ctx.fillRect(0, ch - 5, cw, 5);
+
+  // Streetlamps along modern/medieval district strips at night
+  if (b.era >= 2) {
+    for (let lx = 48; lx < cw; lx += 80) {
+      ctx.fillStyle = "#52525b";
+      ctx.fillRect(lx, ch - 19, 1.5, 6);
+      if (isNight || isDuskOrDawn) {
+        ctx.fillStyle = b.era === 8 ? "#06b6d4" : "#fef08a";
+        ctx.fillRect(lx - 0.5, ch - 21, 2.5, 2.5);
+      }
+    }
+  }
+
+  // 5. Draw all Animated Infrastructure Units along the strip
+  const visibleUnits = Math.min(60, count);
+  const spacing = 40;
+  for (let i = 0; i < visibleUnits; i++) {
+    const ux = 28 + i * spacing;
+    drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 12, i, isNight);
+  }
+
+  // 6. Living Foreground District Traffic (Villagers, Carts, Cars, or Hover-Pods)
+  const agentCount = Math.min(12, Math.max(3, Math.ceil(visibleUnits / 3)));
+  for (let a = 0; a < agentCount; a++) {
+    const dir = a % 2 === 0 ? 1 : -1;
+    const speed = b.era >= 5 ? 16 : 8;
+    const rawPos = (a * 137 + animTick * speed * dir) % cw;
+    const ax = rawPos < 0 ? rawPos + cw : rawPos;
+    const ay = ch - 4;
+
+    if (b.era <= 4) {
+      // Walking citizen / merchant cart
+      ctx.fillStyle = a % 2 === 0 ? "#fde047" : "#f97316";
+      ctx.fillRect(ax, ay - 3, 4, 3);
+    } else {
+      // Vehicle / transit pod with night headlights
+      ctx.fillStyle = b.era === 8 ? (a % 2 === 0 ? "#06b6d4" : "#f43f5e") : "#38bdf8";
+      ctx.fillRect(ax, ay - 3, 8, 3);
+      if (isNight || isDuskOrDawn) {
+        ctx.fillStyle = "rgba(254, 240, 138, 0.75)";
+        ctx.fillRect(dir > 0 ? ax + 8 : ax - 6, ay - 2, 6, 1.5);
+      }
+    }
+  }
+}
+
+function drawAllDistrictCanvases() {
+  const cityTab = document.getElementById("tab-city");
+  if (!cityTab || !cityTab.classList.contains("active")) return;
+
+  BUILDINGS.forEach((b) => {
+    const count = state.buildings[b.id] || 0;
+    if (count <= 0) return;
+    const cvs = document.getElementById(`dist-cvs-${b.id}`);
+    if (cvs) {
+      drawDistrictStripCanvas(cvs, b, count);
+    }
+  });
+}
+
 function renderInfrastructureDistricts() {
   const container = document.getElementById("infrastructure-districts");
   if (!container) return;
-  container.innerHTML = "";
 
   const totalCps = getTotalCps();
   const ownedBuildings = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
@@ -1568,7 +1873,7 @@ function renderInfrastructureDistricts() {
   const summaryNote = document.getElementById("districts-summary-note");
   if (summaryNote) {
     summaryNote.textContent = ownedBuildings.length > 0
-      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Structures (Drag or scroll ↔)`
+      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Structures (Drag or use ◀ ▶ to pan)`
       : "Construct buildings on the right to expand your city districts";
   }
 
@@ -1577,69 +1882,82 @@ function renderInfrastructureDistricts() {
     return;
   }
 
+  const emptyEl = container.querySelector(".district-empty");
+  if (emptyEl) emptyEl.remove();
+
+  // Remove any strips for buildings with count === 0 (e.g. after prestige or reset)
+  Array.from(container.querySelectorAll(".district-strip")).forEach((el) => {
+    const bId = el.getAttribute("data-bid");
+    if (!bId || (state.buildings[bId] || 0) <= 0) {
+      el.remove();
+    }
+  });
+
   ownedBuildings.forEach((b) => {
     const count = state.buildings[b.id] || 0;
     const bCps = count * getBuildingSingleCps(b);
-    const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
+    const shareNum = totalCps > 0 ? (bCps / totalCps) * 100 : 0;
+    const sharePct = shareNum.toFixed(1);
 
     const visibleUnits = Math.min(60, count);
     const cw = Math.max(680, visibleUnits * 40 + 135);
-    const ch = 64;
+    const ch = 76;
 
-    const strip = document.createElement("div");
-    strip.className = "district-strip";
-    strip.innerHTML = `
-      <div class="district-strip-header">
-        <div class="district-title-group">
-          <span>${b.icon} ${b.districtName}</span>
-          <span class="district-count-pill">${count}× ${b.name}</span>
-          <span class="district-zone-tag">${b.zoneTag}</span>
+    let strip = document.getElementById(`dist-strip-${b.id}`);
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.className = "district-strip";
+      strip.id = `dist-strip-${b.id}`;
+      strip.setAttribute("data-bid", b.id);
+      strip.innerHTML = `
+        <div class="district-strip-header">
+          <div class="district-title-group">
+            <span>${b.icon} ${b.name}</span>
+            <span class="district-count-pill" id="dist-cnt-${b.id}">×${count}</span>
+          </div>
+          <div class="district-stats-group">
+            <span class="district-cps" id="dist-cps-${b.id}">+${formatNum(bCps, 1)} CP/s</span>
+            <span class="district-share" id="dist-share-${b.id}">(${sharePct}%)</span>
+            <div class="district-pan-btns">
+              <button class="district-pan-btn" data-pan="-180" title="Pan District Left">◀</button>
+              <button class="district-pan-btn" data-pan="180" title="Pan District Right">▶</button>
+            </div>
+          </div>
         </div>
-        <div class="district-stats-group">
-          <span class="district-cps" id="dist-cps-${b.id}">+${formatNum(bCps, 1)} CP/s</span>
-          <span class="district-share" id="dist-share-${b.id}">(${sharePct}%)</span>
+        <div class="district-share-bar">
+          <div class="district-share-fill" id="dist-bar-${b.id}" style="width: ${sharePct}%;"></div>
         </div>
-      </div>
-      <div class="district-scroll-wrap">
-        <canvas class="district-canvas" width="${cw}" height="${ch}"></canvas>
-      </div>
-    `;
-    container.appendChild(strip);
+        <div class="district-scroll-wrap" id="dist-scroll-${b.id}">
+          <canvas class="district-canvas" id="dist-cvs-${b.id}" width="${cw}" height="${ch}"></canvas>
+        </div>
+      `;
+      container.appendChild(strip);
 
-    const scrollWrap = strip.querySelector(".district-scroll-wrap");
-    enableHorizontalDragScroll(scrollWrap);
-
-    // Draw the custom visual strip for this building type
-    const cvs = strip.querySelector("canvas");
-    const ctx = cvs.getContext("2d");
-    const eraColors = ERAS[b.era].skyColors;
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
-    bgGrad.addColorStop(0, eraColors[0]);
-    bgGrad.addColorStop(1, eraColors[1]);
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, cw, ch);
-
-    // Subtle background hill / horizon line
-    ctx.fillStyle = ERAS[b.era].hillColors[0];
-    ctx.beginPath();
-    ctx.moveTo(0, ch - 12);
-    for (let hx = 0; hx <= cw; hx += 120) {
-      ctx.quadraticCurveTo(hx + 60, ch - 28, hx + 120, ch - 12);
+      const scrollWrap = strip.querySelector(".district-scroll-wrap");
+      enableHorizontalDragScroll(scrollWrap);
+      strip.querySelectorAll(".district-pan-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const delta = parseInt(btn.getAttribute("data-pan"), 10);
+          scrollWrap.scrollBy({ left: delta, behavior: "smooth" });
+        });
+      });
+    } else {
+      // Update existing strip in-place so horizontal scroll position is preserved!
+      const cntEl = document.getElementById(`dist-cnt-${b.id}`);
+      if (cntEl) cntEl.textContent = `×${count}`;
+      const cpsEl = document.getElementById(`dist-cps-${b.id}`);
+      if (cpsEl) cpsEl.textContent = `+${formatNum(bCps, 1)} CP/s`;
+      const shareEl = document.getElementById(`dist-share-${b.id}`);
+      if (shareEl) shareEl.textContent = `(${sharePct}%)`;
+      const barEl = document.getElementById(`dist-bar-${b.id}`);
+      if (barEl) barEl.style.width = `${sharePct}%`;
     }
-    ctx.lineTo(cw, ch);
-    ctx.lineTo(0, ch);
-    ctx.closePath();
-    ctx.fill();
 
-    // Ground strip
-    ctx.fillStyle = b.era >= 5 ? "#27272a" : "#3f5232";
-    ctx.fillRect(0, ch - 12, cw, 12);
-
-    // Draw up to 60 visual units across the scrollable strip
-    const spacing = 40;
-    for (let i = 0; i < visibleUnits; i++) {
-      const ux = 28 + i * spacing;
-      drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 10, i);
+    const cvs = document.getElementById(`dist-cvs-${b.id}`);
+    if (cvs) {
+      if (cvs.width !== cw) cvs.width = cw;
+      if (cvs.height !== ch) cvs.height = ch;
+      drawDistrictStripCanvas(cvs, b, count);
     }
   });
 }
@@ -1651,11 +1969,13 @@ function updateDistrictsStats() {
     if (count <= 0) return;
     const cpsEl = document.getElementById(`dist-cps-${b.id}`);
     const shareEl = document.getElementById(`dist-share-${b.id}`);
-    if (!cpsEl && !shareEl) return;
+    const barEl = document.getElementById(`dist-bar-${b.id}`);
+    if (!cpsEl && !shareEl && !barEl) return;
     const bCps = count * getBuildingSingleCps(b);
     const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
     if (cpsEl) cpsEl.textContent = `+${formatNum(bCps, 1)} CP/s`;
     if (shareEl) shareEl.textContent = `(${sharePct}%)`;
+    if (barEl) barEl.style.width = `${sharePct}%`;
   });
 }
 
@@ -2182,6 +2502,8 @@ function handleMainClick(e) {
   updateWondersAffordability();
 }
 
+let anomalyTimeoutId = null;
+
 function triggerGoldenAnomaly() {
   const btn = document.getElementById("golden-anomaly");
   if (!btn || !btn.classList.contains("hidden")) return;
@@ -2202,13 +2524,19 @@ function triggerGoldenAnomaly() {
   SoundFX.anomalySpawn();
 
   const duration = hasWonder("w_apollo") ? 18000 : 12000;
-  setTimeout(() => {
+  if (anomalyTimeoutId) clearTimeout(anomalyTimeoutId);
+  anomalyTimeoutId = setTimeout(() => {
     btn.classList.add("hidden");
+    anomalyTimeoutId = null;
   }, duration);
 }
 
 function handleAnomalyClick(e) {
   e.stopPropagation();
+  if (anomalyTimeoutId) {
+    clearTimeout(anomalyTimeoutId);
+    anomalyTimeoutId = null;
+  }
   const btn = document.getElementById("golden-anomaly");
   btn.classList.add("hidden");
   state.anomaliesClicked += 1;
@@ -2958,8 +3286,8 @@ function drawCityCanvas() {
   });
 
   extraDistricts.forEach((b, idx) => {
-    drawUnitGraphicOnStrip(ctx, b.id, cursorX - 18, gy + 2, idx);
-    drawUnitGraphicOnStrip(ctx, b.id, cursorX + 18, gy + 2, idx + 1);
+    drawUnitGraphicOnStrip(ctx, b.id, cursorX - 18, gy + 2, idx, isNight);
+    drawUnitGraphicOnStrip(ctx, b.id, cursorX + 18, gy + 2, idx + 1, isNight);
     cursorX += 95;
   });
 
@@ -3406,6 +3734,15 @@ function init() {
       if (!code) return;
       const decoded = JSON.parse(decodeURIComponent(atob(code)));
       state = { ...createDefaultState(), ...decoded };
+      state.buildings = { ...createDefaultState().buildings, ...(decoded.buildings || {}) };
+      state.wonders = Array.isArray(decoded.wonders) ? decoded.wonders : [];
+      state.revealedBuildings = Array.isArray(decoded.revealedBuildings) ? decoded.revealedBuildings : ["forager"];
+      state.revealedUpgrades = Array.isArray(decoded.revealedUpgrades) ? decoded.revealedUpgrades : [];
+      state.revealedWonders = Array.isArray(decoded.revealedWonders) ? decoded.revealedWonders : [];
+      document.querySelectorAll(".doctrine-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-doctrine") === state.doctrine);
+      });
+      soundBtn.textContent = state.sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
       saveGame(false);
       checkProximityReveals();
       applyEraTheme();
@@ -3428,6 +3765,12 @@ function init() {
     if (confirm("Are you sure you want to completely wipe your save and found a new settlement?")) {
       localStorage.removeItem(SAVE_KEY);
       state = createDefaultState();
+      comboVal = 0;
+      boostExpiresAt = 0;
+      document.querySelectorAll(".doctrine-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-doctrine") === state.doctrine);
+      });
+      soundBtn.textContent = state.sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
       checkProximityReveals();
       applyEraTheme();
       renderBuildingsList();
@@ -3462,6 +3805,7 @@ function init() {
 
     updateTopHUD();
     drawCityCanvas();
+    drawAllDistrictCanvases();
     drawClickerFxCanvas();
 
     uiRefreshAccum += dt;
