@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clicktopolis — Build History One Click at a Time</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-era="0">
+  <div id="particles-layer"></div>
+  <div id="toast-container"></div>
+
+  <!-- City Naming Modal (Shown at start of game or when renaming) -->
+  <div id="city-name-modal" class="modal-backdrop hidden">
+    <div class="modal-card name-modal-card">
+      <div class="name-modal-icon">🏕️</div>
+      <h2>Found Your Settlement</h2>
+      <p class="modal-sub">Every legendary civilization begins with a single spark and a name. What shall history call your people's home?</p>
+      <div class="name-input-row">
+        <input type="text" id="city-name-input" maxlength="26" placeholder="Enter settlement name..." autocomplete="off" />
+        <button id="btn-random-name" class="action-btn" title="Roll a random city name">🎲</button>
+      </div>
+      <button id="btn-confirm-name" class="action-btn confirm-name-btn">🪨 Strike the First Flint</button>
+    </div>
+  </div>
+
+  <!-- Dramatic Era Reveal Banner -->
+  <div id="era-reveal-banner" class="era-reveal-banner hidden">
+    <div class="era-reveal-card">
+      <div class="era-reveal-icon" id="era-reveal-icon">🏺</div>
+      <div class="era-reveal-sub">A NEW EPOCH DAWNS</div>
+      <h2 class="era-reveal-title" id="era-reveal-title">THE BRONZE AGE</h2>
+      <p class="era-reveal-desc" id="era-reveal-desc">New architecture, mysteries, and technologies await your people.</p>
+    </div>
+  </div>
+
+  <!-- Import/Export Modal -->
+  <div id="save-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>💾 Timeline Data Crystal (Export / Import)</h3>
+        <button id="btn-close-modal" class="mini-btn">✕</button>
+      </div>
+      <p class="modal-sub">Copy the code below to back up your civilization, or paste a save string to restore it.</p>
+      <textarea id="save-textarea" rows="5" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button id="btn-copy-save" class="action-btn">📋 Copy Export String</button>
+        <button id="btn-import-save" class="action-btn prestige-btn">📥 Load Imported String</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <div class="brand">
+      <span id="era-badge" class="era-badge">STONE AGE</span>
+      <div class="brand-titles">
+        <h1>Clicktopolis</h1>
+        <button id="btn-rename-city" class="city-subtitle-btn" title="Click to rename your city">
+          <span id="city-title-display">Tribe of New Jericho</span> ✏️
+        </button>
+      </div>
+    </div>
+
+    <div class="era-progress-wrapper">
+      <div class="era-progress-header">
+        <span id="next-era-label">Next Epoch: ???</span>
+        <span id="era-progress-pct">0%</span>
+      </div>
+      <div class="era-progress-track">
+        <div id="era-progress-fill" class="era-progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button id="btn-sound" class="action-btn" title="Toggle synthesized sound effects">🔊 SFX: ON</button>
+      <button id="btn-prestige" class="action-btn prestige-btn" title="Reset timeline for permanent Time Shards (+10% production each)">
+        ⏳ Time Rift (<span id="pending-shards">+0</span>)
+      </button>
+      <button id="btn-save" class="action-btn">💾 Save</button>
+      <button id="btn-export" class="action-btn" title="Export or Import Save String">📤 Data</button>
+      <button id="btn-reset" class="action-btn danger-btn" title="Wipe Save">🗑️</button>
+    </div>
+  </header>
+
+  <main class="game-layout">
+    <!-- Left Column: The City Core & Clicker -->
+    <section class="panel left-panel">
+      <div class="resource-header">
+        <div class="primary-counter">
+          <span id="res-amount" class="counter-value">0</span>
+          <span class="counter-unit">Civilization Points (CP)</span>
+        </div>
+        <div class="sub-counters">
+          <div class="stat-pill">⚡ <span id="res-cps">0.0</span> / sec</div>
+          <div class="stat-pill">🔨 <span id="res-cpc">1</span> / click</div>
+          <div class="stat-pill">👥 Pop: <span id="res-pop">1</span></div>
+          <div class="stat-pill shard-pill" id="shard-pill" title="Permanent +10% CP/s per Time Shard">💎 <span id="res-shards">0</span> Shards</div>
+        </div>
+
+        <!-- Active Frenzy / Buff Banner -->
+        <div id="active-buff-bar" class="active-buff-bar hidden">
+          <span id="buff-label">⚡ Chrono Overdrive (2x)</span>
+          <span id="buff-timer">25s</span>
+        </div>
+      </div>
+
+      <div class="city-stage" id="city-stage">
+        <canvas id="city-canvas" width="560" height="280"></canvas>
+
+        <!-- Combo / Momentum Indicator -->
+        <div class="combo-overlay">
+          <div class="combo-pill" id="combo-pill">
+            <span>🔥 Momentum <strong id="combo-mult">1.00x</strong></span>
+            <div class="combo-bar-bg"><div id="combo-bar-fill" class="combo-bar-fill"></div></div>
+          </div>
+          <div class="crit-pill" title="Critical Click Chance & Multiplier">
+            🎯 Crit: <span id="crit-chance">5%</span> (3x)
+          </div>
+        </div>
+
+        <div class="click-target-wrapper">
+          <button id="main-clicker" class="main-clicker" aria-label="Build & Advance Civilization">
+            <div class="clicker-orbit"></div>
+            <div class="clicker-icon" id="clicker-icon">🪨</div>
+            <div class="clicker-caption" id="clicker-caption">Knap Flint</div>
+          </button>
+        </div>
+
+        <!-- Floating Golden Anomaly -->
+        <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a temporal boost!">✨</button>
+      </div>
+
+      <!-- Civilization Doctrine Selector -->
+      <div class="doctrine-bar">
+        <div class="doctrine-title">⚖️ STATE DOCTRINE</div>
+        <div class="doctrine-buttons">
+          <button class="doctrine-btn active" data-doctrine="balanced" title="+10% Passive CP/s & +10% Click Power">
+            🏛️ Balanced Pax
+          </button>
+          <button class="doctrine-btn" data-doctrine="industrious" title="+35% Click Power & +4% Crit Chance, -10% Passive CP/s">
+            ⚒️ Forge Mobilization
+          </button>
+          <button class="doctrine-btn" data-doctrine="prosperity" title="+20% Passive CP/s, -15% Click Power">
+            🌾 Golden Prosperity
+          </button>
+        </div>
+      </div>
+
+      <div class="news-ticker">
+        <span class="ticker-tag">CHRONICLE</span>
+        <p id="news-text">Your tribe gathers around a flickering fire, dreaming of walls that touch the sky...</p>
+      </div>
+
+      <div class="era-timeline" id="era-timeline"></div>
+    </section>
+
+    <!-- Center Column: Tech Upgrades, Wonders, Achievements & Stats -->
+    <section class="panel center-panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="upgrades">🔬 Tech <span id="upgrade-badge" class="badge">0</span></button>
+        <button class="tab-btn" data-tab="wonders">🏛️ Wonders <span id="wonder-badge" class="badge">0/?</span></button>
+        <button class="tab-btn" data-tab="achievements">🏆 Achievements <span id="ach-badge" class="badge">0/0</span></button>
+        <button class="tab-btn" data-tab="stats">📊 Archives</button>
+      </div>
+
+      <!-- Upgrades View -->
+      <div class="tab-content active" id="tab-upgrades">
+        <div class="section-subtitle">
+          <span>Available Technologies</span>
+          <button id="btn-buy-all-upgrades" class="mini-btn">⚡ Research All Affordable</button>
+        </div>
+        <div id="upgrades-list" class="upgrades-grid"></div>
+
+        <div class="section-subtitle" style="margin-top: 18px;">
+          <span>Researched Technologies (<span id="researched-count">0</span>)</span>
+        </div>
+        <div id="researched-list" class="researched-chips"></div>
+      </div>
+
+      <!-- Wonders View -->
+      <div class="tab-content" id="tab-wonders">
+        <div class="ach-summary">
+          <div>
+            <strong>Monumental Wonders Constructed:</strong> <span id="wonders-built-count">0</span>
+          </div>
+          <div class="ach-bonus-note">Each Epoch reveals a new Wonder to crown your skyline!</div>
+        </div>
+        <div id="wonders-grid" class="wonders-grid"></div>
+      </div>
+
+      <!-- Achievements View -->
+      <div class="tab-content" id="tab-achievements">
+        <div class="ach-summary">
+          <div>
+            <strong>Achievement Mastery:</strong> <span id="ach-unlocked-count">0</span> / <span id="ach-total-count">0</span>
+            (<span id="ach-pct">0%</span>)
+          </div>
+          <div class="ach-bonus-note">Each achievement grants <strong>+1% Global Production</strong> (Current: +<span id="ach-bonus-pct">0</span>%)</div>
+        </div>
+        <div class="ach-filter-bar">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="unlocked">Unlocked</button>
+          <button class="filter-btn" data-filter="locked">Locked</button>
+        </div>
+        <div id="achievements-grid" class="achievements-grid"></div>
+      </div>
+
+      <!-- Stats View -->
+      <div class="tab-content" id="tab-stats">
+        <div class="stats-card" id="stats-container"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: City Buildings Store -->
+    <section class="panel right-panel">
+      <div class="store-header">
+        <h2>🏗️ City Infrastructure</h2>
+        <div class="buy-mode-group" role="group" aria-label="Buy multiplier">
+          <button class="buy-mode-btn active" data-qty="1">1x</button>
+          <button class="buy-mode-btn" data-qty="10">10x</button>
+          <button class="buy-mode-btn" data-qty="100">100x</button>
+          <button class="buy-mode-btn" data-qty="max">MAX</button>
+        </div>
+      </div>
+      <div id="buildings-list" class="buildings-list"></div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
