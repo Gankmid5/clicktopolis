@@ -1763,6 +1763,127 @@ body {
   gap: 8px;
 }
 
+/* Architect Developer God-Mode Console */
+.dev-top-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+  color: #09090b !important;
+  font-weight: 900 !important;
+  border-color: #fde047 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+}
+
+.dev-top-btn.hidden {
+  display: none !important;
+}
+
+.dev-modal-card {
+  width: min(720px, 95vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.3);
+}
+
+.dev-badge {
+  background: #f59e0b;
+  color: #09090b;
+  font-size: 0.66rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.dev-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.dev-section {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-section h4 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin: 0;
+}
+
+.dev-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dev-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dev-input-row input,
+.dev-input-row select {
+  flex: 1;
+  min-width: 140px;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.dev-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dev-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.dev-btn.accent {
+  background: var(--accent);
+  color: #09090b;
+  border-color: var(--accent);
+  font-weight: 800;
+}
+
+.dev-btn.danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.dev-btn.active-toggle {
+  background: #10b981;
+  color: #052e16;
+  border-color: #34d399;
+  font-weight: 900;
+}
+
 /* Responsive fallback */
 @media (max-width: 1120px) {
   body {

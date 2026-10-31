@@ -23,7 +23,7 @@
       <h2>Found Your Settlement</h2>
       <p class="modal-sub">Every legendary civilization begins with a single spark and a name. What shall history call your people's home?</p>
       <div class="name-input-row">
-        <input type="text" id="city-name-input" maxlength="26" placeholder="Enter settlement name..." autocomplete="off" />
+        <input type="text" id="city-name-input" maxlength="40" placeholder="Enter settlement name..." autocomplete="off" />
         <button id="btn-random-name" class="action-btn" title="Roll a random city name">🎲</button>
       </div>
       <button id="btn-confirm-name" class="action-btn confirm-name-btn">🪨 Strike the First Flint</button>
@@ -56,6 +56,85 @@
     </div>
   </div>
 
+  <!-- Secret Architect Developer Console Modal (Unlocked via "metropolisclicktopolisapocalypse") -->
+  <div id="dev-modal" class="modal-backdrop hidden">
+    <div class="modal-card dev-modal-card">
+      <div class="modal-header">
+        <h3>🛠️ Architect God-Mode Console <span class="dev-badge">DEV ACCESS</span></h3>
+        <button id="btn-close-dev" class="mini-btn">✕</button>
+      </div>
+      <p class="modal-sub">Full timeline manipulation unlocked via <code>metropolisclicktopolisapocalypse</code>.</p>
+
+      <div class="dev-grid">
+        <!-- 1. Civilization Points -->
+        <div class="dev-section">
+          <h4>💰 Civilization Points (CP)</h4>
+          <div class="dev-btn-row">
+            <button class="dev-btn" data-dev-cp="10000">+10K CP</button>
+            <button class="dev-btn" data-dev-cp="10000000">+10M CP</button>
+            <button class="dev-btn" data-dev-cp="10000000000">+10B CP</button>
+            <button class="dev-btn" data-dev-cp="10000000000000">+10T CP</button>
+            <button class="dev-btn" data-dev-cp="10000000000000000">+10Qa CP</button>
+            <button class="dev-btn" id="dev-cp-x10">×10 Current CP</button>
+            <button class="dev-btn" id="dev-cp-x1000">×1,000 Current CP</button>
+          </div>
+          <div class="dev-input-row">
+            <input type="number" id="dev-custom-cp" placeholder="Enter exact CP amount (e.g. 5000000)..." />
+            <button class="dev-btn accent" id="dev-set-cp">Set Exact CP</button>
+          </div>
+        </div>
+
+        <!-- 2. Epoch / Era Jump -->
+        <div class="dev-section">
+          <h4>🌅 Jump to Epoch &amp; Reveal Era Content</h4>
+          <div class="dev-btn-row" id="dev-era-buttons"></div>
+        </div>
+
+        <!-- 3. Districts & Buildings -->
+        <div class="dev-section">
+          <h4>🏗️ Manipulate Infrastructure Districts</h4>
+          <div class="dev-btn-row">
+            <button class="dev-btn" id="dev-bld-era-25">+25 Current Era Buildings</button>
+            <button class="dev-btn" id="dev-bld-all-10">+10 Every Building (All 36)</button>
+            <button class="dev-btn" id="dev-bld-all-50">+50 Every Building (All 36)</button>
+            <button class="dev-btn" id="dev-reveal-all-blds">👁️ Reveal All 36 Buildings</button>
+            <button class="dev-btn danger" id="dev-clear-blds">Reset Buildings to 0</button>
+          </div>
+          <div class="dev-input-row">
+            <select id="dev-building-select"></select>
+            <input type="number" id="dev-building-qty" value="25" min="0" style="max-width: 90px;" />
+            <button class="dev-btn accent" id="dev-add-single-bld">+Add</button>
+            <button class="dev-btn" id="dev-set-single-bld">Set Exact</button>
+          </div>
+        </div>
+
+        <!-- 4. Civic Upgrades, Wonders & Achievements -->
+        <div class="dev-section">
+          <h4>📜 Civic Upgrades, Wonders &amp; Achievements</h4>
+          <div class="dev-btn-row">
+            <button class="dev-btn accent" id="dev-unlock-all-upgrades">📜 Unlock All 155 Civic Upgrades</button>
+            <button class="dev-btn" id="dev-reveal-all-upgrades">👁️ Reveal All Upgrades</button>
+            <button class="dev-btn accent" id="dev-build-all-wonders">🏛️ Build All 9 World Wonders</button>
+            <button class="dev-btn accent" id="dev-unlock-all-ach">🏆 Unlock All 100 Achievements</button>
+          </div>
+        </div>
+
+        <!-- 5. Time Shards, God Mode & World Controls -->
+        <div class="dev-section">
+          <h4>⚡ God-Mode Multipliers, Time Shards &amp; World</h4>
+          <div class="dev-btn-row">
+            <button class="dev-btn" id="dev-toggle-god">⚡ 1,000× God Multiplier: OFF</button>
+            <button class="dev-btn" id="dev-toggle-crit">💥 100% Crit Clicks: OFF</button>
+            <button class="dev-btn" id="dev-add-shards-100">⏳ +100 Time Shards</button>
+            <button class="dev-btn" id="dev-add-shards-10k">⏳ +10,000 Time Shards</button>
+            <button class="dev-btn" id="dev-spawn-anomaly">✨ Spawn Golden Anomaly</button>
+            <button class="dev-btn" id="dev-cycle-time">🕒 Cycle Day / Dusk / Night / Dawn</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <header class="top-bar">
     <div class="brand">
       <span id="era-badge" class="era-badge">STONE AGE</span>
@@ -75,6 +154,7 @@
     </div>
 
     <div class="top-actions">
+      <button id="btn-dev-console" class="action-btn dev-top-btn hidden" title="Open Architect God-Mode Console">🛠️ DEV</button>
       <button id="btn-sound" class="action-btn" title="Toggle synthesized sound effects">🔊 SFX: ON</button>
       <button id="btn-prestige" class="action-btn prestige-btn" title="Reset timeline for permanent Time Shards (+10% production each)">
         ⏳ Time Rift (<span id="pending-shards">+0</span>)

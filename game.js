@@ -1267,17 +1267,22 @@ function createDefaultState() {
     revealedBuildings: ["forager"],
     wonders: [],
     achievements: [],
+    devUnlocked: false,
     startedAt: Date.now(),
     lastSavedAt: Date.now()
   };
 }
 
+const DEV_SECRET_KEYWORD = "metropolisclicktopolisapocalypse";
 let state = createDefaultState();
 let buyMode = 1;
 let achFilter = "all";
 let boostMultiplier = 1;
 let boostExpiresAt = 0;
 let boostName = "⚡ Chrono Overdrive (2x)";
+let devGodMode = false;
+let devAlwaysCrit = false;
+let devKeyBuffer = "";
 
 // ============================================================================
 // NUMBER FORMATTING & HELPERS
@@ -1368,6 +1373,7 @@ function getPurchasePlan(b) {
 // PRODUCTION, DOCTRINE, WONDER & CLICK POWER CALCULATIONS
 // ============================================================================
 function getCritChance() {
+  if (devAlwaysCrit) return 1.0;
   let chance = 0.05;
   if (state.doctrine === "balanced") chance += 0.02;
   else if (state.doctrine === "industrious") chance += 0.05;
@@ -1429,6 +1435,9 @@ function getGlobalMultiplier() {
 
   if (Date.now() < boostExpiresAt) {
     mult *= boostMultiplier;
+  }
+  if (devGodMode) {
+    mult *= 1000;
   }
   return mult;
 }
@@ -3948,12 +3957,311 @@ function openCityNameModal() {
 function confirmCityName() {
   const input = document.getElementById("city-name-input");
   const chosen = input.value.trim();
+  if (chosen.toLowerCase() === DEV_SECRET_KEYWORD) {
+    if (!state.cityName || !state.cityName.trim()) {
+      state.cityName = RANDOM_CITY_NAMES[0];
+    }
+    document.getElementById("city-name-modal").classList.add("hidden");
+    unlockDevConsole(true);
+    applyEraTheme();
+    updateTopHUD();
+    saveGame(false);
+    return;
+  }
   state.cityName = chosen || RANDOM_CITY_NAMES[0];
   document.getElementById("city-name-modal").classList.add("hidden");
   SoundFX.wonder();
   applyEraTheme();
   updateTopHUD();
   saveGame(false);
+}
+
+// ============================================================================
+// ARCHITECT DEVELOPER CONSOLE ("metropolisclicktopolisapocalypse")
+// ============================================================================
+function refreshAllDevUI() {
+  checkProximityReveals();
+  applyEraTheme();
+  renderBuildingsList();
+  renderInfrastructureDistricts();
+  renderUpgrades();
+  renderWonders();
+  checkAchievements();
+  renderAchievements();
+  updateTopHUD();
+  saveGame(false);
+}
+
+function unlockDevConsole(openModal = true) {
+  state.devUnlocked = true;
+  const devBtn = document.getElementById("btn-dev-console");
+  if (devBtn) devBtn.classList.remove("hidden");
+  SoundFX.wonder();
+  showToast("🛠️", "Architect Dev Access Unlocked!", "Full timeline manipulation enabled via metropolisclicktopolisapocalypse.");
+  if (openModal) {
+    const devModal = document.getElementById("dev-modal");
+    if (devModal) devModal.classList.remove("hidden");
+  }
+  saveGame(false);
+}
+
+function setupDevConsole() {
+  const devBtn = document.getElementById("btn-dev-console");
+  const devModal = document.getElementById("dev-modal");
+  const closeDevBtn = document.getElementById("btn-close-dev");
+
+  if (state.devUnlocked && devBtn) {
+    devBtn.classList.remove("hidden");
+  }
+
+  if (devBtn && devModal) {
+    devBtn.addEventListener("click", () => {
+      devModal.classList.remove("hidden");
+    });
+  }
+  if (closeDevBtn && devModal) {
+    closeDevBtn.addEventListener("click", () => {
+      devModal.classList.add("hidden");
+    });
+  }
+
+  // Global keyboard listener for typing "metropolisclicktopolisapocalypse" anywhere
+  window.addEventListener("keydown", (e) => {
+    if (!e.key || e.key.length !== 1) return;
+    devKeyBuffer = (devKeyBuffer + e.key.toLowerCase()).slice(-DEV_SECRET_KEYWORD.length);
+    if (devKeyBuffer === DEV_SECRET_KEYWORD) {
+      devKeyBuffer = "";
+      unlockDevConsole(true);
+    }
+  });
+
+  // 1. CP Manipulation Buttons
+  document.querySelectorAll("[data-dev-cp]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const addVal = parseFloat(btn.getAttribute("data-dev-cp"));
+      if (addVal > 0) {
+        state.cp += addVal;
+        state.totalCp += addVal;
+        state.allTimeCp += addVal;
+        SoundFX.buy();
+        refreshAllDevUI();
+      }
+    });
+  });
+
+  const cpX10 = document.getElementById("dev-cp-x10");
+  if (cpX10) {
+    cpX10.addEventListener("click", () => {
+      const gain = Math.max(1000, state.cp * 9);
+      state.cp += gain;
+      state.totalCp += gain;
+      state.allTimeCp += gain;
+      SoundFX.buy();
+      refreshAllDevUI();
+    });
+  }
+
+  const cpX1000 = document.getElementById("dev-cp-x1000");
+  if (cpX1000) {
+    cpX1000.addEventListener("click", () => {
+      const gain = Math.max(100000, state.cp * 999);
+      state.cp += gain;
+      state.totalCp += gain;
+      state.allTimeCp += gain;
+      SoundFX.buy();
+      refreshAllDevUI();
+    });
+  }
+
+  const setCpBtn = document.getElementById("dev-set-cp");
+  if (setCpBtn) {
+    setCpBtn.addEventListener("click", () => {
+      const val = parseFloat(document.getElementById("dev-custom-cp").value);
+      if (isFinite(val) && val >= 0) {
+        state.cp = val;
+        state.totalCp = Math.max(state.totalCp, val);
+        state.allTimeCp = Math.max(state.allTimeCp, val);
+        SoundFX.buy();
+        refreshAllDevUI();
+      }
+    });
+  }
+
+  // 2. Era / Epoch Jump Buttons
+  const eraBtnsWrap = document.getElementById("dev-era-buttons");
+  if (eraBtnsWrap) {
+    eraBtnsWrap.innerHTML = "";
+    ERAS.forEach((era, idx) => {
+      const b = document.createElement("button");
+      b.className = "dev-btn";
+      b.textContent = `${era.icon} ${idx}: ${era.name}`;
+      b.addEventListener("click", () => {
+        state.currentEra = idx;
+        state.highestEra = Math.max(state.highestEra, idx);
+        state.totalCp = Math.max(state.totalCp, era.threshold);
+        state.allTimeCp = Math.max(state.allTimeCp, era.threshold);
+        BUILDINGS.forEach((bld) => {
+          if (bld.era <= idx && !state.revealedBuildings.includes(bld.id)) {
+            state.revealedBuildings.push(bld.id);
+          }
+        });
+        UPGRADES.forEach((u) => {
+          if (u.era <= idx && !state.revealedUpgrades.includes(u.id)) {
+            state.revealedUpgrades.push(u.id);
+          }
+        });
+        SoundFX.eraAdvance();
+        refreshAllDevUI();
+        showToast(era.icon, `Jumped to ${era.name}`, `Epoch set to ${era.name}.`);
+      });
+      eraBtnsWrap.appendChild(b);
+    });
+  }
+
+  // 3. Districts & Buildings Manipulation
+  const bldSelect = document.getElementById("dev-building-select");
+  if (bldSelect) {
+    bldSelect.innerHTML = BUILDINGS.map(
+      (b) => `<option value="${b.id}">[Era ${b.era}] ${b.icon} ${b.name}</option>`
+    ).join("");
+  }
+
+  document.getElementById("dev-bld-era-25")?.addEventListener("click", () => {
+    BUILDINGS.filter((b) => b.era <= state.currentEra).forEach((b) => {
+      state.buildings[b.id] = (state.buildings[b.id] || 0) + 25;
+      if (!state.revealedBuildings.includes(b.id)) state.revealedBuildings.push(b.id);
+    });
+    SoundFX.buy();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-bld-all-10")?.addEventListener("click", () => {
+    BUILDINGS.forEach((b) => {
+      state.buildings[b.id] = (state.buildings[b.id] || 0) + 10;
+      if (!state.revealedBuildings.includes(b.id)) state.revealedBuildings.push(b.id);
+    });
+    SoundFX.buy();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-bld-all-50")?.addEventListener("click", () => {
+    BUILDINGS.forEach((b) => {
+      state.buildings[b.id] = (state.buildings[b.id] || 0) + 50;
+      if (!state.revealedBuildings.includes(b.id)) state.revealedBuildings.push(b.id);
+    });
+    SoundFX.buy();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-reveal-all-blds")?.addEventListener("click", () => {
+    state.revealedBuildings = BUILDINGS.map((b) => b.id);
+    SoundFX.research();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-clear-blds")?.addEventListener("click", () => {
+    BUILDINGS.forEach((b) => {
+      state.buildings[b.id] = 0;
+    });
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-add-single-bld")?.addEventListener("click", () => {
+    const bId = bldSelect.value;
+    const qty = Math.max(0, parseInt(document.getElementById("dev-building-qty").value, 10) || 0);
+    if (bId && qty > 0) {
+      state.buildings[bId] = (state.buildings[bId] || 0) + qty;
+      if (!state.revealedBuildings.includes(bId)) state.revealedBuildings.push(bId);
+      SoundFX.buy();
+      refreshAllDevUI();
+    }
+  });
+
+  document.getElementById("dev-set-single-bld")?.addEventListener("click", () => {
+    const bId = bldSelect.value;
+    const qty = Math.max(0, parseInt(document.getElementById("dev-building-qty").value, 10) || 0);
+    if (bId) {
+      state.buildings[bId] = qty;
+      if (!state.revealedBuildings.includes(bId)) state.revealedBuildings.push(bId);
+      SoundFX.buy();
+      refreshAllDevUI();
+    }
+  });
+
+  // 4. Civic Upgrades, Wonders & Achievements
+  document.getElementById("dev-unlock-all-upgrades")?.addEventListener("click", () => {
+    state.revealedUpgrades = UPGRADES.map((u) => u.id);
+    state.upgrades = UPGRADES.map((u) => u.id);
+    SoundFX.research();
+    refreshAllDevUI();
+    showToast("📜", "All 155 Civic Upgrades Unlocked!", "Every civic upgrade and synergy is now active.");
+  });
+
+  document.getElementById("dev-reveal-all-upgrades")?.addEventListener("click", () => {
+    state.revealedUpgrades = UPGRADES.map((u) => u.id);
+    SoundFX.research();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-build-all-wonders")?.addEventListener("click", () => {
+    state.wonders = WONDERS.map((w) => w.id);
+    SoundFX.wonder();
+    refreshAllDevUI();
+    showToast("🏛️", "All 9 World Wonders Erected!", "Every monumental wonder now graces your skyline.");
+  });
+
+  document.getElementById("dev-unlock-all-ach")?.addEventListener("click", () => {
+    state.achievements = ACHIEVEMENTS.map((a) => a.id);
+    SoundFX.achievement();
+    refreshAllDevUI();
+    showToast("🏆", "All 100 Achievements Unlocked!", "+100% permanent achievement bonus active.");
+  });
+
+  // 5. God-Mode Multipliers, Time Shards & World Controls
+  const godBtn = document.getElementById("dev-toggle-god");
+  if (godBtn) {
+    godBtn.addEventListener("click", () => {
+      devGodMode = !devGodMode;
+      godBtn.textContent = `⚡ 1,000× God Multiplier: ${devGodMode ? "ON" : "OFF"}`;
+      godBtn.classList.toggle("active-toggle", devGodMode);
+      SoundFX.wonder();
+      refreshAllDevUI();
+    });
+  }
+
+  const critBtn = document.getElementById("dev-toggle-crit");
+  if (critBtn) {
+    critBtn.addEventListener("click", () => {
+      devAlwaysCrit = !devAlwaysCrit;
+      critBtn.textContent = `💥 100% Crit Clicks: ${devAlwaysCrit ? "ON" : "OFF"}`;
+      critBtn.classList.toggle("active-toggle", devAlwaysCrit);
+      SoundFX.achievement();
+      refreshAllDevUI();
+    });
+  }
+
+  document.getElementById("dev-add-shards-100")?.addEventListener("click", () => {
+    state.shards += 100;
+    SoundFX.wonder();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-add-shards-10k")?.addEventListener("click", () => {
+    state.shards += 10000;
+    SoundFX.wonder();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-spawn-anomaly")?.addEventListener("click", () => {
+    spawnGoldenAnomaly();
+    showToast("✨", "Golden Anomaly Spawned!", "Look over your City Panorama to catch it.");
+  });
+
+  document.getElementById("dev-cycle-time")?.addEventListener("click", () => {
+    dayCyclePhase = (dayCyclePhase + 0.25) % 1;
+    drawCityCanvas();
+    drawAllDistrictCanvases();
+  });
 }
 
 // ============================================================================
@@ -4014,6 +4322,7 @@ function triggerPrestige() {
   nextState.anomaliesClicked = state.anomaliesClicked;
   nextState.achievements = [...state.achievements];
   nextState.sfxEnabled = state.sfxEnabled;
+  nextState.devUnlocked = state.devUnlocked;
   nextState.shards = state.shards + pending;
   nextState.prestiges = state.prestiges + 1;
 
@@ -4051,6 +4360,7 @@ function init() {
   renderWonders();
   renderAchievements();
   updateTopHUD();
+  setupDevConsole();
 
   document.getElementById("btn-rename-city").addEventListener("click", openCityNameModal);
   document.getElementById("btn-random-name").addEventListener("click", () => {
@@ -4189,6 +4499,11 @@ function init() {
     try {
       const code = textarea.value.trim();
       if (!code) return;
+      if (code.toLowerCase() === DEV_SECRET_KEYWORD) {
+        modal.classList.add("hidden");
+        unlockDevConsole(true);
+        return;
+      }
       const decoded = JSON.parse(decodeURIComponent(atob(code)));
       state = { ...createDefaultState(), ...decoded };
       state.buildings = { ...createDefaultState().buildings, ...(decoded.buildings || {}) };
