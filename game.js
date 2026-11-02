@@ -3789,65 +3789,103 @@ function drawWonderOnPanorama(ctx, wId, x, gy, isNight) {
 // 2.5D ISOMETRIC GEOMETRY & BUILDING PRIMITIVES
 // ============================================================================
 const ZONE_ISO_COLORS = {
-  Residential:   { top: "#78350f", left: "#92400e", right: "#451a03", accent: "#fb923c" },
-  Agriculture:   { top: "#365314", left: "#4d7c0f", right: "#1a2e05", accent: "#4ade80" },
-  Waterworks:    { top: "#0c4a6e", left: "#0369a1", right: "#082f49", accent: "#38bdf8" },
-  Commerce:      { top: "#713f12", left: "#a16207", right: "#422006", accent: "#facc15" },
-  Civic:         { top: "#4c1d95", left: "#6d28d9", right: "#2e1065", accent: "#c084fc" },
-  Industry:      { top: "#7f1d1d", left: "#991b1b", right: "#450a0a", accent: "#f87171" },
-  Finance:       { top: "#134e4a", left: "#0f766e", right: "#042f2e", accent: "#2dd4bf" },
-  Education:     { top: "#312e81", left: "#4338ca", right: "#1e1b4b", accent: "#818cf8" },
-  Utilities:     { top: "#78350f", left: "#b45309", right: "#451a03", accent: "#fbbf24" },
-  Transit:       { top: "#164e63", left: "#0e7490", right: "#083344", accent: "#22d3ee" },
-  Aviation:      { top: "#1e3a8a", left: "#1d4ed8", right: "#172554", accent: "#60a5fa" },
-  "High-Rise":   { top: "#0c4a6e", left: "#0284c7", right: "#082f49", accent: "#7dd3fc" },
-  Megastructure: { top: "#881337", left: "#be123c", right: "#4c0519", accent: "#fb7185" },
-  Spaceport:     { top: "#3b0764", left: "#6b21a8", right: "#1e1b4b", accent: "#e879f9" }
+  Residential:   { top: "#fed7aa", left: "#f97316", right: "#c2410c", accent: "#fb923c", curb: "#ffedd5" },
+  Agriculture:   { top: "#bbf7d0", left: "#22c55e", right: "#15803d", accent: "#4ade80", curb: "#dcfce7" },
+  Waterworks:    { top: "#bae6fd", left: "#0284c7", right: "#0369a1", accent: "#38bdf8", curb: "#e0f2fe" },
+  Commerce:      { top: "#fef08a", left: "#eab308", right: "#a16207", accent: "#facc15", curb: "#fef9c3" },
+  Civic:         { top: "#f1f5f9", left: "#a855f7", right: "#7e22ce", accent: "#c084fc", curb: "#ffffff" },
+  Industry:      { top: "#fecaca", left: "#ef4444", right: "#991b1b", accent: "#f87171", curb: "#fee2e2" },
+  Finance:       { top: "#99f6e4", left: "#14b8a6", right: "#0f766e", accent: "#2dd4bf", curb: "#ccfbf1" },
+  Education:     { top: "#c7d2fe", left: "#6366f1", right: "#4338ca", accent: "#818cf8", curb: "#e0e7ff" },
+  Utilities:     { top: "#fde68a", left: "#f59e0b", right: "#b45309", accent: "#fbbf24", curb: "#fef3c7" },
+  Transit:       { top: "#a5f3fc", left: "#06b6d4", right: "#0e7490", accent: "#22d3ee", curb: "#cffafe" },
+  Aviation:      { top: "#bfdbfe", left: "#3b82f6", right: "#1d4ed8", accent: "#60a5fa", curb: "#dbeafe" },
+  "High-Rise":   { top: "#bae6fd", left: "#0284c7", right: "#075985", accent: "#7dd3fc", curb: "#e0f2fe" },
+  Megastructure: { top: "#fecdd3", left: "#f43f5e", right: "#be123c", accent: "#fb7185", curb: "#ffe4e6" },
+  Spaceport:     { top: "#e9d5ff", left: "#a855f7", right: "#6b21a8", accent: "#c084fc", curb: "#f3e8ff" }
 };
 
 // Stores live hitboxes of every 2.5D District Parcel rendered on #city-canvas
 let isoParcelHitboxes = [];
 
-function drawIsoPlinth(ctx, cx, cy, rx, ry, depth, topCol, leftCol, rightCol, strokeCol, lineW = 1.4) {
-  // Left 3D extruded face
+function drawIsoPlinth(ctx, cx, cy, rx, ry, depth, topCol, leftCol, rightCol, strokeCol, lineW = 1.4, isHovered = false) {
+  const lift = isHovered ? 4 : 0;
+  const drawCy = cy - lift;
+
+  // 1. Soft directional ambient drop shadow beneath plinth on valley terrain
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
   drawPolygon(
     ctx,
     [
-      [cx - rx, cy],
-      [cx, cy + ry],
-      [cx, cy + ry + depth],
-      [cx - rx, cy + depth]
+      [cx, cy - ry + depth + 4],
+      [cx + rx + 8, cy + depth + 4],
+      [cx, cy + ry + depth + 10],
+      [cx - rx - 8, cy + depth + 4]
+    ]
+  );
+  ctx.restore();
+
+  // 2. Left 3D Extruded Face (Direct illumination)
+  drawPolygon(
+    ctx,
+    [
+      [cx - rx, drawCy],
+      [cx, drawCy + ry],
+      [cx, drawCy + ry + depth],
+      [cx - rx, drawCy + depth]
     ],
     leftCol,
     strokeCol,
-    0.8
+    0.6
   );
-  // Right 3D extruded face
+
+  // 3. Right 3D Extruded Face (Volumetric shading)
   drawPolygon(
     ctx,
     [
-      [cx, cy + ry],
-      [cx + rx, cy],
-      [cx + rx, cy + depth],
-      [cx, cy + ry + depth]
+      [cx, drawCy + ry],
+      [cx + rx, drawCy],
+      [cx + rx, drawCy + depth],
+      [cx, drawCy + ry + depth]
     ],
     rightCol,
     strokeCol,
-    0.8
+    0.6
   );
-  // Top isometric diamond surface
+
+  // 4. Top Isometric Diamond Surface
   drawPolygon(
     ctx,
     [
-      [cx, cy - ry],
-      [cx + rx, cy],
-      [cx, cy + ry],
-      [cx - rx, cy]
+      [cx, drawCy - ry],
+      [cx + rx, drawCy],
+      [cx, drawCy + ry],
+      [cx - rx, drawCy]
     ],
     topCol,
     strokeCol,
     lineW
   );
+
+  // 5. Delicate Architectural Paver / Curb Bevel
+  drawPolygon(
+    ctx,
+    [
+      [cx, drawCy - ry + 3],
+      [cx + rx - 5, drawCy],
+      [cx, drawCy + ry - 3],
+      [cx - rx + 5, drawCy]
+    ],
+    null,
+    "rgba(255, 255, 255, 0.35)",
+    0.75
+  );
+
+  // Subtle corner paver stones
+  ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+  ctx.fillRect(cx - rx + 8, drawCy - 1, 3, 2);
+  ctx.fillRect(cx + rx - 11, drawCy - 1, 3, 2);
 }
 
 function drawIsoBox3D(ctx, cx, cy, rx, ry, hBox, topCol, leftCol, rightCol, winCol = null) {
@@ -3860,7 +3898,9 @@ function drawIsoBox3D(ctx, cx, cy, rx, ry, hBox, topCol, leftCol, rightCol, winC
       [cx, cy + ry],
       [cx - rx, cy]
     ],
-    leftCol
+    leftCol,
+    "rgba(0,0,0,0.18)",
+    0.5
   );
   // Right wall
   drawPolygon(
@@ -3871,7 +3911,9 @@ function drawIsoBox3D(ctx, cx, cy, rx, ry, hBox, topCol, leftCol, rightCol, winC
       [cx + rx, cy],
       [cx, cy + ry]
     ],
-    rightCol
+    rightCol,
+    "rgba(0,0,0,0.22)",
+    0.5
   );
   // Roof diamond
   drawPolygon(
@@ -3883,15 +3925,492 @@ function drawIsoBox3D(ctx, cx, cy, rx, ry, hBox, topCol, leftCol, rightCol, winC
       [cx - rx, cy - hBox]
     ],
     topCol,
-    "rgba(255,255,255,0.22)",
-    0.7
+    "rgba(255,255,255,0.3)",
+    0.6
   );
-  // Optional isometric windows
-  if (winCol && hBox >= 14) {
+
+  // Isometric windows
+  if (winCol && hBox >= 12) {
     ctx.fillStyle = winCol;
-    for (let wy = cy - hBox + 5; wy < cy - 3; wy += 6) {
-      ctx.fillRect(cx - rx * 0.6, wy, 2.5, 3);
-      ctx.fillRect(cx + rx * 0.25, wy, 2.5, 3);
+    for (let wy = cy - hBox + 4; wy < cy - 2; wy += 5.5) {
+      ctx.fillRect(cx - rx * 0.65, wy, 2.5, 3);
+      ctx.fillRect(cx + rx * 0.28, wy, 2.5, 3);
+    }
+  }
+}
+
+// Bespoke 2.5D Isometric Landmark Architecture Engine for all 18 Districts
+function drawIsoDistrictArchitecture(ctx, bId, cx, cy, count, isNight, animTick, isHovered, isSelected) {
+  const phase = animTick * 2.2;
+  const winGlow = isNight ? "#fde047" : "rgba(255, 255, 255, 0.85)";
+
+  switch (bId) {
+    case "forager": {
+      // 🛖 Thatched Hut & Campfire (Stone Age)
+      // Main Hut Walls
+      drawPolygon(ctx, [[cx - 15, cy - 8], [cx + 15, cy - 8], [cx + 15, cy + 5], [cx - 15, cy + 5]], "#b45309", "#78350f", 1);
+      // Conical Golden Thatched Roof
+      drawPolygon(ctx, [[cx, cy - 28], [cx - 19, cy - 7], [cx + 19, cy - 7]], "#f59e0b", "#d97706", 1.2);
+      drawPolygon(ctx, [[cx, cy - 28], [cx - 14, cy - 13], [cx + 14, cy - 13]], "#fbbf24", "#d97706", 0.8);
+      // Warm doorway
+      ctx.fillStyle = isNight ? (Math.sin(phase * 3) > 0 ? "#fef08a" : "#f97316") : "#451a03";
+      ctx.fillRect(cx - 3.5, cy - 2, 7, 7);
+      // Animated Rising Smoke
+      const smkY = (animTick * 12) % 18;
+      ctx.fillStyle = `rgba(241, 245, 249, ${(0.6 - smkY / 30).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(cx + Math.sin(phase) * 2, cy - 30 - smkY, 2 + smkY * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      // Stone Campfire
+      ctx.fillStyle = "#78716c";
+      ctx.beginPath();
+      ctx.arc(cx + 26, cy + 3, 5, 0, Math.PI * 2);
+      ctx.fill();
+      const flm = 3 + Math.sin(phase * 4) * 2;
+      ctx.fillStyle = "#f97316";
+      ctx.fillRect(cx + 25, cy + 3 - flm, 3, flm);
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(cx + 25.5, cy + 2 - flm * 0.6, 2, flm * 0.6);
+      break;
+    }
+
+    case "megalith": {
+      // 🌾 Floodplain Farmlands (Stone Age)
+      // Terraced Wheat Ridge
+      ctx.fillStyle = "#15803d";
+      ctx.fillRect(cx - 24, cy - 4, 22, 10);
+      const sway = Math.sin(phase * 0.8) * 1.5;
+      ctx.fillStyle = "#facc15";
+      for (let wx = cx - 22; wx <= cx - 4; wx += 4) {
+        ctx.fillRect(wx + sway * 0.4, cy - 12, 2, 8);
+        ctx.fillRect(wx - 1 + sway, cy - 14, 4, 3);
+      }
+      // White & Red Windmill
+      drawPolygon(ctx, [[cx + 10, cy - 18], [cx + 24, cy - 18], [cx + 26, cy + 6], [cx + 8, cy + 6]], "#f8fafc", "#cbd5e1", 1);
+      drawPolygon(ctx, [[cx + 17, cy - 28], [cx + 9, cy - 18], [cx + 25, cy - 18]], "#dc2626");
+      // Spinning Windmill Blades
+      const bAng = animTick * 2.8;
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 1.4;
+      for (let i = 0; i < 4; i++) {
+        const a = bAng + (i * Math.PI) / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + 17, cy - 20);
+        ctx.lineTo(cx + 17 + Math.cos(a) * 12, cy - 20 + Math.sin(a) * 12);
+        ctx.stroke();
+      }
+      // Stone water well
+      ctx.fillStyle = "#64748b";
+      ctx.beginPath();
+      ctx.arc(cx - 5, cy + 7, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(cx - 5, cy + 7, 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
+    case "foundry": {
+      // 🛶 Canal & Levee Waterworks (Bronze Age)
+      // Turquoise Canal Basin
+      drawPolygon(ctx, [[cx - 26, cy - 6], [cx + 26, cy - 6], [cx + 22, cy + 5], [cx - 22, cy + 5]], "#0284c7", "#0369a1", 1.2);
+      ctx.fillStyle = "#38bdf8";
+      const wrip = Math.sin(phase * 2) * 4;
+      ctx.fillRect(cx - 14 + wrip, cy - 3, 16, 2);
+      // Turning Waterwheel
+      const wAng = animTick * 2.2;
+      ctx.strokeStyle = "#92400e";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx + 12, cy - 5, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + 12 - Math.cos(wAng) * 7, cy - 5 - Math.sin(wAng) * 7);
+      ctx.lineTo(cx + 12 + Math.cos(wAng) * 7, cy - 5 + Math.sin(wAng) * 7);
+      ctx.stroke();
+      // Date Palm Tree
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(cx - 18, cy - 20, 3, 14);
+      drawPolygon(ctx, [[cx - 16, cy - 24], [cx - 28, cy - 18], [cx - 6, cy - 18]], "#15803d");
+      drawPolygon(ctx, [[cx - 16, cy - 27], [cx - 24, cy - 22], [cx - 10, cy - 22]], "#22c55e");
+      break;
+    }
+
+    case "ziggurat": {
+      // 🏺 Walled Bazaar & Granaries (Bronze Age)
+      // 2-Tier Stepped Ziggurat
+      drawIsoBox3D(ctx, cx, cy - 6, 18, 9, 8, "#d97706", "#b45309", "#78350f");
+      drawIsoBox3D(ctx, cx, cy - 16, 12, 6, 7, "#f59e0b", "#d97706", "#92400e");
+      // Golden Ceremonial Brazier
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(cx - 2.5, cy - 27, 5, 4);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(cx - 1.5, cy - 31 - Math.sin(phase * 4) * 2, 3, 4);
+      // Striped Bazaar Canopies
+      drawPolygon(ctx, [[cx - 22, cy + 2], [cx - 10, cy + 2], [cx - 8, cy + 7], [cx - 20, cy + 7]], "#ef4444");
+      drawPolygon(ctx, [[cx + 10, cy + 2], [cx + 22, cy + 2], [cx + 20, cy + 7], [cx + 8, cy + 7]], "#f59e0b");
+      break;
+    }
+
+    case "aqueduct": {
+      // 🏛️ Imperial Aqueduct & Thermae (Classical Age)
+      // Double-Arched Stone Aqueduct
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(cx - 26, cy - 22, 52, 6);
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(cx - 24, cy - 24, 48, 3);
+      // 3 Aqueduct Piers & Arches
+      [-16, 0, 16].forEach((px) => {
+        ctx.fillStyle = "#cbd5e1";
+        ctx.fillRect(cx + px - 3, cy - 16, 6, 16);
+      });
+      // Marble Fountain Pool
+      ctx.fillStyle = "#0284c7";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 4, 14, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Splashing fountain jet
+      ctx.fillStyle = "#e0f2fe";
+      ctx.fillRect(cx - 1, cy - 3 - Math.sin(phase * 3) * 3, 2, 6);
+      // Italian Cypress Tree
+      drawPolygon(ctx, [[cx + 25, cy - 26], [cx + 22, cy - 2], [cx + 28, cy - 2]], "#14532d");
+      break;
+    }
+
+    case "forum": {
+      // 🏛️ Civic Forum & Basilicas (Classical Age)
+      // Classical Parthenon Temple
+      drawIsoBox3D(ctx, cx, cy - 2, 22, 10, 14, "#f8fafc", "#e2e8f0", "#94a3b8");
+      // Fluted Peristyle Columns
+      [-16, -6, 4, 14].forEach((colX) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx + colX, cy - 14, 3, 14);
+      });
+      // Triangular Marble Pediment
+      drawPolygon(ctx, [[cx, cy - 24], [cx - 22, cy - 14], [cx + 22, cy - 14]], "#f1f5f9", "#cbd5e1", 1);
+      // Golden Relief Medallion & Goddess Statue
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 17, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Senatorial Red Standard
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(cx + 22, cy - 22, 6, 12);
+      break;
+    }
+
+    case "watermill": {
+      // ⚙️ Guild Riverbanks & Mills (Medieval Age)
+      // Half-Timbered Mill Building
+      drawIsoBox3D(ctx, cx - 6, cy - 2, 16, 9, 16, "#334155", "#e2e8f0", "#94a3b8");
+      // Timber beams
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, cy - 9); ctx.lineTo(cx - 4, cy - 2);
+      ctx.moveTo(cx - 20, cy - 2); ctx.lineTo(cx - 4, cy - 9);
+      ctx.stroke();
+      // Stone Chimney with Smoke
+      ctx.fillStyle = "#64748b";
+      ctx.fillRect(cx - 18, cy - 28, 5, 12);
+      const mSmk = (animTick * 10) % 15;
+      ctx.fillStyle = `rgba(241, 245, 249, ${(0.6 - mSmk / 25).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(cx - 16, cy - 30 - mSmk, 2 + mSmk * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      // Overshot Waterwheel
+      const wmAng = animTick * 3;
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx + 16, cy + 2, 9, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#bae6fd";
+      ctx.fillRect(cx + 12 + Math.sin(wmAng) * 4, cy + 5, 8, 3);
+      break;
+    }
+
+    case "manor": {
+      // 🏰 Fortified Boroughs & Guildhalls (Medieval Age)
+      // Central Stone Keep with Battlements
+      drawIsoBox3D(ctx, cx, cy - 2, 16, 9, 18, "#64748b", "#475569", "#334155");
+      // Crenelations
+      [-12, -4, 4, 12].forEach((bx) => {
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(cx + bx - 2, cy - 22, 4, 3);
+      });
+      // Twin Conical Blue Turret Towers
+      [-18, 18].forEach((tx) => {
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(cx + tx - 4, cy - 22, 8, 22);
+        drawPolygon(ctx, [[cx + tx, cy - 34], [cx + tx - 6, cy - 22], [cx + tx + 6, cy - 22]], "#1d4ed8");
+        // Fluttering Golden Heraldic Pennant
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(cx + tx, cy - 38, 7, 4);
+      });
+      // Arched Portcullis
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(cx - 4, cy, 8, 8);
+      break;
+    }
+
+    case "bazaar": {
+      // 🏛️ Grand Canal Rialto & Exchanges (Renaissance)
+      // Pink Marble Venetian Palazzo
+      drawIsoBox3D(ctx, cx, cy - 4, 20, 10, 16, "#f43f5e", "#fda4af", "#e11d48");
+      // White Marble Arched Loggia
+      [-12, -4, 4, 12].forEach((lx) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx + lx - 2, cy - 14, 4, 8);
+      });
+      // Arched Rialto Bridge over Canal
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 6, 16, Math.PI, 0);
+      ctx.stroke();
+      // Striped Gondola Mooring Poles
+      [-22, 22].forEach((px) => {
+        ctx.fillStyle = "#0284c7";
+        ctx.fillRect(cx + px - 1.5, cy - 12, 3, 18);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx + px - 1.5, cy - 8, 3, 3);
+        ctx.fillRect(cx + px - 1.5, cy - 2, 3, 3);
+      });
+      // Wooden Gondola
+      drawPolygon(ctx, [[cx - 10, cy + 7], [cx + 10, cy + 7], [cx + 7, cy + 10], [cx - 7, cy + 10]], "#1e293b");
+      break;
+    }
+
+    case "observatory": {
+      // 🔭 Renaissance Academia & Domes (Renaissance)
+      // Stately Academia Rotunda
+      drawIsoBox3D(ctx, cx, cy - 2, 18, 9, 14, "#fed7aa", "#ea580c", "#9a3412");
+      // Enormous Copper Patina / Terracotta Octagonal Dome
+      ctx.fillStyle = "#0d9488";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 16, 13, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Lantern Cupola
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(cx - 3, cy - 33, 6, 5);
+      // Brass Astronomical Armillary Sphere & Telescope
+      const tAng = animTick * 1.5;
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx + 16, cy - 14, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + 16, cy - 14);
+      ctx.lineTo(cx + 23 + Math.cos(tAng) * 4, cy - 20 + Math.sin(tAng) * 4);
+      ctx.stroke();
+      break;
+    }
+
+    case "steamworks": {
+      // 🏭 Foundry Yards & Power Dynamos (Industrial Age)
+      // Dark Red Brick Factory Building
+      drawIsoBox3D(ctx, cx - 4, cy - 2, 20, 10, 16, "#475569", "#dc2626", "#7f1d1d", winGlow);
+      // Twin Tall Smokestacks with billowy steam
+      [-12, -4].forEach((sx) => {
+        ctx.fillStyle = "#991b1b";
+        ctx.fillRect(cx + sx - 3, cy - 32, 6, 20);
+        ctx.fillStyle = "#facc15";
+        ctx.fillRect(cx + sx - 3.5, cy - 32, 7, 2);
+        // Billowy steam puffs
+        const sPuff = (animTick * 16 + sx * 4) % 22;
+        ctx.fillStyle = `rgba(248, 250, 252, ${(0.65 - sPuff / 34).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(cx + sx + Math.sin(phase + sx) * 3, cy - 34 - sPuff, 3.5 + sPuff * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      // Exposed Spinning Brass Flywheel with Sparks
+      const flyAng = animTick * 6;
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx + 14, cy - 2, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#fde047";
+      ctx.fillRect(cx + 13 + Math.cos(flyAng) * 6, cy - 3 + Math.sin(flyAng) * 6, 2.5, 2.5);
+      break;
+    }
+
+    case "railway": {
+      // 🚂 Transcontinental Train Depot (Industrial Age)
+      // Vaulted Green Cast-Iron & Glass Depot
+      drawIsoBox3D(ctx, cx, cy - 4, 22, 11, 14, "#0284c7", "#059669", "#064e3b");
+      // Steel Railroad Tracks
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 24, cy + 6); ctx.lineTo(cx + 24, cy + 6);
+      ctx.moveTo(cx - 24, cy + 9); ctx.lineTo(cx + 24, cy + 9);
+      ctx.stroke();
+      // Dark-Green Steam Locomotive
+      const tPos = Math.sin(animTick * 1.5) * 8;
+      ctx.fillStyle = "#064e3b";
+      ctx.fillRect(cx - 10 + tPos, cy - 2, 20, 8);
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(cx + 6 + tPos, cy - 8, 6, 6);
+      // Golden Headlight Beam
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(cx - 11 + tPos, cy, 2, 4);
+      break;
+    }
+
+    case "fission": {
+      // ⚛️ Nuclear & Hydroelectric Grids (Atomic Age)
+      // Hyperbolic Curved Concrete Cooling Tower
+      ctx.fillStyle = "#cbd5e1";
+      ctx.beginPath();
+      ctx.moveTo(cx - 16, cy + 6);
+      ctx.quadraticCurveTo(cx - 8, cy - 14, cx - 11, cy - 28);
+      ctx.lineTo(cx + 11, cy - 28);
+      ctx.quadraticCurveTo(cx + 8, cy - 14, cx + 16, cy + 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Glowing Cherenkov Blue Rim & Plume
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(cx - 10, cy - 29, 20, 2.5);
+      const vPuff = (animTick * 10) % 24;
+      ctx.fillStyle = `rgba(224, 242, 254, ${(0.6 - vPuff / 36).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(cx + Math.sin(phase) * 3, cy - 32 - vPuff, 5 + vPuff * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      // Substation Transformers with Spark
+      ctx.fillStyle = "#475569";
+      ctx.fillRect(cx + 16, cy - 6, 8, 12);
+      ctx.fillStyle = Math.sin(phase * 4) > 0 ? "#38bdf8" : "#fde047";
+      ctx.fillRect(cx + 18, cy - 10, 4, 4);
+      break;
+    }
+
+    case "aerodrome": {
+      // ✈️ International Jetport Terminal (Atomic Age)
+      // Modern Curved Wing Airport Terminal
+      drawIsoBox3D(ctx, cx - 4, cy - 2, 22, 10, 12, "#e0f2fe", "#0284c7", "#0369a1", "#38bdf8");
+      // Tall Air Traffic Control Radar Tower
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(cx - 18, cy - 28, 6, 26);
+      ctx.fillStyle = "#0284c7";
+      ctx.beginPath();
+      ctx.arc(cx - 15, cy - 30, 6, 0, Math.PI * 2);
+      ctx.fill();
+      // Pulsing Red Beacon
+      ctx.fillStyle = Math.sin(phase * 3) > 0 ? "#ef4444" : "#ffffff";
+      ctx.fillRect(cx - 16, cy - 38, 2, 3);
+      // Passenger Jet Airliner on Tarmac
+      ctx.fillStyle = "#ffffff";
+      drawPolygon(ctx, [[cx + 14, cy - 6], [cx + 26, cy + 2], [cx + 8, cy + 2]], "#ffffff", "#cbd5e1", 1);
+      ctx.fillRect(cx + 16, cy - 8, 3, 14);
+      break;
+    }
+
+    case "skyscraper": {
+      // 🏙️ Financial Core & Supertalls (Information Age)
+      // Clustered Glass Curtain-Wall Skyscraper Towers
+      drawIsoBox3D(ctx, cx - 8, cy - 2, 12, 6, 32, "#7dd3fc", "#0284c7", "#075985", winGlow);
+      drawIsoBox3D(ctx, cx + 10, cy, 14, 7, 44, "#38bdf8", "#0369a1", "#082f49", winGlow);
+      // Elevated Glass Sky-Bridge
+      ctx.fillStyle = "rgba(125, 211, 252, 0.85)";
+      ctx.fillRect(cx - 2, cy - 22, 10, 4);
+      // Rooftop Spire with Flashing Strobe
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 10, cy - 44); ctx.lineTo(cx + 10, cy - 58);
+      ctx.stroke();
+      ctx.fillStyle = Math.sin(phase * 4) > 0 ? "#ffffff" : "#ef4444";
+      ctx.fillRect(cx + 9, cy - 60, 2, 3);
+      break;
+    }
+
+    case "maglev": {
+      // 🚅 High-Speed Maglev & AI Grid (Information Age)
+      // Elevated Guideway Viaduct
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(cx - 24, cy - 10, 48, 4);
+      [-16, 0, 16].forEach((vx) => {
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(cx + vx - 2, cy - 6, 4, 12);
+      });
+      // Glowing Cyan Magnetic Rail
+      ctx.fillStyle = "#06b6d4";
+      ctx.fillRect(cx - 24, cy - 11, 48, 1.5);
+      // Gliding Aerodynamic Maglev Bullet Train
+      const mgPos = Math.sin(animTick * 2) * 14;
+      drawPolygon(ctx, [[cx - 12 + mgPos, cy - 14], [cx + 12 + mgPos, cy - 14], [cx + 10 + mgPos, cy - 9], [cx - 10 + mgPos, cy - 9]], "#ffffff", "#06b6d4", 1);
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(cx - 8 + mgPos, cy - 12, 16, 1.8);
+      break;
+    }
+
+    case "arcology": {
+      // 🌿 Stratospheric Arcologies (Cyberpunk Age)
+      // 3-Tier Stepped Eco-Arcology Pyramid
+      drawIsoBox3D(ctx, cx, cy - 2, 24, 12, 14, "#15803d", "#0e7490", "#083344");
+      drawIsoBox3D(ctx, cx, cy - 16, 16, 8, 12, "#22c55e", "#0891b2", "#0e7490");
+      drawIsoBox3D(ctx, cx, cy - 28, 10, 5, 10, "#4ade80", "#06b6d4", "#155e75");
+      // Geodesic Glass Dome
+      ctx.fillStyle = "rgba(125, 211, 252, 0.75)";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 38, 7, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Cascading Waterfall
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(cx - 2, cy - 14, 4, 16);
+      // Flying Aerocab
+      const acX = cx + Math.sin(phase * 1.5) * 18;
+      ctx.fillStyle = "#f43f5e";
+      ctx.fillRect(acX - 3, cy - 44, 6, 2.5);
+      break;
+    }
+
+    case "spaceport": {
+      // 🚀 Orbital Launch & Dyson Relays (Cyberpunk Age)
+      // Massive Hexagonal Launch Platform
+      drawPolygon(ctx, [[cx - 22, cy - 4], [cx + 22, cy - 4], [cx + 16, cy + 6], [cx - 16, cy + 6]], "#334155", "#64748b", 1.5);
+      // Red Gantry Umbilical Tower
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(cx - 14, cy - 38, 5, 36);
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 9, cy - 30); ctx.lineTo(cx, cy - 30);
+      ctx.moveTo(cx - 9, cy - 18); ctx.lineTo(cx, cy - 18);
+      ctx.stroke();
+      // Sleek Orbital Heavy Rocket
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(cx - 3, cy - 46, 6, 38);
+      drawPolygon(ctx, [[cx, cy - 54], [cx - 3, cy - 46], [cx + 3, cy - 46]], "#facc15");
+      // Plasma Exhaust Glow at launchpad
+      const pGlow = Math.sin(phase * 4) * 3;
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 6, 4 + pGlow, 0, Math.PI * 2);
+      ctx.fill();
+      // Parabolic Satellite Dish
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(cx + 16, cy - 12, 6, Math.PI * 1.2, Math.PI * 1.8);
+      ctx.stroke();
+      break;
     }
   }
 }
@@ -3932,12 +4451,20 @@ function drawCityCanvas() {
   const targetWidth = Math.max(viewportW, 1180);
   const targetHeight = Math.max(viewportH, 320);
 
-  if (canvas.width !== targetWidth) canvas.width = targetWidth;
-  if (canvas.height !== targetHeight) canvas.height = targetHeight;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const pxW = Math.round(targetWidth * dpr);
+  const pxH = Math.round(targetHeight * dpr);
+
+  if (canvas.width !== pxW || canvas.height !== pxH) {
+    canvas.width = pxW;
+    canvas.height = pxH;
+  }
 
   const ctx = canvas.getContext("2d");
-  const w = canvas.width;
-  const h = canvas.height;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const w = targetWidth;
+  const h = targetHeight;
   const era = state.currentEra;
   const sky = ERAS[era].skyColors;
   const hills = ERAS[era].hillColors;
@@ -3960,66 +4487,67 @@ function drawCityCanvas() {
   }
 
   // 1. SKY HORIZON (Top 27% of 2.5D Viewport)
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY + 25);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY + 28);
   skyGrad.addColorStop(0, sky[0]);
-  skyGrad.addColorStop(0.6, sky[1]);
+  skyGrad.addColorStop(0.65, sky[1]);
   skyGrad.addColorStop(1, sky[2]);
   ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, w, horizonY + 25);
+  ctx.fillRect(0, 0, w, horizonY + 28);
 
   if (isDuskOrDawn) {
-    const duskAlpha = (1 - Math.abs(nightFactor - 0.47) * 3.5) * 0.32;
+    const duskAlpha = (1 - Math.abs(nightFactor - 0.47) * 3.5) * 0.38;
     if (duskAlpha > 0) {
       ctx.fillStyle = `rgba(249, 115, 22, ${duskAlpha.toFixed(2)})`;
-      ctx.fillRect(0, 0, w, horizonY + 25);
+      ctx.fillRect(0, 0, w, horizonY + 28);
     }
   }
   if (nightFactor > 0.05) {
-    ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.62).toFixed(2)})`;
-    ctx.fillRect(0, 0, w, horizonY + 25);
+    ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.65).toFixed(2)})`;
+    ctx.fillRect(0, 0, w, horizonY + 28);
   }
 
-  // Stars & Sun/Moon in Sky
-  const starVisibility = Math.max(era === 8 ? 0.6 : 0.1, nightFactor);
+  // Twinkling Stars in Sky
+  const starVisibility = Math.max(era === 8 ? 0.65 : 0.08, nightFactor);
   stars.forEach((st) => {
-    const sy = (st.y / 140) * (horizonY - 12);
-    const alpha = starVisibility * (0.25 + 0.55 * Math.sin(animTick + st.phase));
+    const sy = (st.y / 140) * (horizonY - 14);
+    const alpha = starVisibility * (0.28 + 0.62 * Math.sin(animTick + st.phase));
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
     ctx.fillRect(st.xRatio * w, sy, st.size, st.size);
   });
 
+  // Radiant Sun / Moon Orb with Soft Corona
   const orbX = w * 0.72;
   const orbY = 32 + Math.sin(dayCyclePhase * Math.PI * 2) * 10;
-  const sunGrad = ctx.createRadialGradient(orbX, orbY, 4, orbX, orbY, 30);
+  const sunGrad = ctx.createRadialGradient(orbX, orbY, 4, orbX, orbY, 34);
   sunGrad.addColorStop(0, era === 8 ? "#f43f5e" : isNight ? "#e0f2fe" : "#fef08a");
-  sunGrad.addColorStop(0.5, era === 8 ? "rgba(244,63,94,0.3)" : isNight ? "rgba(186,230,253,0.3)" : "rgba(253,224,71,0.35)");
+  sunGrad.addColorStop(0.45, era === 8 ? "rgba(244,63,94,0.35)" : isNight ? "rgba(186,230,253,0.35)" : "rgba(253,224,71,0.42)");
   sunGrad.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = sunGrad;
   ctx.beginPath();
-  ctx.arc(orbX, orbY, 30, 0, Math.PI * 2);
+  ctx.arc(orbX, orbY, 34, 0, Math.PI * 2);
   ctx.fill();
 
   // Daytime Rainbow Arc or Nighttime Aurora Borealis
   if (!isNight && era <= 6) {
     const rbColors = [
-      "rgba(239, 68, 68, 0.14)", "rgba(249, 115, 22, 0.14)", "rgba(250, 204, 21, 0.14)",
-      "rgba(34, 197, 94, 0.14)", "rgba(56, 189, 248, 0.14)", "rgba(168, 85, 247, 0.14)"
+      "rgba(239, 68, 68, 0.16)", "rgba(249, 115, 22, 0.16)", "rgba(250, 204, 21, 0.16)",
+      "rgba(34, 197, 94, 0.16)", "rgba(56, 189, 248, 0.16)", "rgba(168, 85, 247, 0.16)"
     ];
-    ctx.lineWidth = 2.6;
+    ctx.lineWidth = 2.8;
     rbColors.forEach((col, rIdx) => {
       ctx.strokeStyle = col;
       ctx.beginPath();
-      ctx.arc(w * 0.32, horizonY + 12, 145 - rIdx * 3, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.arc(w * 0.32, horizonY + 14, 148 - rIdx * 3, Math.PI * 1.08, Math.PI * 1.92);
       ctx.stroke();
     });
   } else if (isNight) {
-    const auroraColors = ["rgba(52, 211, 153, 0.16)", "rgba(6, 182, 212, 0.15)", "rgba(192, 132, 252, 0.14)"];
+    const auroraColors = ["rgba(52, 211, 153, 0.18)", "rgba(6, 182, 212, 0.16)", "rgba(192, 132, 252, 0.15)"];
     auroraColors.forEach((acol, aIdx) => {
       ctx.strokeStyle = acol;
-      ctx.lineWidth = 8 - aIdx * 2;
+      ctx.lineWidth = 9 - aIdx * 2;
       ctx.beginPath();
-      for (let ax = 0; ax <= w; ax += 40) {
-        const ay = 22 + aIdx * 7 + Math.sin(animTick * 0.8 + ax * 0.012 + aIdx) * 8;
+      for (let ax = 0; ax <= w; ax += 38) {
+        const ay = 20 + aIdx * 8 + Math.sin(animTick * 0.8 + ax * 0.012 + aIdx) * 9;
         if (ax === 0) ctx.moveTo(ax, ay);
         else ctx.lineTo(ax, ay);
       }
@@ -4027,19 +4555,77 @@ function drawCityCanvas() {
     });
   }
 
-  // Rolling Horizon Mountains behind the 2.5D Valley
+  // Flocks of birds gliding across the sky
+  birdFlocks.forEach((bf) => {
+    bf.x += bf.speed;
+    if (bf.x > w + 60) bf.x = -50;
+    const flap = Math.sin(animTick * 5.5 + bf.x * 0.08) * 3;
+    ctx.strokeStyle = isNight ? "rgba(148, 163, 184, 0.45)" : "rgba(30, 41, 59, 0.72)";
+    ctx.lineWidth = 1.3;
+    for (let i = 0; i < 4; i++) {
+      const bx = bf.x + i * 14;
+      const by = bf.y + (i % 2) * 5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 4, by - flap);
+      ctx.quadraticCurveTo(bx - 1, by, bx, by + 1);
+      ctx.quadraticCurveTo(bx + 1, by, bx + 4, by - flap);
+      ctx.stroke();
+    }
+  });
+
+  // Soft drifting clouds in sky + soft ambient terrain shadow
+  clouds.forEach((cl) => {
+    cl.x += cl.speed;
+    if (cl.x > w + 110) cl.x = -90;
+
+    // Cloud shadow drifting across valley terrain
+    ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
+    ctx.beginPath();
+    ctx.ellipse(cl.x + 20, horizonY + 65 + (cl.y % 40), cl.w * 0.7, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Fluffy cloud body in sky
+    const cloudGrad = ctx.createLinearGradient(0, cl.y - 12, 0, cl.y + 12);
+    if (isNight) {
+      cloudGrad.addColorStop(0, "rgba(51, 65, 85, 0.45)");
+      cloudGrad.addColorStop(1, "rgba(30, 41, 59, 0.28)");
+    } else if (isDuskOrDawn) {
+      cloudGrad.addColorStop(0, "rgba(254, 215, 170, 0.88)");
+      cloudGrad.addColorStop(1, "rgba(244, 114, 182, 0.62)");
+    } else {
+      cloudGrad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+      cloudGrad.addColorStop(1, "rgba(226, 232, 240, 0.75)");
+    }
+    ctx.fillStyle = cloudGrad;
+    ctx.beginPath();
+    ctx.arc(cl.x, cl.y, 13, 0, Math.PI * 2);
+    ctx.arc(cl.x + 15, cl.y - 6, 17, 0, Math.PI * 2);
+    ctx.arc(cl.x + 34, cl.y - 2, 14, 0, Math.PI * 2);
+    ctx.arc(cl.x + 20, cl.y + 6, 15, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Distant Mountain Ridge with atmospheric haze
   ctx.fillStyle = hills[0];
   ctx.beginPath();
   ctx.moveTo(0, horizonY);
   let lastHx = 0;
-  for (let hx = 0; hx < w; hx += 320) {
-    lastHx = hx + 320;
-    ctx.quadraticCurveTo(hx + 160, horizonY - 42, lastHx, horizonY);
+  for (let hx = 0; hx < w; hx += 280) {
+    lastHx = hx + 280;
+    ctx.quadraticCurveTo(hx + 140, horizonY - 44, lastHx, horizonY);
   }
-  ctx.lineTo(Math.max(w, lastHx), horizonY + 20);
-  ctx.lineTo(0, horizonY + 20);
+  ctx.lineTo(Math.max(w, lastHx), horizonY + 22);
+  ctx.lineTo(0, horizonY + 22);
   ctx.closePath();
   ctx.fill();
+
+  // Soft atmospheric haze wash along the ridge base
+  const hazeGrad = ctx.createLinearGradient(0, horizonY - 14, 0, horizonY + 16);
+  hazeGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+  hazeGrad.addColorStop(1, isNight ? "rgba(15, 23, 42, 0.45)" : "rgba(255, 255, 255, 0.28)");
+  ctx.fillStyle = hazeGrad;
+  ctx.fillRect(0, horizonY - 14, w, 30);
 
   // Erected World Wonders along the Upper Acropolis Ridge!
   const builtWonders = WONDERS.filter((wObj) => hasWonder(wObj.id));
@@ -4060,14 +4646,14 @@ function drawCityCanvas() {
     terrainGrad.addColorStop(1, "#18181b");
   } else {
     terrainGrad.addColorStop(0, hills[1]);
-    terrainGrad.addColorStop(0.55, isNight ? "#1a2e1d" : "#3a5a36");
-    terrainGrad.addColorStop(1, isNight ? "#111f14" : "#294226");
+    terrainGrad.addColorStop(0.55, isNight ? "#142517" : "#2f4f2c");
+    terrainGrad.addColorStop(1, isNight ? "#0d180f" : "#243c22");
   }
   ctx.fillStyle = terrainGrad;
   ctx.fillRect(0, horizonY, w, h - horizonY);
 
-  // Subtle 2.5D Isometric Diamond Terrain Grid Lines
-  ctx.strokeStyle = era >= 7 ? "rgba(6, 182, 212, 0.08)" : "rgba(255, 255, 255, 0.045)";
+  // Soft Isometric Diamond Ground Grid
+  ctx.strokeStyle = era >= 7 ? "rgba(6, 182, 212, 0.08)" : "rgba(255, 255, 255, 0.04)";
   ctx.lineWidth = 1;
   const isoStep = 90;
   for (let gx = -h; gx < w + h; gx += isoStep) {
@@ -4087,65 +4673,72 @@ function drawCityCanvas() {
   const ledge1Y = Math.round(horizonY + valleyH * 0.37);
   const ledge2Y = Math.round(horizonY + valleyH * 0.68);
   [ledge1Y, ledge2Y].forEach((ly) => {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
     ctx.fillRect(0, ly, w, 7);
-    ctx.fillStyle = era >= 5 ? "rgba(148, 163, 184, 0.18)" : "rgba(214, 211, 209, 0.16)";
+    ctx.fillStyle = era >= 5 ? "rgba(148, 163, 184, 0.2)" : "rgba(241, 245, 249, 0.18)";
     ctx.fillRect(0, ly, w, 2);
   });
 
-  // 3. 2.5D ISOMETRIC WINDING RIVER & CANAL CHANNEL (Between Mid & Lower Terrace)
+  // 3. 2.5D MEANDERING RIVER & CANAL CHANNEL
   const riverY = ledge2Y + 8;
-  const riverH = 24;
-  // 3D Masonry / Earth Riverbank Wall
-  ctx.fillStyle = era >= 2 ? "#64748b" : "#5c4028";
-  ctx.fillRect(0, riverY - 4, w, 5);
+  const riverH = 26;
+
+  // Sandy / Stone Riverbank Shore
+  ctx.fillStyle = era >= 5 ? "#475569" : era >= 2 ? "#78716c" : "#785338";
+  ctx.fillRect(0, riverY - 4, w, riverH + 8);
+
   const riverGrad = ctx.createLinearGradient(0, riverY, 0, riverY + riverH);
   riverGrad.addColorStop(0, era === 8 ? "#0e7490" : "#0284c7");
+  riverGrad.addColorStop(0.5, era === 8 ? "#06b6d4" : "#0ea5e9");
   riverGrad.addColorStop(1, era === 8 ? "#1e1b4b" : "#0369a1");
   ctx.fillStyle = riverGrad;
   ctx.fillRect(0, riverY, w, riverH);
 
-  // Animated 2.5D Water Ripples
-  ctx.fillStyle = era === 8 ? "rgba(34, 211, 238, 0.4)" : "rgba(186, 230, 253, 0.38)";
-  for (let wx = 20; wx < w; wx += 55) {
-    const waveOff = Math.sin(animTick * 2 + wx) * 7;
-    ctx.fillRect(wx + waveOff, riverY + 6 + (wx % 10), 20, 2);
+  // Animated Translucent Water Caustics & Foam
+  ctx.fillStyle = era === 8 ? "rgba(34, 211, 238, 0.45)" : "rgba(224, 242, 254, 0.45)";
+  for (let wx = 15; wx < w; wx += 48) {
+    const waveOff = Math.sin(animTick * 2.2 + wx * 0.15) * 8;
+    ctx.fillRect(wx + waveOff, riverY + 5 + ((wx * 3) % 12), 18, 2);
   }
 
-  // 2.5D Isometric Bridges spanning the River
+  // Stone & Steel Arched Bridges spanning the River with Glowing Lanterns
   for (let bx = 180; bx < w - 100; bx += 290) {
     drawPolygon(
       ctx,
       [
-        [bx - 22, riverY - 5],
-        [bx + 22, riverY - 5],
-        [bx + 30, riverY + riverH + 4],
-        [bx - 14, riverY + riverH + 4]
+        [bx - 24, riverY - 6],
+        [bx + 24, riverY - 6],
+        [bx + 32, riverY + riverH + 6],
+        [bx - 16, riverY + riverH + 6]
       ],
-      era >= 5 ? "#475569" : "#d6d3d1",
-      "rgba(0,0,0,0.45)",
-      1.2
+      era >= 5 ? "#334155" : "#e2e8f0",
+      "rgba(0,0,0,0.5)",
+      1.3
     );
+    // Bridge Lantern Posts
+    ctx.fillStyle = "#facc15";
+    ctx.fillRect(bx - 12, riverY - 8, 3, 3);
+    ctx.fillRect(bx + 16, riverY + riverH + 2, 3, 3);
   }
 
-  // River Boats gliding along the 2.5D River Channel
+  // River Boats gliding smoothly along the canal
   riverBoats.forEach((rb) => {
     rb.x += rb.speed * rb.dir;
-    if (rb.x > w + 40) rb.x = -40;
-    if (rb.x < -40) rb.x = w + 40;
-    const by = riverY + 12;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-    ctx.fillRect(rb.dir > 0 ? rb.x - 10 : rb.x + 16, by + 2, 9, 1.5);
+    if (rb.x > w + 45) rb.x = -45;
+    if (rb.x < -45) rb.x = w + 45;
+    const by = riverY + 13;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.fillRect(rb.dir > 0 ? rb.x - 12 : rb.x + 18, by + 2, 10, 1.5);
     drawPolygon(
       ctx,
-      [[rb.x - 10, by - 3], [rb.x + 14, by - 3], [rb.x + 10, by + 2], [rb.x - 6, by + 2]],
-      era >= 5 ? "#334155" : "#78350f"
+      [[rb.x - 12, by - 4], [rb.x + 16, by - 4], [rb.x + 11, by + 3], [rb.x - 7, by + 3]],
+      era >= 5 ? "#1e293b" : "#92400e"
     );
     if (era >= 1 && era <= 4) {
-      drawPolygon(ctx, [[rb.x + 2, by - 14], [rb.x - 5, by - 3], [rb.x + 9, by - 3]], "#f8fafc");
+      drawPolygon(ctx, [[rb.x + 2, by - 16], [rb.x - 6, by - 4], [rb.x + 10, by - 4]], "#f8fafc");
     } else if (era >= 5) {
       ctx.fillStyle = era === 8 ? "#06b6d4" : "#facc15";
-      ctx.fillRect(rb.x - 3, by - 6, 8, 3);
+      ctx.fillRect(rb.x - 4, by - 7, 9, 3.5);
     }
   });
 
@@ -4156,9 +4749,9 @@ function drawCityCanvas() {
     ...getIsoParcelCenter(idx, w, h)
   }));
 
-  // Draw isometric road links between adjacent parcels
-  ctx.strokeStyle = era === 0 ? "rgba(124, 88, 54, 0.65)" : era <= 4 ? "rgba(148, 163, 184, 0.45)" : "rgba(30, 41, 59, 0.8)";
-  ctx.lineWidth = 8;
+  // Paved Road Links
+  ctx.strokeStyle = era === 0 ? "rgba(120, 83, 56, 0.72)" : era <= 4 ? "rgba(203, 213, 225, 0.55)" : "rgba(30, 41, 59, 0.88)";
+  ctx.lineWidth = 9;
   parcelCenters.forEach((p, idx) => {
     if (idx + 3 < parcelCenters.length) {
       const nextCol = parcelCenters[idx + 3];
@@ -4176,14 +4769,28 @@ function drawCityCanvas() {
     }
   });
 
-  // Decorative 2.5D Trees between parcels
-  const treeStyles = era >= 7 ? ["cyber"] : ["pine", "cherry", "round", "autumn"];
-  parcelCenters.forEach((p, idx) => {
-    drawTree(ctx, p.cx - 66, p.cy - 8, 0.78, treeStyles[idx % treeStyles.length]);
-    drawTree(ctx, p.cx + 66, p.cy + 10, 0.78, treeStyles[(idx + 2) % treeStyles.length]);
+  // Tiny Animated Vehicles on Roads
+  roadTraffic.forEach((veh, vIdx) => {
+    veh.x += veh.speed * veh.dir;
+    if (veh.x > w + 40) veh.x = -40;
+    if (veh.x < -40) veh.x = w + 40;
+    const pTarget = parcelCenters[vIdx % parcelCenters.length];
+    const vy = pTarget.cy + ((vIdx % 3) - 1) * 8;
+    ctx.fillStyle = veh.color;
+    ctx.fillRect(veh.x - 4, vy - 2, 8, 4);
+    // Headlight glow
+    ctx.fillStyle = isNight ? "#fde047" : "rgba(255, 255, 255, 0.8)";
+    ctx.fillRect(veh.dir > 0 ? veh.x + 4 : veh.x - 6, vy - 1, 2, 2);
   });
 
-  // 5. RENDER ALL 18 MINIMIZED 2.5D ISOMETRIC DISTRICT PARCELS (Sorted Back-to-Front by Y!)
+  // Clustered Trees between districts
+  const treeStyles = era >= 7 ? ["cyber"] : ["pine", "cherry", "round", "autumn"];
+  parcelCenters.forEach((p, idx) => {
+    drawTree(ctx, p.cx - 66, p.cy - 8, 0.82, treeStyles[idx % treeStyles.length]);
+    drawTree(ctx, p.cx + 66, p.cy + 10, 0.82, treeStyles[(idx + 2) % treeStyles.length]);
+  });
+
+  // 5. RENDER ALL 18 2.5D ISOMETRIC DISTRICT PARCELS (Sorted Back-to-Front by Y!)
   isoParcelHitboxes = [];
   const sortedParcels = [...parcelCenters].sort((a, b) => a.cy - b.cy);
   const rx = 56;
@@ -4208,10 +4815,10 @@ function drawCityCanvas() {
       bId: b.id,
       cx,
       cy,
-      x: cx - rx - 6,
-      y: cy - ry - 48,
-      w: rx * 2 + 12,
-      h: ry * 2 + 64
+      x: cx - rx - 8,
+      y: cy - ry - 54,
+      w: rx * 2 + 16,
+      h: ry * 2 + 72
     });
 
     if (count <= 0) {
@@ -4220,18 +4827,18 @@ function drawCityCanvas() {
         drawPolygon(
           ctx,
           [[cx, cy - ry], [cx + rx, cy], [cx, cy + ry], [cx - rx, cy]],
-          isHovered ? "rgba(56, 189, 248, 0.22)" : "rgba(15, 23, 42, 0.45)",
-          isHovered ? "#38bdf8" : "rgba(255, 255, 255, 0.24)",
-          isHovered ? 2 : 1
+          isHovered ? "rgba(56, 189, 248, 0.28)" : "rgba(15, 23, 42, 0.52)",
+          isHovered ? "#38bdf8" : "rgba(255, 255, 255, 0.28)",
+          isHovered ? 2.2 : 1
         );
         ctx.save();
         ctx.font = "bold 10px 'Segoe UI', system-ui, sans-serif";
-        ctx.fillStyle = isHovered ? "#fef08a" : "rgba(226, 232, 240, 0.72)";
+        ctx.fillStyle = isHovered ? "#fef08a" : "rgba(226, 232, 240, 0.85)";
         ctx.textAlign = "center";
         ctx.fillText(`🔨 ${b.icon} ${b.name}`, cx, cy - 2);
         ctx.font = "9px 'Consolas', monospace";
         ctx.fillStyle = state.cp >= b.baseCost ? "#34d399" : "#94a3b8";
-        ctx.fillText(`Click to Build (${formatNum(b.baseCost)} CP)`, cx, cy + 10);
+        ctx.fillText(`Click to Build (${formatNum(b.baseCost)} CP)`, cx, cy + 11);
         ctx.restore();
       }
       return;
@@ -4245,7 +4852,7 @@ function drawCityCanvas() {
       : isOverdriven
       ? "#38bdf8"
       : zCol.accent;
-    const lineW = isSelected || isHovered || crisis ? 2.4 : 1.3;
+    const lineW = isSelected || isHovered || crisis ? 2.5 : 1.3;
 
     drawIsoPlinth(
       ctx,
@@ -4258,15 +4865,16 @@ function drawCityCanvas() {
       zCol.left,
       zCol.right,
       borderCol,
-      lineW
+      lineW,
+      isHovered || isSelected
     );
 
     // Draw 3D Isometric Sub-Structures around the parcel based on building count!
     const subCount = Math.min(4, Math.floor(Math.log2(count + 1)));
-    const winColor = isNight ? "#fde047" : "rgba(224, 242, 254, 0.75)";
+    const winColor = isNight ? "#fde047" : "rgba(224, 242, 254, 0.8)";
     const subOffsets = [
-      [-26, -4],
-      [26, -4],
+      [-26, -5],
+      [26, -5],
       [-22, 8],
       [22, 8]
     ];
@@ -4287,8 +4895,8 @@ function drawCityCanvas() {
       );
     }
 
-    // Draw the animated centerpiece landmark structure of this district on the 2.5D plinth!
-    drawUnitGraphicOnStrip(ctx, b.id, cx, cy + 4, p.idx, isNight);
+    // Draw the BESPOKE 2.5D ISOMETRIC LANDMARK ARCHITECTURE!
+    drawIsoDistrictArchitecture(ctx, b.id, cx, cy + 2, count, isNight, animTick, isHovered, isSelected);
 
     // Animated 2.5D Citizens walking on the parcel
     const citX = cx + Math.sin(animTick * 1.8 + p.idx) * 24;
@@ -4296,24 +4904,24 @@ function drawCityCanvas() {
     ctx.fillStyle = "#fde047";
     ctx.fillRect(citX - 1.5, citY - 4, 3, 4);
 
-    // If District is in CRISIS: Draw animated 2.5D Fire/Smoke & Click-to-Fix Alert!
+    // If District is in CRISIS: Leaping Flames & Billowing Smoke
     if (crisis) {
-      for (let f = 0; f < 3; f++) {
-        const fx = cx - 14 + f * 14 + Math.sin(animTick * 4 + f) * 4;
-        const fy = cy - 16 - ((animTick * 18 + f * 9) % 24);
-        ctx.fillStyle = f % 2 === 0 ? "rgba(239, 68, 68, 0.85)" : "rgba(250, 204, 21, 0.85)";
+      for (let f = 0; f < 4; f++) {
+        const fx = cx - 16 + f * 10 + Math.sin(animTick * 4 + f) * 4;
+        const fy = cy - 18 - ((animTick * 18 + f * 8) % 26);
+        ctx.fillStyle = f % 2 === 0 ? "rgba(239, 68, 68, 0.88)" : "rgba(250, 204, 21, 0.88)";
         ctx.beginPath();
         ctx.arc(fx, fy, 4.5, 0, Math.PI * 2);
         ctx.fill();
       }
-      const alertY = cy - 44 + Math.sin(animTick * 4) * 3;
+      const alertY = cy - 46 + Math.sin(animTick * 4) * 3;
       ctx.save();
       ctx.font = "bold 10px 'Segoe UI', sans-serif";
       const alertTxt = `🚨 ${crisis.short.toUpperCase()}! CLICK TO FIX`;
       const tw = ctx.measureText(alertTxt).width + 12;
       ctx.fillStyle = "rgba(185, 28, 28, 0.95)";
       ctx.strokeStyle = "#fde047";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.roundRect(cx - tw / 2, alertY - 10, tw, 18, 9);
       ctx.fill();
@@ -4325,16 +4933,16 @@ function drawCityCanvas() {
       ctx.restore();
     }
 
-    // Floating 2.5D Minimized District Badge at the front of the Isometric Plinth
+    // Floating Glassmorphism District Badge at the front of the Isometric Plinth
     ctx.save();
     ctx.font = "bold 10px 'Segoe UI', system-ui, sans-serif";
     const labelTxt = `${b.icon} ×${count}${isOverdriven ? " ⚡2×" : ""}`;
     const lw = Math.max(46, ctx.measureText(labelTxt).width + 12);
     const badgeX = cx - lw / 2;
     const badgeY = cy + ry + 2;
-    ctx.fillStyle = isSelected ? "rgba(245, 158, 11, 0.95)" : "rgba(10, 14, 24, 0.88)";
+    ctx.fillStyle = isSelected ? "rgba(245, 158, 11, 0.95)" : "rgba(10, 14, 24, 0.90)";
     ctx.strokeStyle = borderCol;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.3;
     ctx.beginPath();
     ctx.roundRect(badgeX, badgeY, lw, 16, 8);
     ctx.fill();

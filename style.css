@@ -745,10 +745,10 @@ body {
   width: 100%;
   flex: 1;
   min-height: 290px;
-  border-radius: 12px;
-  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   overflow: hidden;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.7), inset 0 0 24px rgba(0, 0, 0, 0.45);
   background: #090d16;
   line-height: 0;
   display: flex;
