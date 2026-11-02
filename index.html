@@ -250,13 +250,14 @@
       <!-- TAB 1 (DEFAULT): LIVING CITY PANORAMA & VISUAL INFRASTRUCTURE DISTRICTS -->
       <div class="tab-content active" id="tab-city">
         <div class="city-panorama-frame" id="city-stage">
-          <div class="city-scroll-viewport" id="city-scroll-viewport" title="Drag or scroll left & right to tour your expanding city!">
+          <div class="city-scroll-viewport" id="city-scroll-viewport" title="Drag or scroll left & right to tour your expanding city! Click citizen speech bubbles for bonus CP!">
             <canvas id="city-canvas" width="860" height="230"></canvas>
           </div>
           <div class="panorama-overlay-label">
             <span id="panorama-era-title">Stone Age Settlement</span>
             <span id="panorama-time-badge">☀️ Midday</span>
             <div class="panorama-right-controls">
+              <button id="btn-civic-council" class="council-trigger-btn" title="Summon a citizen petition or city festival!">🎭 Civic Council: Ready!</button>
               <span id="panorama-cps-share">City Output: +0.0 CP/s</span>
               <button id="btn-pan-left" class="pan-btn" title="Pan City Left">◀</button>
               <button id="btn-pan-right" class="pan-btn" title="Pan City Right">▶</button>
@@ -264,6 +265,22 @@
           </div>
           <!-- Floating Golden Anomaly -->
           <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a civic boom!">✨</button>
+        </div>
+
+        <!-- Soulful Interactive Civic Petition / Festival Card -->
+        <div id="civic-petition-card" class="civic-petition-card hidden">
+          <div class="petition-header">
+            <div class="petition-avatar" id="petition-avatar">🧙‍♂️</div>
+            <div class="petition-title-group">
+              <div class="petition-speaker" id="petition-speaker">Master Builder Vitruvius</div>
+              <div class="petition-prompt" id="petition-prompt">"The citizens are eager to celebrate our new districts! How shall we direct their enthusiasm?"</div>
+            </div>
+            <button id="btn-dismiss-petition" class="mini-btn" title="Dismiss">✕</button>
+          </div>
+          <div class="petition-choices">
+            <button id="btn-petition-choice-a" class="petition-choice-btn choice-a"></button>
+            <button id="btn-petition-choice-b" class="petition-choice-btn choice-b"></button>
+          </div>
         </div>
 
         <div class="section-subtitle" style="margin-top: 14px;">

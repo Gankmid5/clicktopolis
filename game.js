@@ -2378,6 +2378,20 @@ function updateDistrictsStats() {
 // ============================================================================
 // RIGHT PANEL: UPGRADES TRAY & BUILDINGS SHOP (WITH SPOILER PROTECTION)
 // ============================================================================
+const BUILDING_MILESTONES = [1, 5, 15, 30, 50, 75, 100, 150, 200];
+
+function getBuildingNextMilestoneInfo(owned) {
+  let prev = 0;
+  for (const m of BUILDING_MILESTONES) {
+    if (owned < m) {
+      const pct = Math.min(100, Math.max(0, ((owned - prev) / (m - prev)) * 100));
+      return { next: m, pct };
+    }
+    prev = m;
+  }
+  return { next: Math.ceil((owned + 1) / 50) * 50, pct: 100 };
+}
+
 function renderBuildingsList() {
   const list = document.getElementById("buildings-list");
   list.innerHTML = "";
@@ -2392,10 +2406,12 @@ function renderBuildingsList() {
       const plan = getPurchasePlan(b);
       const canAfford = state.cp >= plan.cost;
       const singleCps = getBuildingSingleCps(b);
+      const ms = getBuildingNextMilestoneInfo(owned);
 
       const row = document.createElement("button");
       row.className = `building-row ${canAfford ? "affordable" : "unaffordable"}`;
       row.id = `b-row-${b.id}`;
+      row.setAttribute("data-zone", b.zoneTag);
       row.onclick = () => buyBuilding(b.id);
 
       row.innerHTML = `
@@ -2409,9 +2425,13 @@ function renderBuildingsList() {
           <div class="b-meta">
             <span class="b-cost" id="b-cost-${b.id}">⚡ ${formatNum(plan.cost)} CP ${plan.qty > 1 ? `(x${plan.qty})` : ""}</span>
             <span class="b-prod" id="b-prod-${b.id}">+${formatNum(singleCps)} /s</span>
+            <span class="b-milestone-badge" id="b-ms-${b.id}" title="Next Civic Upgrade / Synergy Milestone">🎯 ${owned}/${ms.next}</span>
           </div>
         </div>
         <div class="b-count" id="b-cnt-${b.id}">${owned}</div>
+        <div class="b-milestone-track">
+          <div class="b-milestone-fill" id="b-ms-fill-${b.id}" style="width: ${ms.pct.toFixed(1)}%;"></div>
+        </div>
       `;
       list.appendChild(row);
     } else if (!shownMystery) {
@@ -2448,12 +2468,19 @@ function updateBuildingsAffordability() {
     row.classList.toggle("affordable", canAfford);
     row.classList.toggle("unaffordable", !canAfford);
 
+    const owned = state.buildings[b.id] || 0;
+    const ms = getBuildingNextMilestoneInfo(owned);
+
     const costEl = document.getElementById(`b-cost-${b.id}`);
     if (costEl) costEl.textContent = `⚡ ${formatNum(plan.cost)} CP ${plan.qty > 1 ? `(x${plan.qty})` : ""}`;
     const prodEl = document.getElementById(`b-prod-${b.id}`);
     if (prodEl) prodEl.textContent = `+${formatNum(getBuildingSingleCps(b))} /s`;
     const cntEl = document.getElementById(`b-cnt-${b.id}`);
-    if (cntEl) cntEl.textContent = state.buildings[b.id] || 0;
+    if (cntEl) cntEl.textContent = owned;
+    const msEl = document.getElementById(`b-ms-${b.id}`);
+    if (msEl) msEl.textContent = `🎯 ${owned}/${ms.next}`;
+    const msFill = document.getElementById(`b-ms-fill-${b.id}`);
+    if (msFill) msFill.style.width = `${ms.pct.toFixed(1)}%`;
   });
 }
 
@@ -2463,9 +2490,18 @@ function buyBuilding(bId) {
   const plan = getPurchasePlan(b);
   if (state.cp < plan.cost) return;
 
+  const prevOwned = state.buildings[b.id] || 0;
   state.cp -= plan.cost;
-  state.buildings[b.id] = (state.buildings[b.id] || 0) + plan.qty;
+  state.buildings[b.id] = prevOwned + plan.qty;
+  const newOwned = state.buildings[b.id];
   SoundFX.build(b.era);
+
+  // Celebrate crossing a district milestone with fireworks!
+  if (BUILDING_MILESTONES.some((m) => prevOwned < m && newOwned >= m)) {
+    spawnCityFirework(180 + Math.random() * 450, 38 + Math.random() * 40);
+    spawnCityFirework(250 + Math.random() * 450, 35 + Math.random() * 45);
+    showToast(b.icon, `${b.name} Milestone!`, `Your ${b.districtName} reached ${newOwned} structures!`);
+  }
 
   checkProximityReveals();
   renderBuildingsList();
@@ -3129,11 +3165,34 @@ function drawPolygon(ctx, points, fill, stroke = null, lineWidth = 1) {
 }
 
 function drawTree(ctx, x, y, scale = 1, type = "pine") {
-  ctx.fillStyle = "#5c3a21";
+  ctx.fillStyle = type === "cyber" ? "#1e1b4b" : "#5c3a21";
   ctx.fillRect(x - 2 * scale, y - 8 * scale, 4 * scale, 8 * scale);
   if (type === "pine") {
     drawPolygon(ctx, [[x, y - 24 * scale], [x - 8 * scale, y - 7 * scale], [x + 8 * scale, y - 7 * scale]], "#2d6a3e");
     drawPolygon(ctx, [[x, y - 30 * scale], [x - 6 * scale, y - 15 * scale], [x + 6 * scale, y - 15 * scale]], "#3b854f");
+  } else if (type === "cherry") {
+    ctx.fillStyle = "#f472b6";
+    ctx.beginPath();
+    ctx.arc(x, y - 15 * scale, 8.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fbcfe8";
+    ctx.beginPath();
+    ctx.arc(x - 2 * scale, y - 17 * scale, 4.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === "autumn") {
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.arc(x, y - 15 * scale, 8.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fde047";
+    ctx.beginPath();
+    ctx.arc(x + 2 * scale, y - 17 * scale, 4.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === "cyber") {
+    ctx.fillStyle = "rgba(6, 182, 212, 0.78)";
+    ctx.beginPath();
+    ctx.arc(x, y - 15 * scale, 7.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
   } else {
     ctx.fillStyle = "#3f8f4e";
     ctx.beginPath();
@@ -3460,6 +3519,43 @@ function drawCityCanvas() {
     }
   }
 
+  // 2.8 Colorful Sky Soul: Daytime Rainbow Arc or Nighttime Shimmering Aurora Borealis!
+  if (!isNight && era <= 6) {
+    const rbColors = [
+      "rgba(239, 68, 68, 0.14)",
+      "rgba(249, 115, 22, 0.14)",
+      "rgba(250, 204, 21, 0.14)",
+      "rgba(34, 197, 94, 0.14)",
+      "rgba(56, 189, 248, 0.14)",
+      "rgba(168, 85, 247, 0.14)"
+    ];
+    ctx.lineWidth = 3;
+    rbColors.forEach((col, rIdx) => {
+      ctx.strokeStyle = col;
+      ctx.beginPath();
+      ctx.arc(310, h - 18, 175 - rIdx * 3.2, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+    });
+  } else if (isNight) {
+    // Shimmering Multi-Color Aurora Borealis Ribbon across the starry night sky
+    const auroraColors = [
+      "rgba(52, 211, 153, 0.16)",
+      "rgba(6, 182, 212, 0.15)",
+      "rgba(192, 132, 252, 0.14)"
+    ];
+    auroraColors.forEach((acol, aIdx) => {
+      ctx.strokeStyle = acol;
+      ctx.lineWidth = 10 - aIdx * 2;
+      ctx.beginPath();
+      for (let ax = 0; ax <= w; ax += 40) {
+        const ay = 34 + aIdx * 8 + Math.sin(animTick * 0.8 + ax * 0.012 + aIdx) * 10;
+        if (ax === 0) ctx.moveTo(ax, ay);
+        else ctx.lineTo(ax, ay);
+      }
+      ctx.stroke();
+    });
+  }
+
   // 3. Repeating Layered Colored Background Hills across full width `w`
   ctx.fillStyle = hills[0];
   ctx.beginPath();
@@ -3500,8 +3596,9 @@ function drawCityCanvas() {
     }
   }
 
-  // Streetlamps along the boulevard that glow warmly at dusk/night!
-  if (era >= 2) {
+  // Streetlamps & Festive Colored Boulevard Lanterns along the boulevard!
+  if (era >= 1) {
+    const lanternPalette = ["#f43f5e", "#facc15", "#34d399", "#38bdf8", "#c084fc", "#fb923c"];
     for (let lx = 45; lx < w; lx += 95) {
       ctx.fillStyle = "#475569";
       ctx.fillRect(lx, h - 39, 2, 11);
@@ -3510,6 +3607,23 @@ function drawCityCanvas() {
         ctx.beginPath();
         ctx.arc(lx + 1, h - 40, 3, 0, Math.PI * 2);
         ctx.fill();
+      }
+      // Festive colored lanterns strung between boulevard posts
+      if (lx + 95 < w) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(lx + 1, h - 39);
+        ctx.quadraticCurveTo(lx + 48, h - 33, lx + 96, h - 39);
+        ctx.stroke();
+        for (let bIdx = 1; bIdx <= 3; bIdx++) {
+          const bx = lx + bIdx * 24;
+          const by = h - 37 + (bIdx === 2 ? 2 : 0.5);
+          ctx.fillStyle = lanternPalette[(Math.floor(lx / 95) + bIdx) % lanternPalette.length];
+          ctx.beginPath();
+          ctx.arc(bx, by, 2.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
@@ -3530,9 +3644,14 @@ function drawCityCanvas() {
   // 4. MAIN SKYLINE & EXPANDING DISTRICTS + WORLD WONDERS
   const gy = h - 40;
 
-  if (era <= 4) {
-    for (let tx = 28; tx < w - 30; tx += 145) {
-      drawTree(ctx, tx, gy + 3, 0.85, (tx / 145) % 2 === 0 ? "pine" : "round");
+  if (era <= 6) {
+    const treeStyles = ["pine", "cherry", "round", "autumn"];
+    for (let tx = 28, tIdx = 0; tx < w - 30; tx += 135, tIdx++) {
+      drawTree(ctx, tx, gy + 3, 0.88, treeStyles[tIdx % treeStyles.length]);
+    }
+  } else {
+    for (let tx = 36; tx < w - 30; tx += 160) {
+      drawTree(ctx, tx, gy + 3, 0.85, "cyber");
     }
   }
 
@@ -3800,9 +3919,11 @@ function drawCityCanvas() {
     });
   }
 
-  // Occasional Celebratory Fireworks at Dusk/Night!
-  if ((isNight || isDuskOrDawn) && Math.random() < 0.015 && cityFireworks.length < 40) {
-    spawnCityFirework(80 + Math.random() * (w - 160), 28 + Math.random() * 55);
+  // Celebratory Fireworks (at Dusk/Night or during an active Festival!)
+  const isFestivalActive = Date.now() < boostExpiresAt;
+  const fwChance = isFestivalActive ? 0.08 : (isNight || isDuskOrDawn ? 0.018 : 0);
+  if (fwChance > 0 && Math.random() < fwChance && cityFireworks.length < 70) {
+    spawnCityFirework(70 + Math.random() * (w - 140), 24 + Math.random() * 60);
   }
   for (let i = cityFireworks.length - 1; i >= 0; i--) {
     const fw = cityFireworks[i];
@@ -3836,6 +3957,145 @@ function drawCityCanvas() {
       ctx.stroke();
     });
   }
+
+  // 8. VOICES OF THE CITIZENS: Interactive Floating Speech Bubbles over the Skyline!
+  drawAndUpdateCitizenSpeechBubble(ctx, w, h);
+}
+
+const CITIZEN_VOICES = [
+  // Era 0: Stone Age
+  [
+    "🔥 This roasted mammoth is 10/10!",
+    "🌾 Look! The river seeds sprouted!",
+    "🛖 Our new thatched roof keeps the rain out!",
+    "🪨 Who stacked that huge stone?!"
+  ],
+  // Era 1: Bronze Age
+  [
+    "🏺 Fresh figs and pottery at the Bazaar!",
+    "🛶 The new canal doubled our harvest!",
+    "✨ Copper tools make building so much faster!",
+    "🌴 Shade by the irrigation levee feels amazing!"
+  ],
+  // Era 2: Classical Age
+  [
+    "🏛️ The Senate debated for six hours straight!",
+    "💧 Mountain water from the Aqueduct is so crisp!",
+    "🎭 Tonight's amphitheater comedy is sold out!",
+    "🫒 Olive oil exports are at an all-time high!"
+  ],
+  // Era 3: Medieval Age
+  [
+    "⚙️ Hear that watermill hum by the river!",
+    "🥖 Warm sourdough fresh from the Bakers' Guild!",
+    "🏰 The new stone watchtower looks impenetrable!",
+    "🎺 Jousting tournament at the town square!"
+  ],
+  // Era 4: Renaissance
+  [
+    "🌉 The view from the Grand Canal bridge is pure art!",
+    "🎓 Just attended an astronomy lecture at the University!",
+    "🏦 Merchant ships arrived with spices & silk!",
+    "🎨 Maestro painted another fresco in the piazza!"
+  ],
+  // Era 5: Industrial Age
+  [
+    "🚂 All aboard the 8:15 steam express!",
+    "💡 Electric streetlamps turned night into day!",
+    "☕ Triple espresso before my foundry shift!",
+    "🎷 Brass band playing in the park tonight!"
+  ],
+  // Era 6: Atomic Age
+  [
+    "✈️ Non-stop jet flight departing Terminal 4!",
+    "⚛️ Clean reactor power for the whole metro grid!",
+    "🚇 Caught the underground metro with 2 seconds to spare!",
+    "📻 New rock-and-roll broadcast on every radio!"
+  ],
+  // Era 7: Information Age
+  [
+    "🚄 500 km/h on the Maglev and my coffee didn't spill!",
+    "🏢 The sunset from Floor 118 is breathtaking!",
+    "💻 Fiber-optic ping across the city is 0.2ms!",
+    "🌿 Rooftop sky-gardens smell like fresh pine!"
+  ],
+  // Era 8: Cyberpunk & Cosmic Age
+  [
+    "🏙️ Arcology Deck 300 has the best ramen in the sector!",
+    "🚀 Weekend shuttle to the Orbital Ring is boarding!",
+    "🤖 My domestic droid just composed a synth symphony!",
+    "✨ The neon reflections on the river look magical tonight!"
+  ]
+];
+
+let activeSpeechBubble = null;
+let nextSpeechBubbleAt = Date.now() + 3500;
+
+function drawAndUpdateCitizenSpeechBubble(ctx, w, h) {
+  const now = Date.now();
+  if (!activeSpeechBubble && now >= nextSpeechBubbleAt) {
+    const eraQuotes = CITIZEN_VOICES[state.currentEra] || CITIZEN_VOICES[0];
+    const text = eraQuotes[Math.floor(Math.random() * eraQuotes.length)];
+    const bx = 130 + Math.random() * Math.max(260, Math.min(w - 260, 580));
+    const by = h - 78 - Math.random() * 28;
+    const borderColors = ["#f472b6", "#facc15", "#34d399", "#38bdf8", "#c084fc", "#fb923c"];
+    activeSpeechBubble = {
+      text,
+      x: bx,
+      y: by,
+      bornAt: now,
+      expiresAt: now + 7500,
+      color: borderColors[Math.floor(Math.random() * borderColors.length)],
+      w: 200,
+      h: 26
+    };
+  }
+
+  if (!activeSpeechBubble) return;
+  if (now >= activeSpeechBubble.expiresAt) {
+    activeSpeechBubble = null;
+    nextSpeechBubbleAt = now + 5000 + Math.random() * 4500;
+    return;
+  }
+
+  const sb = activeSpeechBubble;
+  const bobY = sb.y + Math.sin(animTick * 2.5) * 2.5;
+  ctx.save();
+  ctx.font = "bold 11px 'Segoe UI', system-ui, sans-serif";
+  const textW = ctx.measureText(sb.text).width;
+  const boxW = Math.ceil(textW + 22);
+  const boxH = 24;
+  const boxX = Math.max(12, Math.min(w - boxW - 12, sb.x - boxW / 2));
+  const boxY = bobY - boxH;
+  sb.hitX = boxX;
+  sb.hitY = boxY;
+  sb.hitW = boxW;
+  sb.hitH = boxH + 8;
+
+  // Speech bubble pill
+  ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+  ctx.strokeStyle = sb.color;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+  ctx.fill();
+  ctx.stroke();
+
+  // Speech bubble pointer tail
+  const tailX = Math.max(boxX + 14, Math.min(boxX + boxW - 14, sb.x));
+  ctx.beginPath();
+  ctx.moveTo(tailX - 5, boxY + boxH);
+  ctx.lineTo(tailX, boxY + boxH + 6);
+  ctx.lineTo(tailX + 5, boxY + boxH);
+  ctx.closePath();
+  ctx.fillStyle = sb.color;
+  ctx.fill();
+
+  // Quote text
+  ctx.fillStyle = "#f8fafc";
+  ctx.textBaseline = "middle";
+  ctx.fillText(sb.text, boxX + 11, boxY + boxH / 2 + 0.5);
+  ctx.restore();
 }
 
 // ============================================================================
@@ -4425,6 +4685,8 @@ function init() {
     });
   }
 
+  setupCivicCouncilAndVoices();
+
   document.querySelectorAll(".buy-mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".buy-mode-btn").forEach((b) => b.classList.remove("active"));
@@ -4584,6 +4846,7 @@ function init() {
       updateBuildingsAffordability();
       updateUpgradesAffordability();
       updateWondersAffordability();
+      updateCivicCouncilButton();
       const statsTab = document.getElementById("tab-stats");
       if (statsTab && statsTab.classList.contains("active")) {
         renderStats();
@@ -4603,6 +4866,193 @@ function init() {
   }, 26000);
 
   setInterval(() => saveGame(false), 15000);
+}
+
+// ============================================================================
+// CIVIC COUNCIL PETITIONS & CLICKABLE CITIZEN SPEECH BUBBLES
+// ============================================================================
+const CIVIC_PETITIONS = [
+  {
+    era: 0,
+    avatar: "🔥",
+    speaker: "Elder Kaya, Hearth-Keeper",
+    prompt: "The river harvest is bountiful! Shall we light the Great Solstice Bonfire or organize a communal flint-knapping drive?",
+    choiceA: "🎉 Light the Solstice Bonfire",
+    choiceB: "🪨 Communal Builders' Drive"
+  },
+  {
+    era: 1,
+    avatar: "🏺",
+    speaker: "Master Enki, Canal-Wright",
+    prompt: "Merchant barges have arrived at the Walled Bazaar with exotic dyes and copper ingots! How shall we celebrate?",
+    choiceA: "🎊 Grand Riverfront Jubilee",
+    choiceB: "⚒️ Commission Guild Artisans"
+  },
+  {
+    era: 2,
+    avatar: "🏛️",
+    speaker: "Senator Octavia of the Forum",
+    prompt: "The public baths and marble colonnades are gleaming! Shall we declare a week of Amphitheater Games or distribute civic stipends?",
+    choiceA: "🎭 Declare Amphitheater Games",
+    choiceB: "🪙 Distribute Senate Stipends"
+  },
+  {
+    era: 3,
+    avatar: "🏰",
+    speaker: "Guildmaster Beatrice",
+    prompt: "The river watermills and town guilds have exceeded their quotas! Shall we host a Royal Charter Tournament or expand the guild treasury?",
+    choiceA: "🎺 Royal Charter Tournament",
+    choiceB: "📜 Guild Treasury Windfall"
+  },
+  {
+    era: 4,
+    avatar: "🎨",
+    speaker: "Maestro Leonardo, Court Polymath",
+    prompt: "Our Grand Canal Piazza is the envy of the world! Shall we unveil a Masquerade Carnival or auction our newest inventions?",
+    choiceA: "🎭 Grand Canal Masquerade",
+    choiceB: "🧭 Merchant Exchange Grant"
+  },
+  {
+    era: 5,
+    avatar: "🎩",
+    speaker: "Chief Engineer Isambard",
+    prompt: "Grand Central Station and the electric streetlamps are running at peak steam! Shall we host an Industrial Exposition or issue railway dividends?",
+    choiceA: "🎡 Grand Steam Exposition",
+    choiceB: "🚂 Railway Dividend Payout"
+  },
+  {
+    era: 6,
+    avatar: "🎙️",
+    speaker: "Mayor Evelyn Vance",
+    prompt: "International flights are landing every minute at our Skyport! Shall we broadcast a World Music Festival or cash in aviation bonds?",
+    choiceA: "🎸 World Broadcast Festival",
+    choiceB: "✈️ Skyport Bond Maturity"
+  },
+  {
+    era: 7,
+    avatar: "💻",
+    speaker: "Director Kael, Smart-Grid AI",
+    prompt: "Maglev corridors and downtown skyscrapers report 99.9% civic harmony! Shall we launch a Holo-Light Sky Show or harvest quantum dividends?",
+    choiceA: "🌈 Holo-Light Sky Festival",
+    choiceB: "💎 Quantum Dividend Surge"
+  },
+  {
+    era: 8,
+    avatar: "🌌",
+    speaker: "Star-Weaver Lyra, Orbital Envoy",
+    prompt: "The Neon Arcologies and Orbital Spaceports are resonating with cosmic energy! Shall we ignite a Nebula Festival or channel a Singularity Grant?",
+    choiceA: "✨ Cosmic Nebula Festival",
+    choiceB: "🚀 Singularity Treasury Grant"
+  }
+];
+
+let councilCooldownUntil = 0;
+
+function updateCivicCouncilButton() {
+  const btn = document.getElementById("btn-civic-council");
+  if (!btn) return;
+  const remaining = Math.ceil((councilCooldownUntil - Date.now()) / 1000);
+  if (remaining > 0) {
+    btn.disabled = true;
+    btn.textContent = `🎭 Council (${remaining}s)`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = "🎭 Civic Council: Ready!";
+  }
+}
+
+function openCivicPetition() {
+  const card = document.getElementById("civic-petition-card");
+  if (!card) return;
+  const pet = CIVIC_PETITIONS[state.currentEra] || CIVIC_PETITIONS[0];
+  document.getElementById("petition-avatar").textContent = pet.avatar;
+  document.getElementById("petition-speaker").textContent = pet.speaker;
+  document.getElementById("petition-prompt").textContent = `"${pet.prompt}"`;
+
+  const instantGrant = Math.max(35, Math.ceil(getTotalCps() * 25 + getClickPower() * 25));
+  const btnA = document.getElementById("btn-petition-choice-a");
+  const btnB = document.getElementById("btn-petition-choice-b");
+  btnA.innerHTML = `<span>${pet.choiceA}</span><span class="petition-choice-sub">🔥 1.75× City Output + Fireworks for 35s</span>`;
+  btnB.innerHTML = `<span>${pet.choiceB}</span><span class="petition-choice-sub">💰 Instant +${formatNum(instantGrant)} CP Treasury Grant</span>`;
+
+  card.classList.remove("hidden");
+  SoundFX.research();
+}
+
+function setupCivicCouncilAndVoices() {
+  const councilBtn = document.getElementById("btn-civic-council");
+  const card = document.getElementById("civic-petition-card");
+  const dismissBtn = document.getElementById("btn-dismiss-petition");
+  const btnA = document.getElementById("btn-petition-choice-a");
+  const btnB = document.getElementById("btn-petition-choice-b");
+
+  if (councilBtn) {
+    councilBtn.addEventListener("click", () => {
+      if (Date.now() < councilCooldownUntil) return;
+      openCivicPetition();
+    });
+  }
+  if (dismissBtn && card) {
+    dismissBtn.addEventListener("click", () => {
+      card.classList.add("hidden");
+    });
+  }
+  if (btnA && card) {
+    btnA.addEventListener("click", () => {
+      card.classList.add("hidden");
+      councilCooldownUntil = Date.now() + 45000;
+      boostMultiplier = 1.75;
+      boostExpiresAt = Date.now() + 35000;
+      boostName = `🎉 ${ERAS[state.currentEra].short} City Festival (1.75×)`;
+      for (let i = 0; i < 4; i++) {
+        spawnCityFirework(120 + i * 180, 28 + (i % 2) * 25);
+      }
+      SoundFX.wonder();
+      updateCivicCouncilButton();
+      updateTopHUD();
+      showToast("🎉", "City Festival Begins!", "Citizens fill the streets! 1.75× Global City Output for 35 seconds!");
+    });
+  }
+  if (btnB && card) {
+    btnB.addEventListener("click", () => {
+      card.classList.add("hidden");
+      councilCooldownUntil = Date.now() + 45000;
+      const grant = Math.max(35, Math.ceil(getTotalCps() * 25 + getClickPower() * 25));
+      state.cp += grant;
+      state.totalCp += grant;
+      state.allTimeCp += grant;
+      spawnCityFirework(260, 42);
+      spawnCityFirework(480, 36);
+      SoundFX.buy();
+      updateCivicCouncilButton();
+      updateTopHUD();
+      showToast("💰", "Civic Treasury Grant!", `Received +${formatNum(grant)} CP from the city guilds!`);
+    });
+  }
+
+  // Clickable Citizen Speech Bubbles on #city-canvas!
+  const cityCanvas = document.getElementById("city-canvas");
+  if (cityCanvas) {
+    cityCanvas.addEventListener("click", (e) => {
+      if (!activeSpeechBubble || !activeSpeechBubble.hitW) return;
+      const rect = cityCanvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const sb = activeSpeechBubble;
+      if (cx >= sb.hitX - 8 && cx <= sb.hitX + sb.hitW + 8 && cy >= sb.hitY - 8 && cy <= sb.hitY + sb.hitH + 8) {
+        const bonus = Math.max(10, Math.ceil(getTotalCps() * 6 + getClickPower() * 5));
+        state.cp += bonus;
+        state.totalCp += bonus;
+        state.allTimeCp += bonus;
+        spawnCityFirework(sb.x, sb.y - 12);
+        spawnFloatingText(e.clientX, e.clientY, `💬 +${formatNum(bonus)} CP`, true);
+        SoundFX.achievement();
+        activeSpeechBubble = null;
+        nextSpeechBubbleAt = Date.now() + 5500;
+        updateTopHUD();
+      }
+    });
+  }
 }
 
 window.addEventListener("DOMContentLoaded", init);
