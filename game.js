@@ -1244,6 +1244,25 @@ const SoundFX = {
 // ============================================================================
 const SAVE_KEY = "clicktopolis_save_v1";
 
+function createDefaultCivState() {
+  return {
+    food: 100,
+    happiness: 100,
+    stability: 100,
+    integrity: 100,
+    taxRate: "normal",
+    jobs: {
+      farmers: 30,
+      workers: 30,
+      scholars: 20,
+      guards: 20
+    },
+    crises: {},
+    overdrives: {},
+    collapses: 0
+  };
+}
+
 function createDefaultState() {
   const buildings = {};
   BUILDINGS.forEach((b) => (buildings[b.id] = 0));
@@ -1268,6 +1287,7 @@ function createDefaultState() {
     wonders: [],
     achievements: [],
     devUnlocked: false,
+    civ: createDefaultCivState(),
     startedAt: Date.now(),
     lastSavedAt: Date.now()
   };
@@ -1282,7 +1302,32 @@ let boostExpiresAt = 0;
 let boostName = "⚡ Chrono Overdrive (2x)";
 let devGodMode = false;
 let devAlwaysCrit = false;
+let devImmortalMode = false;
 let devKeyBuffer = "";
+let selectedDistrictId = null;
+let hoveredDistrictId = null;
+
+function ensureCivState() {
+  if (!state.civ || typeof state.civ !== "object") {
+    state.civ = createDefaultCivState();
+  }
+  const def = createDefaultCivState();
+  if (!isFinite(state.civ.food)) state.civ.food = def.food;
+  if (!isFinite(state.civ.happiness)) state.civ.happiness = def.happiness;
+  if (!isFinite(state.civ.stability)) state.civ.stability = def.stability;
+  if (!isFinite(state.civ.integrity)) state.civ.integrity = def.integrity;
+  if (!state.civ.taxRate) state.civ.taxRate = "normal";
+  if (!state.civ.jobs || typeof state.civ.jobs !== "object") {
+    state.civ.jobs = { ...def.jobs };
+  }
+  if (!state.civ.crises || typeof state.civ.crises !== "object") {
+    state.civ.crises = {};
+  }
+  if (!state.civ.overdrives || typeof state.civ.overdrives !== "object") {
+    state.civ.overdrives = {};
+  }
+  if (!isFinite(state.civ.collapses)) state.civ.collapses = 0;
+}
 
 // ============================================================================
 // NUMBER FORMATTING & HELPERS
@@ -1370,7 +1415,7 @@ function getPurchasePlan(b) {
 }
 
 // ============================================================================
-// PRODUCTION, DOCTRINE, WONDER & CLICK POWER CALCULATIONS
+// PRODUCTION, DOCTRINE, STRATEGY VITALS, WONDER & CLICK POWER CALCULATIONS
 // ============================================================================
 function getCritChance() {
   if (devAlwaysCrit) return 1.0;
@@ -1397,7 +1442,18 @@ function getCritMultiplier() {
   return mult;
 }
 
+function getTaxMultiplier() {
+  ensureCivState();
+  switch (state.civ.taxRate) {
+    case "low": return 0.80;
+    case "high": return 1.35;
+    case "brutal": return 1.75;
+    default: return 1.00;
+  }
+}
+
 function getGlobalMultiplier() {
+  ensureCivState();
   let mult = 1;
   mult *= 1 + state.achievements.length * 0.01;
   mult *= 1 + state.shards * 0.10;
@@ -1405,6 +1461,16 @@ function getGlobalMultiplier() {
   if (state.doctrine === "balanced") mult *= 1.10;
   else if (state.doctrine === "industrious") mult *= 0.90;
   else if (state.doctrine === "prosperity") mult *= 1.20;
+
+  // Tax policy & Scholar workforce bonus
+  mult *= getTaxMultiplier();
+  const scholarsPct = state.civ.jobs.scholars || 20;
+  mult *= Math.max(0.7, 1 + (scholarsPct - 15) * 0.015);
+
+  // Golden Age Harmony Bonus when all vitals >= 80%
+  if (state.civ.food >= 80 && state.civ.happiness >= 80 && state.civ.stability >= 80 && state.civ.integrity >= 80) {
+    mult *= 1.20;
+  }
 
   if (hasWonder("w_gardens")) mult *= 1.15;
   if (hasWonder("w_colossus")) mult *= 1.15;
@@ -1443,6 +1509,7 @@ function getGlobalMultiplier() {
 }
 
 function getBuildingSingleCps(b) {
+  ensureCivState();
   let cps = b.baseCps;
   UPGRADES.forEach((u) => {
     if (!state.upgrades.includes(u.id)) return;
@@ -1456,6 +1523,14 @@ function getBuildingSingleCps(b) {
       }
     }
   });
+  // District Overdrive (2x for 30s)
+  if ((state.civ.overdrives[b.id] || 0) > Date.now()) {
+    cps *= 2.0;
+  }
+  // Active Crisis penalty on this district (-75% output until resolved)
+  if (state.civ.crises[b.id]) {
+    cps *= 0.25;
+  }
   return cps * getGlobalMultiplier();
 }
 
@@ -1470,7 +1545,32 @@ function getTotalCps() {
   return total;
 }
 
+// Net CP/s accounts for Civilization Deficit / Unrest / Crisis Drain! Can go NEGATIVE!
+function getNetCps() {
+  ensureCivState();
+  const gross = getTotalCps();
+  if (gross <= 0) return 0;
+
+  let penaltyFactor = 0;
+  if (state.civ.food < 30) {
+    penaltyFactor += ((30 - state.civ.food) / 30) * 0.85;
+  }
+  if (state.civ.happiness < 30) {
+    penaltyFactor += ((30 - state.civ.happiness) / 30) * 0.75;
+  }
+  if (state.civ.stability < 35) {
+    penaltyFactor += ((35 - state.civ.stability) / 35) * 1.10;
+  }
+  const activeCrisisCount = Object.keys(state.civ.crises || {}).length;
+  if (activeCrisisCount > 0) {
+    penaltyFactor += activeCrisisCount * 0.22;
+  }
+
+  return gross * (1 - penaltyFactor);
+}
+
 function getClickPower() {
+  ensureCivState();
   let base = 1;
   let mult = 1;
   let cpsPct = 0;
@@ -1493,7 +1593,10 @@ function getClickPower() {
   if (state.doctrine === "industrious") mult *= 1.25;
   else if (state.doctrine === "prosperity") mult *= 0.85;
 
-  // Achievement & Shard bonus applies to base clicks without inflating the passive-doctrine multiplier
+  // Engineer workforce boosts construction click power
+  const workersPct = state.civ.jobs.workers || 30;
+  mult *= Math.max(0.75, 1 + (workersPct - 20) * 0.015);
+
   const progressionBonus = (1 + state.achievements.length * 0.01) * (1 + state.shards * 0.10) * (Date.now() < boostExpiresAt ? boostMultiplier : 1);
   const fromCps = getTotalCps() * cpsPct;
   return (base * mult * progressionBonus) + fromCps;
@@ -1616,13 +1719,25 @@ function renderEraTimeline() {
 }
 
 function updateTopHUD() {
-  const cps = getTotalCps();
+  ensureCivState();
+  const netCps = getNetCps();
   const cpc = getClickPower();
+  const pop = getPopulation();
   const resEl = document.getElementById("res-amount");
   resEl.textContent = formatNum(state.cp, state.cp < 100 ? 1 : 0);
-  document.getElementById("res-cps").textContent = formatNum(cps, 1);
+
+  const cpsEl = document.getElementById("res-cps");
+  const rateBanner = document.getElementById("cp-rate-banner");
+  if (netCps < 0) {
+    cpsEl.textContent = `-${formatNum(Math.abs(netCps), 1)} /s (DEFICIT!)`;
+    if (rateBanner) rateBanner.classList.add("deficit");
+  } else {
+    cpsEl.textContent = `+${formatNum(netCps, 1)} /s`;
+    if (rateBanner) rateBanner.classList.remove("deficit");
+  }
+
   document.getElementById("res-cpc").textContent = formatNum(cpc, 1);
-  document.getElementById("res-pop").textContent = formatNum(getPopulation(), 0);
+  document.getElementById("res-pop").textContent = formatNum(pop, 0);
   document.getElementById("res-shards").textContent = formatNum(state.shards, 0);
   document.getElementById("pending-shards").textContent = `+${formatNum(getPendingShards(), 0)}`;
   document.getElementById("city-title-display").textContent = getFullCityTitle();
@@ -1631,9 +1746,68 @@ function updateTopHUD() {
   const panEraEl = document.getElementById("panorama-era-title");
   if (panEraEl) panEraEl.textContent = `${ERAS[state.currentEra].icon} ${getFullCityTitle()} (${ERAS[state.currentEra].name})`;
   const panCpsEl = document.getElementById("panorama-cps-share");
-  if (panCpsEl) panCpsEl.textContent = `City Output: +${formatNum(cps, 1)} CP/s`;
+  if (panCpsEl) {
+    panCpsEl.textContent = netCps < 0
+      ? `⚠️ Deficit: -${formatNum(Math.abs(netCps), 1)} CP/s`
+      : `Net Output: +${formatNum(netCps, 1)} CP/s`;
+    panCpsEl.style.borderColor = netCps < 0 ? "#ef4444" : "rgba(255,255,255,0.16)";
+    panCpsEl.style.color = netCps < 0 ? "#fca5a5" : "#fafaf9";
+  }
 
   document.getElementById("bld-total-badge").textContent = getTotalBuildings();
+
+  // Strategy Vitals & Workforce HUD
+  const updateVitalBar = (key, valElId, fillElId) => {
+    const val = Math.round(Math.max(0, Math.min(100, state.civ[key])));
+    const valEl = document.getElementById(valElId);
+    const fillEl = document.getElementById(fillElId);
+    if (valEl) valEl.textContent = `${val}%`;
+    if (fillEl) {
+      fillEl.style.width = `${val}%`;
+      fillEl.classList.toggle("low", val < 30);
+      if (fillEl.parentElement && fillEl.parentElement.parentElement) {
+        fillEl.parentElement.parentElement.classList.toggle("critical", val < 25);
+      }
+    }
+  };
+  updateVitalBar("food", "vital-food-val", "vital-food-fill");
+  updateVitalBar("happiness", "vital-happy-val", "vital-happy-fill");
+  updateVitalBar("stability", "vital-stab-val", "vital-stab-fill");
+  updateVitalBar("integrity", "vital-grid-val", "vital-grid-fill");
+
+  const wfPopEl = document.getElementById("wf-pop-total");
+  if (wfPopEl) wfPopEl.textContent = formatNum(pop, 0);
+  const fPctEl = document.getElementById("job-farmers-pct");
+  if (fPctEl) fPctEl.textContent = `${state.civ.jobs.farmers}%`;
+  const wPctEl = document.getElementById("job-workers-pct");
+  if (wPctEl) wPctEl.textContent = `${state.civ.jobs.workers}%`;
+  const sPctEl = document.getElementById("job-scholars-pct");
+  if (sPctEl) sPctEl.textContent = `${state.civ.jobs.scholars}%`;
+  const gPctEl = document.getElementById("job-guards-pct");
+  if (gPctEl) gPctEl.textContent = `${state.civ.jobs.guards}%`;
+
+  const crisisCount = Object.keys(state.civ.crises || {}).length;
+  const crisisBadge = document.getElementById("crisis-count-badge");
+  if (crisisBadge) crisisBadge.textContent = crisisCount;
+  const repairBtn = document.getElementById("btn-decree-repair");
+  if (repairBtn) repairBtn.classList.toggle("urgent", crisisCount > 0 || state.civ.integrity < 35);
+
+  const warnBar = document.getElementById("collapse-warning-bar");
+  const warnText = document.getElementById("collapse-warning-text");
+  if (warnBar && warnText) {
+    if (state.civ.stability < 32 || state.civ.food < 22 || crisisCount >= 2 || netCps < 0) {
+      warnBar.classList.remove("hidden");
+      if (state.civ.stability < 20) {
+        warnText.textContent = `🌋 IMMINENT COLLAPSE! Stability at ${Math.round(state.civ.stability)}%! Lower taxes, assign Watchmen, or resolve crises immediately!`;
+      } else if (crisisCount > 0) {
+        warnText.textContent = `🚨 ${crisisCount} District Crisis(es) active in your 2.5D City! Click the burning districts on the map or click '🚒 Fix Crises'!`;
+      } else {
+        warnText.textContent = `⚠️ CIVIC DEFICIT! Low Food (${Math.round(state.civ.food)}%) or Morale (${Math.round(state.civ.happiness)}%) is draining your Civilization Points!`;
+      }
+    } else {
+      warnBar.classList.add("hidden");
+    }
+  }
 
   const critEl = document.getElementById("crit-chance");
   if (critEl) {
@@ -2126,252 +2300,523 @@ function enableHorizontalDragScroll(el) {
   }, { passive: false });
 }
 
-function drawDistrictStripCanvas(cvs, b, count) {
-  if (!cvs) return;
-  const visibleUnits = Math.min(60, count);
-  const wrapW = cvs.parentElement && cvs.parentElement.clientWidth > 0 ? cvs.parentElement.clientWidth : 680;
-  const targetCw = Math.max(wrapW, 680, visibleUnits * 40 + 135);
-  if (cvs.width !== targetCw) {
-    cvs.width = targetCw;
-  }
-
-  const ctx = cvs.getContext("2d");
-  const cw = cvs.width;
-  const ch = cvs.height;
-
-  const nightFactor = (1 - Math.cos(dayCyclePhase * Math.PI * 2)) / 2;
-  const isNight = nightFactor > 0.45;
-  const isDuskOrDawn = nightFactor > 0.22 && nightFactor < 0.72;
-
-  // 1. Era Sky Gradient synced with the City Day/Dusk/Night Cycle
-  const eraColors = ERAS[b.era].skyColors;
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, ch);
-  bgGrad.addColorStop(0, eraColors[0]);
-  bgGrad.addColorStop(1, eraColors[1]);
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, cw, ch);
-
-  if (isDuskOrDawn) {
-    ctx.fillStyle = "rgba(249, 115, 22, 0.16)";
-    ctx.fillRect(0, 0, cw, ch);
-  }
-  if (nightFactor > 0.05) {
-    ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.52).toFixed(2)})`;
-    ctx.fillRect(0, 0, cw, ch);
-  }
-
-  // 2. Twinkling Night Stars or Drifting Day Clouds across the strip
-  if (isNight || b.era === 8) {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
-    for (let sx = 24; sx < cw; sx += 65) {
-      const sy = 6 + ((sx * 7) % 18);
-      if (Math.sin(animTick * 2 + sx) > -0.2) {
-        ctx.fillRect(sx, sy, 1.5, 1.5);
-      }
-    }
-  } else {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
-    for (let cx = 0; cx < cw; cx += 210) {
-      const cloudX = ((cx + animTick * 6) % (cw + 80)) - 40;
-      ctx.beginPath();
-      ctx.roundRect(cloudX, 7 + (cx % 10), 42, 8, 4);
-      ctx.fill();
-    }
-  }
-
-  // 3. Rolling Horizon Hills
-  ctx.fillStyle = ERAS[b.era].hillColors[0];
-  ctx.beginPath();
-  ctx.moveTo(0, ch - 14);
-  let lastHx = 0;
-  for (let hx = 0; hx < cw; hx += 120) {
-    lastHx = hx + 120;
-    ctx.quadraticCurveTo(hx + 60, ch - 30, lastHx, ch - 14);
-  }
-  ctx.lineTo(Math.max(cw, lastHx), ch);
-  ctx.lineTo(0, ch);
-  ctx.closePath();
-  ctx.fill();
-
-  // 4. Ground Terrace & District Thoroughfare Road
-  ctx.fillStyle = b.era >= 5 ? "#27272a" : "#3f5232";
-  ctx.fillRect(0, ch - 14, cw, 14);
-  ctx.fillStyle = b.era === 0 ? "#6b4c35" : b.era <= 4 ? "#78716c" : "#18181b";
-  ctx.fillRect(0, ch - 5, cw, 5);
-
-  // Streetlamps along modern/medieval district strips at night
-  if (b.era >= 2) {
-    for (let lx = 48; lx < cw; lx += 80) {
-      ctx.fillStyle = "#52525b";
-      ctx.fillRect(lx, ch - 19, 1.5, 6);
-      if (isNight || isDuskOrDawn) {
-        ctx.fillStyle = b.era === 8 ? "#06b6d4" : "#fef08a";
-        ctx.fillRect(lx - 0.5, ch - 21, 2.5, 2.5);
-      }
-    }
-  }
-
-  // 5. Draw all Animated Infrastructure Units along the strip
-  const spacing = 40;
-  for (let i = 0; i < visibleUnits; i++) {
-    const ux = 28 + i * spacing;
-    drawUnitGraphicOnStrip(ctx, b.id, ux, ch - 12, i, isNight);
-  }
-
-  // 6. Living Foreground District Traffic (Villagers, Carts, Cars, or Hover-Pods)
-  const agentCount = Math.min(12, Math.max(3, Math.ceil(visibleUnits / 3)));
-  for (let a = 0; a < agentCount; a++) {
-    const dir = a % 2 === 0 ? 1 : -1;
-    const speed = b.era >= 5 ? 16 : 8;
-    const rawPos = (a * 137 + animTick * speed * dir) % cw;
-    const ax = rawPos < 0 ? rawPos + cw : rawPos;
-    const ay = ch - 4;
-
-    if (b.era <= 4) {
-      // Walking citizen / merchant cart
-      ctx.fillStyle = a % 2 === 0 ? "#fde047" : "#f97316";
-      ctx.fillRect(ax, ay - 3, 4, 3);
-    } else {
-      // Vehicle / transit pod with night headlights
-      ctx.fillStyle = b.era === 8 ? (a % 2 === 0 ? "#06b6d4" : "#f43f5e") : "#38bdf8";
-      ctx.fillRect(ax, ay - 3, 8, 3);
-      if (isNight || isDuskOrDawn) {
-        ctx.fillStyle = "rgba(254, 240, 138, 0.75)";
-        ctx.fillRect(dir > 0 ? ax + 8 : ax - 6, ay - 2, 6, 1.5);
-      }
-    }
-  }
+// ============================================================================
+// MINIMIZED DISTRICT DOCK & INTERACTIVE 2.5D DISTRICT INSPECTOR
+// ============================================================================
+function drawAllDistrictCanvases() {
+  // Districts are now rendered directly inside the 2.5D Isometric City Canvas!
 }
 
-function drawAllDistrictCanvases() {
-  const cityTab = document.getElementById("tab-city");
-  if (!cityTab || !cityTab.classList.contains("active")) return;
+function openDistrictInspector(bId) {
+  ensureCivState();
+  const b = BUILDINGS.find((x) => x.id === bId);
+  if (!b) return;
+  selectedDistrictId = bId;
+  const overlay = document.getElementById("district-inspector-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("hidden");
+  updateDistrictInspectorUI();
+  renderInfrastructureDistricts();
+}
 
-  BUILDINGS.forEach((b) => {
-    const count = state.buildings[b.id] || 0;
-    if (count <= 0) return;
-    const cvs = document.getElementById(`dist-cvs-${b.id}`);
-    if (cvs) {
-      drawDistrictStripCanvas(cvs, b, count);
+function updateDistrictInspectorUI() {
+  ensureCivState();
+  const overlay = document.getElementById("district-inspector-overlay");
+  if (!overlay || overlay.classList.contains("hidden") || !selectedDistrictId) return;
+  const b = BUILDINGS.find((x) => x.id === selectedDistrictId);
+  if (!b) return;
+
+  const count = state.buildings[b.id] || 0;
+  const bCps = count * getBuildingSingleCps(b);
+  const crisis = state.civ.crises[b.id];
+  const isOverdriven = (state.civ.overdrives[b.id] || 0) > Date.now();
+  const health = crisis ? Math.max(15, Math.round(crisis.health || 50)) : Math.round(state.civ.integrity);
+
+  document.getElementById("dist-insp-icon").textContent = b.icon;
+  document.getElementById("dist-insp-name").textContent = `${b.name} (${b.districtName})`;
+  document.getElementById("dist-insp-sub").textContent = `${b.zoneTag} • ${ERAS[b.era].short} • ×${count} Built`;
+  document.getElementById("dist-insp-cps").textContent = `+${formatNum(bCps, 1)} CP/s`;
+  document.getElementById("dist-insp-health").textContent = `${health}%`;
+
+  const statusEl = document.getElementById("dist-insp-status");
+  if (crisis) {
+    statusEl.className = "dist-status-crisis";
+    statusEl.textContent = `${crisis.label} (-75% CP/s)`;
+  } else if (isOverdriven) {
+    const rem = Math.ceil(((state.civ.overdrives[b.id] || 0) - Date.now()) / 1000);
+    statusEl.className = "dist-status-ok";
+    statusEl.textContent = `⚡ Overdriven 2× (${rem}s)`;
+  } else {
+    statusEl.className = "dist-status-ok";
+    statusEl.textContent = "🟢 Operational";
+  }
+
+  const plan = getPurchasePlan(b);
+  const buyBtn = document.getElementById("btn-dist-buy");
+  if (buyBtn) {
+    buyBtn.textContent = `🏗️ +${plan.qty} (${formatNum(plan.cost)} CP)`;
+    buyBtn.disabled = state.cp < plan.cost;
+  }
+
+  const odBtn = document.getElementById("btn-dist-overdrive");
+  if (odBtn) {
+    odBtn.textContent = isOverdriven ? "⚡ Overdrive Active" : "⚡ Overdrive (2× 30s)";
+    odBtn.disabled = isOverdriven || count <= 0;
+  }
+
+  const repBtn = document.getElementById("btn-dist-repair");
+  if (repBtn) {
+    if (crisis) {
+      repBtn.textContent = `🚒 Extinguish ${crisis.short || "Crisis"}!`;
+      repBtn.disabled = false;
+    } else {
+      repBtn.textContent = "🔧 Fortify (+Health)";
+      repBtn.disabled = state.civ.integrity >= 99;
     }
-  });
+  }
 }
 
 function renderInfrastructureDistricts() {
+  ensureCivState();
   const container = document.getElementById("infrastructure-districts");
   if (!container) return;
 
-  const totalCps = getTotalCps();
   const ownedBuildings = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
-
   const summaryNote = document.getElementById("districts-summary-note");
   if (summaryNote) {
     summaryNote.textContent = ownedBuildings.length > 0
-      ? `${ownedBuildings.length} Active Districts • ${getTotalBuildings().toLocaleString()} Structures (Drag or use ◀ ▶ to pan)`
-      : "Construct buildings on the right to expand your city districts";
+      ? `${ownedBuildings.length} Active 2.5D Districts • ${getTotalBuildings().toLocaleString()} Structures`
+      : "Click the Build emblem or right-hand store to establish your first 2.5D District";
   }
 
   if (ownedBuildings.length === 0) {
-    container.innerHTML = `<div class="district-empty">🛖 Click the <strong>Build Settlement</strong> emblem on the left to gather your first <strong>15 CP</strong>, then construct a <strong>Thatched Hut</strong> on the right to establish your first City District!</div>`;
+    container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-muted);padding:4px 6px;">🛖 No districts built yet — gather <strong>15 CP</strong> and construct a <strong>Thatched Hut</strong> (or click its 2.5D plot on the map) to raise your first district!</div>`;
     return;
   }
 
-  const emptyEl = container.querySelector(".district-empty");
-  if (emptyEl) emptyEl.remove();
-
-  // Remove any strips for buildings with count === 0 (e.g. after prestige or reset)
-  Array.from(container.querySelectorAll(".district-strip")).forEach((el) => {
-    const bId = el.getAttribute("data-bid");
-    if (!bId || (state.buildings[bId] || 0) <= 0) {
-      el.remove();
-    }
-  });
-
-  const containerW = container.clientWidth > 0 ? container.clientWidth : 680;
-
+  container.innerHTML = "";
   ownedBuildings.forEach((b) => {
     const count = state.buildings[b.id] || 0;
     const bCps = count * getBuildingSingleCps(b);
-    const shareNum = totalCps > 0 ? (bCps / totalCps) * 100 : 0;
-    const sharePct = shareNum.toFixed(1);
+    const crisis = state.civ.crises[b.id];
+    const isOverdriven = (state.civ.overdrives[b.id] || 0) > Date.now();
 
-    const visibleUnits = Math.min(60, count);
-    const cw = Math.max(containerW, 680, visibleUnits * 40 + 135);
-    const ch = 76;
-
-    let strip = document.getElementById(`dist-strip-${b.id}`);
-    if (!strip) {
-      strip = document.createElement("div");
-      strip.className = "district-strip";
-      strip.id = `dist-strip-${b.id}`;
-      strip.setAttribute("data-bid", b.id);
-      strip.innerHTML = `
-        <div class="district-strip-header">
-          <div class="district-title-group">
-            <span>${b.icon} ${b.name}</span>
-            <span class="district-count-pill" id="dist-cnt-${b.id}">×${count}</span>
-          </div>
-          <div class="district-stats-group">
-            <span class="district-cps" id="dist-cps-${b.id}">+${formatNum(bCps, 1)} CP/s</span>
-            <span class="district-share" id="dist-share-${b.id}">(${sharePct}%)</span>
-            <div class="district-pan-btns">
-              <button class="district-pan-btn" data-pan="-180" title="Pan District Left">◀</button>
-              <button class="district-pan-btn" data-pan="180" title="Pan District Right">▶</button>
-            </div>
-          </div>
+    const chip = document.createElement("button");
+    chip.className = "mini-district-chip" +
+      (selectedDistrictId === b.id ? " selected" : "") +
+      (crisis ? " in-crisis" : "");
+    chip.id = `mini-chip-${b.id}`;
+    chip.title = `${b.name} (${b.districtName}) — Click to inspect & manage in 2.5D City`;
+    chip.innerHTML = `
+      <span class="mini-chip-icon">${crisis ? "🚨" : b.icon}</span>
+      <div class="mini-chip-info">
+        <div class="mini-chip-top">
+          <span>${b.name}</span>
+          <span class="mini-chip-cnt" id="dist-cnt-${b.id}">×${count}</span>
         </div>
-        <div class="district-share-bar">
-          <div class="district-share-fill" id="dist-bar-${b.id}" style="width: ${sharePct}%;"></div>
+        <div class="mini-chip-sub" id="dist-cps-${b.id}">
+          ${crisis ? `<span style="color:#fca5a5;">${crisis.label}</span>` : `${isOverdriven ? "⚡ " : ""}+${formatNum(bCps, 1)}/s`}
         </div>
-        <div class="district-scroll-wrap" id="dist-scroll-${b.id}">
-          <canvas class="district-canvas" id="dist-cvs-${b.id}" width="${cw}" height="${ch}"></canvas>
-        </div>
-      `;
-      container.appendChild(strip);
-
-      const scrollWrap = strip.querySelector(".district-scroll-wrap");
-      enableHorizontalDragScroll(scrollWrap);
-      strip.querySelectorAll(".district-pan-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const delta = parseInt(btn.getAttribute("data-pan"), 10);
-          scrollWrap.scrollBy({ left: delta, behavior: "smooth" });
-        });
-      });
-    } else {
-      // Update existing strip in-place so horizontal scroll position is preserved!
-      const cntEl = document.getElementById(`dist-cnt-${b.id}`);
-      if (cntEl) cntEl.textContent = `×${count}`;
-      const cpsEl = document.getElementById(`dist-cps-${b.id}`);
-      if (cpsEl) cpsEl.textContent = `+${formatNum(bCps, 1)} CP/s`;
-      const shareEl = document.getElementById(`dist-share-${b.id}`);
-      if (shareEl) shareEl.textContent = `(${sharePct}%)`;
-      const barEl = document.getElementById(`dist-bar-${b.id}`);
-      if (barEl) barEl.style.width = `${sharePct}%`;
-    }
-
-    const cvs = document.getElementById(`dist-cvs-${b.id}`);
-    if (cvs) {
-      if (cvs.width !== cw) cvs.width = cw;
-      if (cvs.height !== ch) cvs.height = ch;
-      drawDistrictStripCanvas(cvs, b, count);
-    }
+      </div>
+    `;
+    chip.addEventListener("click", () => {
+      openDistrictInspector(b.id);
+      panToIsoDistrict(b.id);
+    });
+    container.appendChild(chip);
   });
 }
 
 function updateDistrictsStats() {
-  const totalCps = getTotalCps();
+  ensureCivState();
   BUILDINGS.forEach((b) => {
     const count = state.buildings[b.id] || 0;
     if (count <= 0) return;
+    const cntEl = document.getElementById(`dist-cnt-${b.id}`);
     const cpsEl = document.getElementById(`dist-cps-${b.id}`);
-    const shareEl = document.getElementById(`dist-share-${b.id}`);
-    const barEl = document.getElementById(`dist-bar-${b.id}`);
-    if (!cpsEl && !shareEl && !barEl) return;
+    const chipEl = document.getElementById(`mini-chip-${b.id}`);
     const bCps = count * getBuildingSingleCps(b);
-    const sharePct = totalCps > 0 ? ((bCps / totalCps) * 100).toFixed(1) : "0.0";
-    if (cpsEl) cpsEl.textContent = `+${formatNum(bCps, 1)} CP/s`;
-    if (shareEl) shareEl.textContent = `(${sharePct}%)`;
-    if (barEl) barEl.style.width = `${sharePct}%`;
+    const crisis = state.civ.crises[b.id];
+    const isOverdriven = (state.civ.overdrives[b.id] || 0) > Date.now();
+    if (cntEl) cntEl.textContent = `×${count}`;
+    if (cpsEl) {
+      cpsEl.innerHTML = crisis
+        ? `<span style="color:#fca5a5;">${crisis.label}</span>`
+        : `${isOverdriven ? "⚡ " : ""}+${formatNum(bCps, 1)}/s`;
+    }
+    if (chipEl) {
+      chipEl.classList.toggle("in-crisis", Boolean(crisis));
+      chipEl.classList.toggle("selected", selectedDistrictId === b.id);
+    }
+  });
+  updateDistrictInspectorUI();
+}
+
+// ============================================================================
+// CIVILIZATION & POPULATION STRATEGY ENGINE + COLLAPSE SYSTEM
+// ============================================================================
+const CRISIS_TYPES = [
+  { type: "fire", label: "🔥 District Fire", short: "Fire" },
+  { type: "riot", label: "🪧 Citizen Riot", short: "Riot" },
+  { type: "plague", label: "☣️ Outbreak", short: "Plague" },
+  { type: "blackout", label: "⚡ Grid Failure", short: "Blackout" }
+];
+
+let nextCrisisCheckAt = Date.now() + 22000;
+
+function spawnDistrictCrisis(forceBId = null) {
+  ensureCivState();
+  const owned = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
+  if (owned.length === 0) return;
+
+  const target = forceBId
+    ? BUILDINGS.find((b) => b.id === forceBId)
+    : owned[Math.floor(Math.random() * owned.length)];
+  if (!target || state.civ.crises[target.id]) return;
+
+  const pick = CRISIS_TYPES[Math.floor(Math.random() * CRISIS_TYPES.length)];
+  state.civ.crises[target.id] = {
+    type: pick.type,
+    label: pick.label,
+    short: pick.short,
+    health: 55,
+    startedAt: Date.now()
+  };
+
+  SoundFX.click(0);
+  renderInfrastructureDistricts();
+  updateTopHUD();
+  showToast("🚨", `${pick.label} in ${target.name}!`, `Click the ${target.name} district in the 2.5D city (or '🚒 Fix Crises') before Stability collapses!`);
+}
+
+function resolveDistrictCrisis(bId, clientX = null, clientY = null) {
+  ensureCivState();
+  const crisis = state.civ.crises[bId];
+  const b = BUILDINGS.find((x) => x.id === bId);
+  if (!crisis || !b) return false;
+
+  delete state.civ.crises[bId];
+  state.civ.stability = Math.min(100, state.civ.stability + 8);
+  state.civ.integrity = Math.min(100, state.civ.integrity + 6);
+  const reward = Math.max(15, Math.ceil(getTotalCps() * 4 + getClickPower() * 4));
+  state.cp += reward;
+  state.totalCp += reward;
+  state.allTimeCp += reward;
+
+  if (clientX !== null && clientY !== null) {
+    spawnFloatingText(clientX, clientY, `🚒 Resolved! +${formatNum(reward)} CP`, true);
+  }
+  SoundFX.achievement();
+  renderInfrastructureDistricts();
+  updateDistrictInspectorUI();
+  updateTopHUD();
+  showToast("🚒", `${b.name} Stabilized!`, `Crisis extinguished! +8% Stability & +${formatNum(reward)} CP relief bonus.`);
+  return true;
+}
+
+function triggerCivilizationCollapse(reason = "Unchecked urban unrest, famine, and neglected district crises") {
+  ensureCivState();
+  const lostCp = Math.floor(state.cp * 0.38);
+  state.cp = Math.max(0, state.cp - lostCp);
+
+  let lostStructures = 0;
+  BUILDINGS.forEach((b) => {
+    const owned = state.buildings[b.id] || 0;
+    if (owned > 1) {
+      const drop = Math.max(1, Math.floor(owned * 0.15));
+      state.buildings[b.id] = Math.max(1, owned - drop);
+      lostStructures += drop;
+    }
+  });
+
+  state.civ.collapses = (state.civ.collapses || 0) + 1;
+  state.civ.food = 68;
+  state.civ.happiness = 65;
+  state.civ.stability = 65;
+  state.civ.integrity = 70;
+  state.civ.taxRate = "normal";
+  state.civ.crises = {};
+
+  document.querySelectorAll(".tax-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-tax") === "normal");
+  });
+
+  const modal = document.getElementById("collapse-modal");
+  if (modal) {
+    document.getElementById("collapse-modal-desc").textContent =
+      `${reason} caused ${getFullCityTitle()} to suffer a Civilization Collapse! Emergency reconstruction has stabilized the city at a heavy cost.`;
+    document.getElementById("collapse-lost-cp").textContent = `-${formatNum(lostCp)} CP`;
+    document.getElementById("collapse-lost-blds").textContent = `-${lostStructures} Structures`;
+    modal.classList.remove("hidden");
+  }
+
+  for (let i = 0; i < 6; i++) {
+    spawnCityFirework(150 + i * 140, 60 + (i % 2) * 35);
+  }
+  SoundFX.eraAdvance();
+  renderBuildingsList();
+  renderInfrastructureDistricts();
+  updateTopHUD();
+  saveGame(false);
+}
+
+function tickCivilizationStrategy(dt) {
+  ensureCivState();
+  const totBlds = getTotalBuildings();
+  if (totBlds < 2) {
+    // Keep starter village completely stable until player has built at least 2 structures
+    state.civ.food = 100;
+    state.civ.happiness = 100;
+    state.civ.stability = 100;
+    state.civ.integrity = 100;
+    return;
+  }
+
+  const jobs = state.civ.jobs;
+  const activeCrisisIds = Object.keys(state.civ.crises || {});
+  const crisisCount = activeCrisisIds.length;
+
+  // 1. Food & Water Equilibrium
+  const agSupply =
+    (state.buildings.megalith || 0) * 1.5 +
+    (state.buildings.foundry || 0) * 2.5 +
+    (state.buildings.aqueduct || 0) * 3.5 +
+    (state.buildings.watermill || 0) * 4.0 +
+    (state.buildings.arcology || 0) * 6.0;
+  const foodTarget = Math.min(100, Math.max(15, 38 + (jobs.farmers - 15) * 2.1 + Math.min(25, agSupply * 0.8)));
+  const foodDelta = (foodTarget - state.civ.food) * 0.08 * dt - (crisisCount * 0.35 * dt);
+  state.civ.food = Math.max(0, Math.min(100, state.civ.food + foodDelta));
+
+  // 2. Grid & Infrastructure Integrity
+  const utilSupply =
+    (state.buildings.steamworks || 0) * 2 +
+    (state.buildings.fission || 0) * 4 +
+    (state.buildings.quantum || 0) * 4;
+  const gridTarget = Math.min(100, Math.max(15, 42 + (jobs.workers - 15) * 2.0 + Math.min(22, utilSupply)));
+  const gridDelta = (gridTarget - state.civ.integrity) * 0.07 * dt - (crisisCount * 0.65 * dt);
+  state.civ.integrity = Math.max(0, Math.min(100, state.civ.integrity + gridDelta));
+
+  // 3. Citizen Morale & Happiness (affected by Taxes, Scholars, Food & Festivals)
+  let taxDrift = 0;
+  if (state.civ.taxRate === "low") taxDrift = +1.1;
+  else if (state.civ.taxRate === "normal") taxDrift = +0.15;
+  else if (state.civ.taxRate === "high") taxDrift = -0.95;
+  else if (state.civ.taxRate === "brutal") taxDrift = -2.4;
+
+  const festivalBonus = Date.now() < boostExpiresAt ? 1.2 : 0;
+  const happyTarget = Math.min(100, Math.max(10, 48 + (jobs.scholars - 15) * 1.8));
+  let happyRate = (happyTarget - state.civ.happiness) * 0.06 + taxDrift + festivalBonus - crisisCount * 0.55;
+  if (state.civ.food < 35) happyRate -= (35 - state.civ.food) * 0.05;
+  state.civ.happiness = Math.max(0, Math.min(100, state.civ.happiness + happyRate * dt));
+
+  // 4. Civic Stability & Order (Protected by Watchmen; Drained by Famine, Low Morale, Brutal Taxes & Crises!)
+  let stabRate = (jobs.guards - 18) * 0.07;
+  if (state.civ.food >= 65 && state.civ.happiness >= 65 && crisisCount === 0) {
+    stabRate += 0.65;
+  }
+  if (state.civ.food < 30) stabRate -= (30 - state.civ.food) * 0.075;
+  if (state.civ.happiness < 35) stabRate -= (35 - state.civ.happiness) * 0.07;
+  if (state.civ.integrity < 30) stabRate -= (30 - state.civ.integrity) * 0.05;
+  if (state.civ.taxRate === "brutal") stabRate -= 1.25;
+  else if (state.civ.taxRate === "high") stabRate -= 0.35;
+  else if (state.civ.taxRate === "low") stabRate += 0.65;
+  stabRate -= crisisCount * 0.85;
+
+  state.civ.stability = Math.max(0, Math.min(100, state.civ.stability + stabRate * dt));
+
+  // Damage active crisis districts over time
+  activeCrisisIds.forEach((bId) => {
+    const cr = state.civ.crises[bId];
+    if (cr) {
+      cr.health = Math.max(5, (cr.health || 55) - 1.2 * dt);
+    }
+  });
+
+  // Periodic Crisis Spawner (higher risk if Integrity, Morale, or Watchmen are low)
+  if (totBlds >= 4 && Date.now() >= nextCrisisCheckAt) {
+    const guardFactor = Math.max(0.05, 0.38 - (jobs.guards * 0.008) + (state.civ.taxRate === "brutal" ? 0.22 : 0));
+    if (crisisCount < 3 && Math.random() < guardFactor) {
+      spawnDistrictCrisis();
+    }
+    nextCrisisCheckAt = Date.now() + 24000 + Math.random() * 14000;
+  }
+
+  // Check for Catastrophic Civilization Collapse!
+  if (state.civ.stability <= 0.2) {
+    if (devImmortalMode) {
+      state.civ.stability = 25;
+    } else {
+      let reason = "Severe civic instability and neglected urban crises";
+      if (state.civ.food < 20) reason = "Catastrophic Famine and water shortages";
+      else if (state.civ.taxRate === "brutal" || state.civ.happiness < 20) reason = "A city-wide Tax Revolt and citizen uprising";
+      else if (crisisCount >= 2) reason = "Uncontrolled fires and district disasters";
+      triggerCivilizationCollapse(reason);
+    }
+  }
+}
+
+function adjustWorkforce(jobKey, delta) {
+  ensureCivState();
+  const jobs = state.civ.jobs;
+  const keys = ["farmers", "workers", "scholars", "guards"];
+  if (!keys.includes(jobKey)) return;
+
+  const currentVal = jobs[jobKey];
+  const nextVal = Math.max(5, Math.min(70, currentVal + delta));
+  const actualDelta = nextVal - currentVal;
+  if (actualDelta === 0) return;
+
+  // Balance the delta across the other castes so total always equals 100%
+  const others = keys.filter((k) => k !== jobKey);
+  let remaining = -actualDelta;
+  for (const ok of others) {
+    if (remaining === 0) break;
+    const avail = remaining > 0 ? 70 - jobs[ok] : jobs[ok] - 5;
+    if (avail <= 0) continue;
+    const step = remaining > 0 ? Math.min(remaining, avail) : Math.max(remaining, -avail);
+    jobs[ok] += step;
+    remaining -= step;
+  }
+
+  jobs[jobKey] = 100 - others.reduce((acc, k) => acc + jobs[k], 0);
+  SoundFX.click(state.currentEra);
+  updateTopHUD();
+  renderBuildingsList();
+  renderInfrastructureDistricts();
+}
+
+function setupStrategyControls() {
+  ensureCivState();
+
+  // Workforce +/- buttons
+  document.querySelectorAll(".wf-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const job = btn.getAttribute("data-job");
+      const delta = parseInt(btn.getAttribute("data-delta"), 10);
+      adjustWorkforce(job, delta);
+    });
+  });
+
+  // Tax Rate buttons
+  document.querySelectorAll(".tax-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-tax") === state.civ.taxRate);
+    btn.addEventListener("click", () => {
+      state.civ.taxRate = btn.getAttribute("data-tax");
+      document.querySelectorAll(".tax-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      SoundFX.research();
+      updateTopHUD();
+      renderBuildingsList();
+      renderInfrastructureDistricts();
+    });
+  });
+
+  // Emergency Decree 1: Grain Dole
+  document.getElementById("btn-decree-ration")?.addEventListener("click", () => {
+    const cost = Math.max(10, Math.ceil(state.cp * 0.08 + getTotalCps() * 4));
+    if (state.cp < cost) {
+      showToast("🍞", "Insufficient Treasury", `Need ${formatNum(cost)} CP to issue an Emergency Grain Dole.`);
+      return;
+    }
+    state.cp -= cost;
+    state.civ.food = Math.min(100, state.civ.food + 30);
+    state.civ.happiness = Math.min(100, state.civ.happiness + 10);
+    SoundFX.buy();
+    updateTopHUD();
+    showToast("🍞", "Emergency Grain Dole Issued!", `Restored +30% Food & +10% Morale (-${formatNum(cost)} CP).`);
+  });
+
+  // Emergency Decree 2: Bread & Circuses
+  document.getElementById("btn-decree-circus")?.addEventListener("click", () => {
+    const cost = Math.max(15, Math.ceil(state.cp * 0.10 + getTotalCps() * 5));
+    if (state.cp < cost) {
+      showToast("🎪", "Insufficient Treasury", `Need ${formatNum(cost)} CP to hold Bread & Circuses.`);
+      return;
+    }
+    state.cp -= cost;
+    state.civ.happiness = Math.min(100, state.civ.happiness + 30);
+    state.civ.stability = Math.min(100, state.civ.stability + 15);
+    for (let i = 0; i < 3; i++) spawnCityFirework(200 + i * 220, 45);
+    SoundFX.wonder();
+    updateTopHUD();
+    showToast("🎪", "Grand Civic Games Held!", `Restored +30% Morale & +15% Stability (-${formatNum(cost)} CP).`);
+  });
+
+  // Emergency Decree 3: Deploy Watch & Repair Brigades
+  document.getElementById("btn-decree-repair")?.addEventListener("click", () => {
+    const cost = Math.max(12, Math.ceil(state.cp * 0.08 + getTotalCps() * 4));
+    if (state.cp < cost && Object.keys(state.civ.crises).length === 0) {
+      showToast("🚒", "Insufficient Treasury", `Need ${formatNum(cost)} CP to deploy full city repair brigades.`);
+      return;
+    }
+    state.cp = Math.max(0, state.cp - Math.min(state.cp, cost));
+    state.civ.crises = {};
+    state.civ.integrity = Math.min(100, state.civ.integrity + 30);
+    state.civ.stability = Math.min(100, state.civ.stability + 20);
+    SoundFX.achievement();
+    renderInfrastructureDistricts();
+    updateDistrictInspectorUI();
+    updateTopHUD();
+    showToast("🚒", "Watch & Repair Brigades Deployed!", "All district crises extinguished! +30% Grid Health & +20% Stability.");
+  });
+
+  // Collapse Recovery Modal button
+  document.getElementById("btn-recover-collapse")?.addEventListener("click", () => {
+    document.getElementById("collapse-modal")?.classList.add("hidden");
+    SoundFX.buy();
+  });
+
+  // Fullscreen 2.5D City Toggles
+  const toggleFullscreen25D = () => {
+    document.body.classList.toggle("fullscreen-25d");
+    const isFs = document.body.classList.contains("fullscreen-25d");
+    const topBtn = document.getElementById("btn-fullscreen-top");
+    if (topBtn) topBtn.textContent = isFs ? "✕ Exit Fullscreen" : "⛶ 2.5D Fullscreen";
+    setTimeout(() => drawCityCanvas(), 50);
+  };
+  document.getElementById("btn-fullscreen-top")?.addEventListener("click", toggleFullscreen25D);
+  document.getElementById("btn-fullscreen-city")?.addEventListener("click", toggleFullscreen25D);
+
+  // Interactive 2.5D District Inspector Buttons
+  document.getElementById("btn-close-dist-insp")?.addEventListener("click", () => {
+    document.getElementById("district-inspector-overlay")?.classList.add("hidden");
+    selectedDistrictId = null;
+    renderInfrastructureDistricts();
+  });
+
+  document.getElementById("btn-dist-buy")?.addEventListener("click", () => {
+    if (selectedDistrictId) {
+      buyBuilding(selectedDistrictId);
+      updateDistrictInspectorUI();
+    }
+  });
+
+  document.getElementById("btn-dist-overdrive")?.addEventListener("click", () => {
+    if (!selectedDistrictId) return;
+    ensureCivState();
+    state.civ.overdrives[selectedDistrictId] = Date.now() + 30000;
+    state.civ.happiness = Math.max(5, state.civ.happiness - 7);
+    const b = BUILDINGS.find((x) => x.id === selectedDistrictId);
+    SoundFX.wonder();
+    updateDistrictInspectorUI();
+    renderInfrastructureDistricts();
+    updateTopHUD();
+    if (b) showToast("⚡", `${b.name} Overdriven!`, "2.0× District Output for 30s (-7% Citizen Morale).");
+  });
+
+  document.getElementById("btn-dist-repair")?.addEventListener("click", () => {
+    if (!selectedDistrictId) return;
+    ensureCivState();
+    if (state.civ.crises[selectedDistrictId]) {
+      resolveDistrictCrisis(selectedDistrictId);
+    } else {
+      state.civ.integrity = Math.min(100, state.civ.integrity + 18);
+      state.civ.stability = Math.min(100, state.civ.stability + 6);
+      SoundFX.buy();
+      updateDistrictInspectorUI();
+      updateTopHUD();
+      showToast("🔧", "District Fortified!", "Restored +18% Grid Integrity & +6% Stability.");
+    }
   });
 }
 
@@ -3340,19 +3785,155 @@ function drawWonderOnPanorama(ctx, wId, x, gy, isNight) {
   }
 }
 
+// ============================================================================
+// 2.5D ISOMETRIC GEOMETRY & BUILDING PRIMITIVES
+// ============================================================================
+const ZONE_ISO_COLORS = {
+  Residential:   { top: "#78350f", left: "#92400e", right: "#451a03", accent: "#fb923c" },
+  Agriculture:   { top: "#365314", left: "#4d7c0f", right: "#1a2e05", accent: "#4ade80" },
+  Waterworks:    { top: "#0c4a6e", left: "#0369a1", right: "#082f49", accent: "#38bdf8" },
+  Commerce:      { top: "#713f12", left: "#a16207", right: "#422006", accent: "#facc15" },
+  Civic:         { top: "#4c1d95", left: "#6d28d9", right: "#2e1065", accent: "#c084fc" },
+  Industry:      { top: "#7f1d1d", left: "#991b1b", right: "#450a0a", accent: "#f87171" },
+  Finance:       { top: "#134e4a", left: "#0f766e", right: "#042f2e", accent: "#2dd4bf" },
+  Education:     { top: "#312e81", left: "#4338ca", right: "#1e1b4b", accent: "#818cf8" },
+  Utilities:     { top: "#78350f", left: "#b45309", right: "#451a03", accent: "#fbbf24" },
+  Transit:       { top: "#164e63", left: "#0e7490", right: "#083344", accent: "#22d3ee" },
+  Aviation:      { top: "#1e3a8a", left: "#1d4ed8", right: "#172554", accent: "#60a5fa" },
+  "High-Rise":   { top: "#0c4a6e", left: "#0284c7", right: "#082f49", accent: "#7dd3fc" },
+  Megastructure: { top: "#881337", left: "#be123c", right: "#4c0519", accent: "#fb7185" },
+  Spaceport:     { top: "#3b0764", left: "#6b21a8", right: "#1e1b4b", accent: "#e879f9" }
+};
+
+// Stores live hitboxes of every 2.5D District Parcel rendered on #city-canvas
+let isoParcelHitboxes = [];
+
+function drawIsoPlinth(ctx, cx, cy, rx, ry, depth, topCol, leftCol, rightCol, strokeCol, lineW = 1.4) {
+  // Left 3D extruded face
+  drawPolygon(
+    ctx,
+    [
+      [cx - rx, cy],
+      [cx, cy + ry],
+      [cx, cy + ry + depth],
+      [cx - rx, cy + depth]
+    ],
+    leftCol,
+    strokeCol,
+    0.8
+  );
+  // Right 3D extruded face
+  drawPolygon(
+    ctx,
+    [
+      [cx, cy + ry],
+      [cx + rx, cy],
+      [cx + rx, cy + depth],
+      [cx, cy + ry + depth]
+    ],
+    rightCol,
+    strokeCol,
+    0.8
+  );
+  // Top isometric diamond surface
+  drawPolygon(
+    ctx,
+    [
+      [cx, cy - ry],
+      [cx + rx, cy],
+      [cx, cy + ry],
+      [cx - rx, cy]
+    ],
+    topCol,
+    strokeCol,
+    lineW
+  );
+}
+
+function drawIsoBox3D(ctx, cx, cy, rx, ry, hBox, topCol, leftCol, rightCol, winCol = null) {
+  // Left wall
+  drawPolygon(
+    ctx,
+    [
+      [cx - rx, cy - hBox],
+      [cx, cy + ry - hBox],
+      [cx, cy + ry],
+      [cx - rx, cy]
+    ],
+    leftCol
+  );
+  // Right wall
+  drawPolygon(
+    ctx,
+    [
+      [cx, cy + ry - hBox],
+      [cx + rx, cy - hBox],
+      [cx + rx, cy],
+      [cx, cy + ry]
+    ],
+    rightCol
+  );
+  // Roof diamond
+  drawPolygon(
+    ctx,
+    [
+      [cx, cy - ry - hBox],
+      [cx + rx, cy - hBox],
+      [cx, cy + ry - hBox],
+      [cx - rx, cy - hBox]
+    ],
+    topCol,
+    "rgba(255,255,255,0.22)",
+    0.7
+  );
+  // Optional isometric windows
+  if (winCol && hBox >= 14) {
+    ctx.fillStyle = winCol;
+    for (let wy = cy - hBox + 5; wy < cy - 3; wy += 6) {
+      ctx.fillRect(cx - rx * 0.6, wy, 2.5, 3);
+      ctx.fillRect(cx + rx * 0.25, wy, 2.5, 3);
+    }
+  }
+}
+
+function getIsoParcelCenter(bIdx, w, h) {
+  const horizonY = Math.max(92, Math.floor(h * 0.27));
+  const valleyH = h - horizonY;
+  // 3 depth rows × 6 columns across the 2.5D isometric city valley
+  const col = Math.floor(bIdx / 3); // 0..5
+  const row = bIdx % 3;             // 0 (Upper), 1 (Mid), 2 (Lower)
+  const usableW = Math.max(960, w - 160);
+  const spacingX = usableW / 6;
+  const staggerX = row === 1 ? spacingX * 0.28 : row === 2 ? -spacingX * 0.14 : 0;
+  const cx = Math.round(95 + col * spacingX + staggerX);
+  const rowRatios = [0.24, 0.54, 0.82];
+  const cy = Math.round(horizonY + valleyH * rowRatios[row]);
+  return { cx, cy, row, col };
+}
+
+function panToIsoDistrict(bId) {
+  const bIdx = BUILDINGS.findIndex((b) => b.id === bId);
+  const canvas = document.getElementById("city-canvas");
+  const viewport = document.getElementById("city-scroll-viewport");
+  if (bIdx < 0 || !canvas || !viewport) return;
+  const pos = getIsoParcelCenter(bIdx, canvas.width, canvas.height);
+  const targetScroll = Math.max(0, pos.cx - viewport.clientWidth / 2);
+  viewport.scrollTo({ left: targetScroll, behavior: "smooth" });
+}
+
 function drawCityCanvas() {
+  ensureCivState();
   const canvas = document.getElementById("city-canvas");
   if (!canvas) return;
 
-  // Dynamically expand the city panorama width left-to-right as more districts & Wonders are built!
-  const ownedDistricts = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
-  const builtWonders = WONDERS.filter((w) => hasWonder(w.id));
-  const extraDistricts = ownedDistricts.filter((b) => b.era < state.currentEra || (state.buildings[b.id] || 0) >= 5);
-  const viewportW = canvas.parentElement && canvas.parentElement.clientWidth > 0 ? canvas.parentElement.clientWidth : 860;
-  const targetWidth = Math.max(viewportW, 860, 780 + extraDistricts.length * 95 + builtWonders.length * 115);
-  if (canvas.width !== targetWidth) {
-    canvas.width = targetWidth;
-  }
+  const viewport = canvas.parentElement;
+  const viewportW = viewport && viewport.clientWidth > 0 ? viewport.clientWidth : 1080;
+  const viewportH = viewport && viewport.clientHeight > 0 ? viewport.clientHeight : 380;
+  const targetWidth = Math.max(viewportW, 1180);
+  const targetHeight = Math.max(viewportH, 320);
+
+  if (canvas.width !== targetWidth) canvas.width = targetWidth;
+  if (canvas.height !== targetHeight) canvas.height = targetHeight;
 
   const ctx = canvas.getContext("2d");
   const w = canvas.width;
@@ -3360,11 +3941,11 @@ function drawCityCanvas() {
   const era = state.currentEra;
   const sky = ERAS[era].skyColors;
   const hills = ERAS[era].hillColors;
+  const horizonY = Math.max(92, Math.floor(h * 0.27));
   animTick += 0.05;
 
-  // Advance SLOW Day/Night Cycle (~3 minutes per full cycle)
+  // Advance SLOW Day/Night Cycle
   dayCyclePhase = (dayCyclePhase + 0.00028) % 1;
-  // nightFactor: 0 at Midday (0.0), 1 at Midnight (0.5)
   const nightFactor = (1 - Math.cos(dayCyclePhase * Math.PI * 2)) / 2;
   const isNight = nightFactor > 0.45;
   const isDuskOrDawn = nightFactor > 0.22 && nightFactor < 0.72;
@@ -3378,177 +3959,67 @@ function drawCityCanvas() {
     if (timeBadge.textContent !== timeText) timeBadge.textContent = timeText;
   }
 
-  // 1. Rich 3-Stop Sky Gradient + Day/Night & Dusk Blending
-  const grad = ctx.createLinearGradient(0, 0, 0, h - 36);
-  grad.addColorStop(0, sky[0]);
-  grad.addColorStop(0.55, sky[1]);
-  grad.addColorStop(1, sky[2]);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
+  // 1. SKY HORIZON (Top 27% of 2.5D Viewport)
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY + 25);
+  skyGrad.addColorStop(0, sky[0]);
+  skyGrad.addColorStop(0.6, sky[1]);
+  skyGrad.addColorStop(1, sky[2]);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, horizonY + 25);
 
   if (isDuskOrDawn) {
     const duskAlpha = (1 - Math.abs(nightFactor - 0.47) * 3.5) * 0.32;
     if (duskAlpha > 0) {
-      const duskGrad = ctx.createLinearGradient(0, 0, 0, h - 36);
-      duskGrad.addColorStop(0, `rgba(88, 28, 135, ${duskAlpha.toFixed(2)})`);
-      duskGrad.addColorStop(1, `rgba(249, 115, 22, ${(duskAlpha * 1.25).toFixed(2)})`);
-      ctx.fillStyle = duskGrad;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = `rgba(249, 115, 22, ${duskAlpha.toFixed(2)})`;
+      ctx.fillRect(0, 0, w, horizonY + 25);
     }
   }
-
   if (nightFactor > 0.05) {
     ctx.fillStyle = `rgba(5, 8, 22, ${(nightFactor * 0.62).toFixed(2)})`;
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, w, horizonY + 25);
   }
 
-  // 2. Stars, Shooting Stars & Sun / Moon Arc
+  // Stars & Sun/Moon in Sky
   const starVisibility = Math.max(era === 8 ? 0.6 : 0.1, nightFactor);
   stars.forEach((st) => {
+    const sy = (st.y / 140) * (horizonY - 12);
     const alpha = starVisibility * (0.25 + 0.55 * Math.sin(animTick + st.phase));
     ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-    ctx.fillRect(st.xRatio * w, st.y, st.size, st.size);
+    ctx.fillRect(st.xRatio * w, sy, st.size, st.size);
   });
 
-  // Occasional Shooting Star at night
-  if (isNight && Math.random() < 0.008 && shootingStars.length < 2) {
-    shootingStars.push({
-      x: 100 + Math.random() * (w - 200),
-      y: 12 + Math.random() * 45,
-      vx: 6 + Math.random() * 4,
-      vy: 2 + Math.random() * 1.5,
-      life: 1.0
-    });
-  }
-  for (let i = shootingStars.length - 1; i >= 0; i--) {
-    const ss = shootingStars[i];
-    ss.x += ss.vx;
-    ss.y += ss.vy;
-    ss.life -= 0.06;
-    if (ss.life <= 0) {
-      shootingStars.splice(i, 1);
-      continue;
-    }
-    ctx.strokeStyle = `rgba(254, 240, 138, ${ss.life.toFixed(2)})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(ss.x, ss.y);
-    ctx.lineTo(ss.x - ss.vx * 3, ss.y - ss.vy * 3);
-    ctx.stroke();
-  }
-
-  // Sun / Moon celestial body
-  const orbX = 580;
-  const orbY = 44 + Math.sin(dayCyclePhase * Math.PI * 2) * 14;
-  const sunGrad = ctx.createRadialGradient(orbX, orbY, 4, orbX, orbY, 34);
-  if (era === 8) {
-    sunGrad.addColorStop(0, "#f43f5e");
-    sunGrad.addColorStop(0.5, "rgba(244, 63, 94, 0.35)");
-    sunGrad.addColorStop(1, "rgba(244, 63, 94, 0)");
-  } else if (isNight) {
-    sunGrad.addColorStop(0, "#e0f2fe");
-    sunGrad.addColorStop(0.45, "rgba(186, 230, 253, 0.32)");
-    sunGrad.addColorStop(1, "rgba(186, 230, 253, 0)");
-  } else {
-    sunGrad.addColorStop(0, "#fef08a");
-    sunGrad.addColorStop(0.5, "rgba(253, 224, 71, 0.35)");
-    sunGrad.addColorStop(1, "rgba(253, 224, 71, 0)");
-  }
+  const orbX = w * 0.72;
+  const orbY = 32 + Math.sin(dayCyclePhase * Math.PI * 2) * 10;
+  const sunGrad = ctx.createRadialGradient(orbX, orbY, 4, orbX, orbY, 30);
+  sunGrad.addColorStop(0, era === 8 ? "#f43f5e" : isNight ? "#e0f2fe" : "#fef08a");
+  sunGrad.addColorStop(0.5, era === 8 ? "rgba(244,63,94,0.3)" : isNight ? "rgba(186,230,253,0.3)" : "rgba(253,224,71,0.35)");
+  sunGrad.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = sunGrad;
   ctx.beginPath();
-  ctx.arc(orbX, orbY, 34, 0, Math.PI * 2);
+  ctx.arc(orbX, orbY, 30, 0, Math.PI * 2);
   ctx.fill();
 
-  // Clouds
-  if (era < 8) {
-    clouds.forEach((c) => {
-      c.x += c.speed;
-      if (c.x > w + 80) c.x = -90;
-      ctx.fillStyle = isNight ? "rgba(148, 163, 184, 0.08)" : "rgba(255, 255, 255, 0.16)";
-      ctx.beginPath();
-      ctx.roundRect(c.x, c.y, c.w, 12, 6);
-      ctx.fill();
-    });
-  }
-
-  // Daytime Bird Flocks (Era 0-5)
-  if (!isNight && era <= 5) {
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
-    ctx.lineWidth = 1.2;
-    birdFlocks.forEach((bf) => {
-      bf.x += bf.speed;
-      if (bf.x > w + 60) bf.x = -60;
-      const flap = Math.sin(animTick * 4 + bf.x * 0.05) * 2.5;
-      [0, 10, 20].forEach((dx, bi) => {
-        const bx = bf.x - dx;
-        const by = bf.y + bi * 4;
-        ctx.beginPath();
-        ctx.moveTo(bx - 4, by - flap);
-        ctx.lineTo(bx, by);
-        ctx.lineTo(bx + 4, by - flap);
-        ctx.stroke();
-      });
-    });
-  }
-
-  // Era-fitting Sky Craft: Hot Air Balloon (Era 4-5) or Passenger Jetliner (Era 6-7)
-  if (era >= 4 && era <= 7) {
-    skyCraft.x += skyCraft.speed * skyCraft.dir;
-    if (skyCraft.x > w + 80) skyCraft.x = -80;
-    const scX = skyCraft.x;
-    const scY = skyCraft.y + Math.sin(animTick * 1.5) * 3;
-    if (era === 4 || era === 5) {
-      // Hot-air balloon drifting over the city
-      ctx.fillStyle = "#ef4444";
-      ctx.beginPath();
-      ctx.arc(scX, scY, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fde047";
-      ctx.fillRect(scX - 9, scY - 2, 18, 4);
-      ctx.fillStyle = "#78350f";
-      ctx.fillRect(scX - 3, scY + 12, 6, 4);
-    } else {
-      // High-altitude commercial jetliner with blinking beacon
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(scX - 14, scY, 28, 5);
-      drawPolygon(ctx, [[scX - 14, scY], [scX - 20, scY - 7], [scX - 8, scY]], "#2563eb");
-      if (Math.floor(animTick * 4) % 2 === 0) {
-        ctx.fillStyle = "#ef4444";
-        ctx.fillRect(scX + 12, scY - 1, 3, 3);
-      }
-    }
-  }
-
-  // 2.8 Colorful Sky Soul: Daytime Rainbow Arc or Nighttime Shimmering Aurora Borealis!
+  // Daytime Rainbow Arc or Nighttime Aurora Borealis
   if (!isNight && era <= 6) {
     const rbColors = [
-      "rgba(239, 68, 68, 0.14)",
-      "rgba(249, 115, 22, 0.14)",
-      "rgba(250, 204, 21, 0.14)",
-      "rgba(34, 197, 94, 0.14)",
-      "rgba(56, 189, 248, 0.14)",
-      "rgba(168, 85, 247, 0.14)"
+      "rgba(239, 68, 68, 0.14)", "rgba(249, 115, 22, 0.14)", "rgba(250, 204, 21, 0.14)",
+      "rgba(34, 197, 94, 0.14)", "rgba(56, 189, 248, 0.14)", "rgba(168, 85, 247, 0.14)"
     ];
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.6;
     rbColors.forEach((col, rIdx) => {
       ctx.strokeStyle = col;
       ctx.beginPath();
-      ctx.arc(310, h - 18, 175 - rIdx * 3.2, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.arc(w * 0.32, horizonY + 12, 145 - rIdx * 3, Math.PI * 1.08, Math.PI * 1.92);
       ctx.stroke();
     });
   } else if (isNight) {
-    // Shimmering Multi-Color Aurora Borealis Ribbon across the starry night sky
-    const auroraColors = [
-      "rgba(52, 211, 153, 0.16)",
-      "rgba(6, 182, 212, 0.15)",
-      "rgba(192, 132, 252, 0.14)"
-    ];
+    const auroraColors = ["rgba(52, 211, 153, 0.16)", "rgba(6, 182, 212, 0.15)", "rgba(192, 132, 252, 0.14)"];
     auroraColors.forEach((acol, aIdx) => {
       ctx.strokeStyle = acol;
-      ctx.lineWidth = 10 - aIdx * 2;
+      ctx.lineWidth = 8 - aIdx * 2;
       ctx.beginPath();
       for (let ax = 0; ax <= w; ax += 40) {
-        const ay = 34 + aIdx * 8 + Math.sin(animTick * 0.8 + ax * 0.012 + aIdx) * 10;
+        const ay = 22 + aIdx * 7 + Math.sin(animTick * 0.8 + ax * 0.012 + aIdx) * 8;
         if (ax === 0) ctx.moveTo(ax, ay);
         else ctx.lineTo(ax, ay);
       }
@@ -3556,374 +4027,331 @@ function drawCityCanvas() {
     });
   }
 
-  // 3. Repeating Layered Colored Background Hills across full width `w`
+  // Rolling Horizon Mountains behind the 2.5D Valley
   ctx.fillStyle = hills[0];
   ctx.beginPath();
-  ctx.moveTo(0, h - 52);
-  let lastHill0X = 0;
-  for (let hx = 0; hx < w; hx += 380) {
-    lastHill0X = hx + 380;
-    ctx.quadraticCurveTo(hx + 190, h - 104, lastHill0X, h - 58);
+  ctx.moveTo(0, horizonY);
+  let lastHx = 0;
+  for (let hx = 0; hx < w; hx += 320) {
+    lastHx = hx + 320;
+    ctx.quadraticCurveTo(hx + 160, horizonY - 42, lastHx, horizonY);
   }
-  ctx.lineTo(Math.max(w, lastHill0X), h);
-  ctx.lineTo(0, h);
+  ctx.lineTo(Math.max(w, lastHx), horizonY + 20);
+  ctx.lineTo(0, horizonY + 20);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = hills[1];
-  ctx.beginPath();
-  ctx.moveTo(0, h - 38);
-  let lastHill1X = 0;
-  for (let hx = 0; hx < w; hx += 340) {
-    lastHill1X = hx + 340;
-    ctx.quadraticCurveTo(hx + 170, h - 74, lastHill1X, h - 40);
+  // Erected World Wonders along the Upper Acropolis Ridge!
+  const builtWonders = WONDERS.filter((wObj) => hasWonder(wObj.id));
+  builtWonders.forEach((wonder, wIdx) => {
+    const wx = 120 + wIdx * 115;
+    drawWonderOnPanorama(ctx, wonder.id, wx, horizonY + 2, isNight);
+  });
+
+  // 2. 2.5D ISOMETRIC TERRACED CITY VALLEY PLANE (horizonY to h)
+  const terrainGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+  if (era >= 7) {
+    terrainGrad.addColorStop(0, "#0f172a");
+    terrainGrad.addColorStop(0.5, "#1e293b");
+    terrainGrad.addColorStop(1, "#090d16");
+  } else if (era >= 5) {
+    terrainGrad.addColorStop(0, "#27272a");
+    terrainGrad.addColorStop(0.5, "#3f3f46");
+    terrainGrad.addColorStop(1, "#18181b");
+  } else {
+    terrainGrad.addColorStop(0, hills[1]);
+    terrainGrad.addColorStop(0.55, isNight ? "#1a2e1d" : "#3a5a36");
+    terrainGrad.addColorStop(1, isNight ? "#111f14" : "#294226");
   }
-  ctx.lineTo(Math.max(w, lastHill1X), h);
-  ctx.lineTo(0, h);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillStyle = terrainGrad;
+  ctx.fillRect(0, horizonY, w, h - horizonY);
 
-  // Ground Terrace & Road across full width `w`
-  ctx.fillStyle = era >= 5 ? "#333942" : "#4d6b3c";
-  ctx.fillRect(0, h - 42, w, 22);
+  // Subtle 2.5D Isometric Diamond Terrain Grid Lines
+  ctx.strokeStyle = era >= 7 ? "rgba(6, 182, 212, 0.08)" : "rgba(255, 255, 255, 0.045)";
+  ctx.lineWidth = 1;
+  const isoStep = 90;
+  for (let gx = -h; gx < w + h; gx += isoStep) {
+    ctx.beginPath();
+    ctx.moveTo(gx, horizonY);
+    ctx.lineTo(gx + (h - horizonY) * 1.6, h);
+    ctx.stroke();
 
-  ctx.fillStyle = era === 0 ? "#7c5836" : era <= 4 ? "#9ca3af" : "#1f2937";
-  ctx.fillRect(0, h - 28, w, 8);
-  if (era >= 5) {
-    ctx.fillStyle = era === 8 ? "#06b6d4" : "#fbbf24";
-    for (let rx = 10; rx < w; rx += 28) {
-      ctx.fillRect(rx, h - 25, 12, 2);
-    }
-  }
-
-  // Streetlamps & Festive Colored Boulevard Lanterns along the boulevard!
-  if (era >= 1) {
-    const lanternPalette = ["#f43f5e", "#facc15", "#34d399", "#38bdf8", "#c084fc", "#fb923c"];
-    for (let lx = 45; lx < w; lx += 95) {
-      ctx.fillStyle = "#475569";
-      ctx.fillRect(lx, h - 39, 2, 11);
-      if (isNight || isDuskOrDawn) {
-        ctx.fillStyle = era === 8 ? "rgba(6, 182, 212, 0.9)" : "rgba(254, 240, 138, 0.95)";
-        ctx.beginPath();
-        ctx.arc(lx + 1, h - 40, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // Festive colored lanterns strung between boulevard posts
-      if (lx + 95 < w) {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(lx + 1, h - 39);
-        ctx.quadraticCurveTo(lx + 48, h - 33, lx + 96, h - 39);
-        ctx.stroke();
-        for (let bIdx = 1; bIdx <= 3; bIdx++) {
-          const bx = lx + bIdx * 24;
-          const by = h - 37 + (bIdx === 2 ? 2 : 0.5);
-          ctx.fillStyle = lanternPalette[(Math.floor(lx / 95) + bIdx) % lanternPalette.length];
-          ctx.beginPath();
-          ctx.arc(bx, by, 2.1, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
+    ctx.beginPath();
+    ctx.moveTo(gx, horizonY);
+    ctx.lineTo(gx - (h - horizonY) * 1.6, h);
+    ctx.stroke();
   }
 
-  // River Foreground across full width `w`
-  const riverGrad = ctx.createLinearGradient(0, h - 20, 0, h);
-  riverGrad.addColorStop(0, era === 8 ? "#0e2942" : "#1d5c86");
-  riverGrad.addColorStop(1, era === 8 ? "#1c1236" : "#0f3754");
+  // 3D Terraced Elevation Ledges separating Upper, Mid, and Lower Isometric Tiers
+  const valleyH = h - horizonY;
+  const ledge1Y = Math.round(horizonY + valleyH * 0.37);
+  const ledge2Y = Math.round(horizonY + valleyH * 0.68);
+  [ledge1Y, ledge2Y].forEach((ly) => {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.26)";
+    ctx.fillRect(0, ly, w, 7);
+    ctx.fillStyle = era >= 5 ? "rgba(148, 163, 184, 0.18)" : "rgba(214, 211, 209, 0.16)";
+    ctx.fillRect(0, ly, w, 2);
+  });
+
+  // 3. 2.5D ISOMETRIC WINDING RIVER & CANAL CHANNEL (Between Mid & Lower Terrace)
+  const riverY = ledge2Y + 8;
+  const riverH = 24;
+  // 3D Masonry / Earth Riverbank Wall
+  ctx.fillStyle = era >= 2 ? "#64748b" : "#5c4028";
+  ctx.fillRect(0, riverY - 4, w, 5);
+  const riverGrad = ctx.createLinearGradient(0, riverY, 0, riverY + riverH);
+  riverGrad.addColorStop(0, era === 8 ? "#0e7490" : "#0284c7");
+  riverGrad.addColorStop(1, era === 8 ? "#1e1b4b" : "#0369a1");
   ctx.fillStyle = riverGrad;
-  ctx.fillRect(0, h - 20, w, 20);
+  ctx.fillRect(0, riverY, w, riverH);
 
-  ctx.fillStyle = era === 8 ? "rgba(6, 182, 212, 0.35)" : "rgba(186, 230, 253, 0.35)";
-  for (let wx = 15; wx < w; wx += 45) {
-    const offset = Math.sin(animTick * 2 + wx) * 6;
-    ctx.fillRect(wx + offset, h - 13 + (wx % 6), 18, 2);
+  // Animated 2.5D Water Ripples
+  ctx.fillStyle = era === 8 ? "rgba(34, 211, 238, 0.4)" : "rgba(186, 230, 253, 0.38)";
+  for (let wx = 20; wx < w; wx += 55) {
+    const waveOff = Math.sin(animTick * 2 + wx) * 7;
+    ctx.fillRect(wx + waveOff, riverY + 6 + (wx % 10), 20, 2);
   }
 
-  // 4. MAIN SKYLINE & EXPANDING DISTRICTS + WORLD WONDERS
-  const gy = h - 40;
-
-  if (era <= 6) {
-    const treeStyles = ["pine", "cherry", "round", "autumn"];
-    for (let tx = 28, tIdx = 0; tx < w - 30; tx += 135, tIdx++) {
-      drawTree(ctx, tx, gy + 3, 0.88, treeStyles[tIdx % treeStyles.length]);
-    }
-  } else {
-    for (let tx = 36; tx < w - 30; tx += 160) {
-      drawTree(ctx, tx, gy + 3, 0.85, "cyber");
-    }
+  // 2.5D Isometric Bridges spanning the River
+  for (let bx = 180; bx < w - 100; bx += 290) {
+    drawPolygon(
+      ctx,
+      [
+        [bx - 22, riverY - 5],
+        [bx + 22, riverY - 5],
+        [bx + 30, riverY + riverH + 4],
+        [bx - 14, riverY + riverH + 4]
+      ],
+      era >= 5 ? "#475569" : "#d6d3d1",
+      "rgba(0,0,0,0.45)",
+      1.2
+    );
   }
 
-  if (era === 0) {
-    const huts = Math.min(6, Math.max(2, (state.buildings.forager || 1) + 1));
-    for (let i = 0; i < huts; i++) {
-      const hx = 60 + i * 68;
-      ctx.fillStyle = "#b87d4b";
-      ctx.fillRect(hx - 14, gy - 15, 28, 18);
-      drawPolygon(ctx, [[hx, gy - 33], [hx - 19, gy - 14], [hx + 19, gy - 14]], "#e0a958", "#784719", 1.4);
-      ctx.fillStyle = isNight ? "#fde047" : "#3b2110";
-      ctx.fillRect(hx - 4, gy - 9, 8, 12);
-    }
-
-    if ((state.buildings.megalith || 0) > 0) {
-      [485, 560, 635].forEach((fx) => {
-        ctx.fillStyle = "#c28b46";
-        ctx.fillRect(fx - 14, gy - 24, 14, 27);
-        drawPolygon(ctx, [[fx - 7, gy - 34], [fx - 16, gy - 24], [fx + 2, gy - 24]], "#d97706");
-        ctx.fillStyle = "#facc15";
-        for (let wx = fx + 4; wx <= fx + 26; wx += 5) {
-          ctx.fillRect(wx, gy - 14, 3, 16);
-        }
-      });
-    }
-  } else if (era === 1 || era === 2) {
-    const bx = 110;
-    ctx.fillStyle = "#d49e54";
-    ctx.fillRect(bx - 46, gy - 36, 92, 39);
-    ctx.fillStyle = "#e3b268";
-    ctx.fillRect(bx - 28, gy - 50, 56, 14);
-    ctx.fillStyle = isNight ? "#fde047" : "#451a03";
-    ctx.beginPath();
-    ctx.arc(bx, gy + 3, 11, Math.PI, 0);
-    ctx.fill();
-    [bx - 38, bx + 16].forEach((ax, idx) => {
-      drawPolygon(ctx, [[ax, gy - 18], [ax + 22, gy - 12], [ax, gy - 12]], idx === 0 ? "#dc2626" : "#2563eb");
-      ctx.fillStyle = "#fde047";
-      ctx.fillRect(ax + 2, gy - 12, 18, 15);
-    });
-
-    const cx = 255;
-    ctx.fillStyle = "#d6d3d1";
-    ctx.fillRect(cx - 50, gy - 8, 100, 11);
-    ctx.fillStyle = "#0ea5e9";
-    ctx.fillRect(cx - 46, gy - 6, 92, 7);
-    [cx - 32, cx + 28].forEach((px) => {
-      ctx.fillStyle = "#78350f";
-      ctx.fillRect(px - 2, gy - 32, 4, 24);
-      drawPolygon(ctx, [[px, gy - 38], [px - 12, gy - 28], [px + 12, gy - 28]], "#15803d");
-    });
-
-    if (era === 2 || (state.buildings.aqueduct || 0) > 0) {
-      ctx.fillStyle = "#d6d3d1";
-      ctx.fillRect(340, gy - 46, 235, 8);
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(340, gy - 48, 235, 3);
-      for (let ax = 348; ax < 565; ax += 28) {
-        ctx.fillStyle = "#e7e5e4";
-        ctx.fillRect(ax, gy - 38, 9, 41);
-      }
-    }
-
-    const tx = 655;
-    ctx.fillStyle = "#f5f5f4";
-    ctx.fillRect(tx - 38, gy - 6, 76, 9);
-    for (let colX = tx - 32; colX <= tx + 26; colX += 14) {
-      ctx.fillStyle = "#e7e5e4";
-      ctx.fillRect(colX, gy - 34, 6, 28);
-    }
-    drawPolygon(ctx, [[tx, gy - 50], [tx - 42, gy - 34], [tx + 42, gy - 34]], "#dc2626", "#f5f5f4", 2);
-  } else if (era === 3 || era === 4) {
-    const cx = 105;
-    ctx.fillStyle = "#94a3b8";
-    ctx.fillRect(cx - 40, gy - 46, 80, 49);
-    ctx.fillStyle = "#cbd5e1";
-    ctx.fillRect(cx - 46, gy - 66, 22, 69);
-    ctx.fillRect(cx + 24, gy - 66, 22, 69);
-    drawPolygon(ctx, [[cx - 35, gy - 90], [cx - 49, gy - 66], [cx - 21, gy - 66]], "#2563eb");
-    drawPolygon(ctx, [[cx + 35, gy - 90], [cx + 21, gy - 66], [cx + 49, gy - 66]], "#2563eb");
-    ctx.fillStyle = "#451a03";
-    ctx.fillRect(cx - 10, gy - 20, 20, 23);
-
-    [195, 260, 325, 390].forEach((hx, idx) => {
-      ctx.fillStyle = idx % 2 === 0 ? "#fef3c7" : "#c2410c";
-      ctx.fillRect(hx, gy - 34, 44, 37);
-      drawPolygon(ctx, [[hx + 22, gy - 52], [hx - 4, gy - 34], [hx + 48, gy - 34]], "#991b1b");
-      ctx.fillStyle = isNight ? "#fef08a" : "#fde047";
-      ctx.fillRect(hx + 8, gy - 24, 7, 7);
-      ctx.fillRect(hx + 26, gy - 24, 7, 7);
-    });
-
-    const ox = 565;
-    ctx.fillStyle = "#d97706";
-    ctx.fillRect(ox - 40, gy - 42, 80, 45);
-    ctx.fillStyle = "#fef3c7";
-    for (let ux = ox - 30; ux <= ox + 22; ux += 16) {
-      ctx.fillRect(ux, gy - 34, 6, 30);
-    }
-    ctx.fillStyle = "#10b981";
-    ctx.beginPath();
-    ctx.arc(ox, gy - 42, 28, Math.PI, 0);
-    ctx.fill();
-    ctx.fillStyle = "#fde047";
-    ctx.fillRect(ox - 3, gy - 78, 6, 8);
-  } else if (era === 5 || era === 6) {
-    ctx.fillStyle = "#991b1b";
-    ctx.fillRect(32, gy - 48, 96, 51);
-    ctx.fillStyle = "#57534e";
-    ctx.fillRect(48, gy - 92, 12, 44);
-    ctx.fillRect(98, gy - 86, 12, 38);
-    ctx.fillStyle = "rgba(214, 211, 209, 0.5)";
-    const puffOffset = (animTick * 12) % 28;
-    ctx.beginPath();
-    ctx.arc(54, gy - 98 - puffOffset, 8 + puffOffset * 0.2, 0, Math.PI * 2);
-    ctx.arc(104, gy - 92 - puffOffset, 7 + puffOffset * 0.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#334155";
-    ctx.fillRect(150, gy - 44, 110, 47);
-    ctx.fillStyle = "#38bdf8";
-    ctx.beginPath();
-    ctx.arc(205, gy - 44, 42, Math.PI, 0);
-    ctx.fill();
-
-    [280, 350, 420].forEach((bx, idx) => {
-      const bh = 72 + (idx % 3) * 20;
-      ctx.fillStyle = idx % 2 === 0 ? "#475569" : "#334155";
-      ctx.fillRect(bx, gy - bh, 52, bh + 3);
-      ctx.fillStyle = isNight ? "#fde047" : "#fef08a";
-      for (let wy = gy - bh + 10; wy < gy - 6; wy += 12) {
-        ctx.fillRect(bx + 8, wy, 7, 6);
-        ctx.fillRect(bx + 22, wy, 7, 6);
-        ctx.fillRect(bx + 36, wy, 7, 6);
-      }
-    });
-
-    if (era === 6) {
-      drawPolygon(ctx, [[518, gy - 68], [505, gy + 3], [555, gy + 3], [542, gy - 68]], "#cbd5e1", "#94a3b8", 1);
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(518, gy - 22, 24, 8);
-
-      const ax = 655;
-      ctx.fillStyle = "#cbd5e1";
-      ctx.fillRect(ax - 7, gy - 82, 14, 85);
-      drawPolygon(ctx, [[ax - 18, gy - 96], [ax + 18, gy - 96], [ax + 11, gy - 82], [ax - 11, gy - 82]], "#0284c7");
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(ax + 16, gy - 14, 44, 10);
-      drawPolygon(ctx, [[ax + 50, gy - 14], [ax + 60, gy - 28], [ax + 60, gy - 14]], "#2563eb");
-    }
-  } else {
-    const towers = [
-      { x: 20, w: 46, h: 110, base: "#1e293b", trim: "#06b6d4", roof: "spire" },
-      { x: 76, w: 54, h: 142, base: "#1e1b4b", trim: "#f43f5e", roof: "slant" },
-      { x: 140, w: 48, h: 98, base: "#0f172a", trim: "#2dd4bf", roof: "flat" },
-      { x: 198, w: 58, h: 154, base: "#2e1065", trim: "#06b6d4", roof: "spire" },
-      { x: 266, w: 50, h: 120, base: "#172554", trim: "#38bdf8", roof: "slant" },
-      { x: 326, w: 62, h: 162, base: "#1e1b4b", trim: "#f43f5e", roof: "spire" },
-      { x: 398, w: 52, h: 116, base: "#0f172a", trim: "#2dd4bf", roof: "flat" },
-      { x: 460, w: 56, h: 146, base: "#2e1065", trim: "#f43f5e", roof: "slant" },
-      { x: 526, w: 48, h: 108, base: "#172554", trim: "#06b6d4", roof: "spire" },
-      { x: 584, w: 58, h: 138, base: "#1e293b", trim: "#38bdf8", roof: "slant" },
-      { x: 652, w: 50, h: 118, base: "#0f172a", trim: "#f43f5e", roof: "spire" }
-    ];
-
-    towers.forEach((t, idx) => {
-      const bGrad = ctx.createLinearGradient(t.x, gy - t.h, t.x + t.w, gy);
-      bGrad.addColorStop(0, t.base);
-      bGrad.addColorStop(1, "#334155");
-      ctx.fillStyle = bGrad;
-      ctx.fillRect(t.x, gy - t.h, t.w, t.h + 3);
-
-      ctx.strokeStyle = t.trim;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(t.x, gy - t.h, t.w, t.h + 3);
-
-      if (t.roof === "spire") {
-        ctx.fillStyle = t.trim;
-        ctx.fillRect(t.x + t.w / 2 - 2, gy - t.h - 22, 4, 22);
-      } else if (t.roof === "slant") {
-        drawPolygon(ctx, [[t.x, gy - t.h], [t.x + t.w, gy - t.h - 16], [t.x + t.w, gy - t.h]], t.trim);
-      }
-
-      for (let wy = gy - t.h + 10; wy < gy - 8; wy += 11) {
-        for (let wx = t.x + 6; wx < t.x + t.w - 8; wx += 10) {
-          ctx.fillStyle = (wx + wy + idx) % 3 === 0 ? t.trim : "rgba(224, 242, 254, 0.78)";
-          ctx.fillRect(wx, wy, 5, 6);
-        }
-      }
-    });
-
-    // Elevated Maglev Transit Line across entire width
-    ctx.fillStyle = "rgba(148, 163, 184, 0.85)";
-    ctx.fillRect(0, gy - 18, w, 4);
-    const trainX = ((animTick * 90) % (w + 120)) - 60;
-    ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(trainX, gy - 25, 58, 7);
-    ctx.fillStyle = "#06b6d4";
-    ctx.fillRect(trainX + 4, gy - 23, 50, 2.5);
-  }
-
-  // 5. DRAW ALL ERECTED WORLD WONDERS & EXPANDED DISTRICTS ALONG THE SCROLLABLE HORIZON
-  let cursorX = 765;
-  builtWonders.forEach((wonder) => {
-    drawWonderOnPanorama(ctx, wonder.id, cursorX, gy, isNight);
-    cursorX += 115;
-  });
-
-  extraDistricts.forEach((b, idx) => {
-    drawUnitGraphicOnStrip(ctx, b.id, cursorX - 18, gy + 2, idx, isNight);
-    drawUnitGraphicOnStrip(ctx, b.id, cursorX + 18, gy + 2, idx + 1, isNight);
-    cursorX += 95;
-  });
-
-  // 6. LIVING ROAD TRAFFIC & CITIZENS
-  roadTraffic.forEach((rt) => {
-    rt.x += rt.speed * rt.dir;
-    if (rt.x > w + 30) rt.x = -30;
-    if (rt.x < -30) rt.x = w + 30;
-    const ry = h - 26;
-    if (era <= 4) {
-      // Citizen & wooden cart
-      ctx.fillStyle = "#f59e0b";
-      ctx.fillRect(rt.x, ry - 4, 6, 4);
-    } else {
-      // Automobile / Tram with glowing headlights at night
-      ctx.fillStyle = rt.color;
-      ctx.fillRect(rt.x, ry - 4, 11, 4);
-      if (isNight || isDuskOrDawn) {
-        ctx.fillStyle = "rgba(254, 240, 138, 0.75)";
-        const beamX = rt.dir > 0 ? rt.x + 11 : rt.x - 10;
-        ctx.fillRect(beamX, ry - 3, 10, 2);
-      }
-    }
-  });
-
-  // 7. LIVING RIVER BOATS & SHIPS
+  // River Boats gliding along the 2.5D River Channel
   riverBoats.forEach((rb) => {
     rb.x += rb.speed * rb.dir;
     if (rb.x > w + 40) rb.x = -40;
     if (rb.x < -40) rb.x = w + 40;
-    const by = h - 11;
-    // Water wake
+    const by = riverY + 12;
     ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
     ctx.fillRect(rb.dir > 0 ? rb.x - 10 : rb.x + 16, by + 2, 9, 1.5);
-    // Boat hull
-    drawPolygon(ctx, [[rb.x - 10, by - 3], [rb.x + 14, by - 3], [rb.x + 10, by + 2], [rb.x - 6, by + 2]], era >= 5 ? "#334155" : "#78350f");
+    drawPolygon(
+      ctx,
+      [[rb.x - 10, by - 3], [rb.x + 14, by - 3], [rb.x + 10, by + 2], [rb.x - 6, by + 2]],
+      era >= 5 ? "#334155" : "#78350f"
+    );
     if (era >= 1 && era <= 4) {
-      // Billowing sail
-      drawPolygon(ctx, [[rb.x + 2, by - 16], [rb.x - 6, by - 4], [rb.x + 10, by - 4]], "#f8fafc");
+      drawPolygon(ctx, [[rb.x + 2, by - 14], [rb.x - 5, by - 3], [rb.x + 9, by - 3]], "#f8fafc");
     } else if (era >= 5) {
-      // Cabin & lit porthole
       ctx.fillStyle = era === 8 ? "#06b6d4" : "#facc15";
       ctx.fillRect(rb.x - 3, by - 6, 8, 3);
     }
   });
 
-  if (era >= 6) {
-    vehicles.forEach((v) => {
-      v.x += v.speed * v.dir;
-      if (v.x > w + 24) v.x = -24;
-      if (v.x < -24) v.x = w + 24;
-      ctx.fillStyle = era === 8 ? v.color : "#38bdf8";
-      ctx.fillRect(v.x, v.y, 14, 3);
-    });
-  }
+  // 4. 2.5D ISOMETRIC ROAD NETWORK & MOVING CITIZENS/TRAFFIC
+  const parcelCenters = BUILDINGS.map((b, idx) => ({
+    b,
+    idx,
+    ...getIsoParcelCenter(idx, w, h)
+  }));
 
-  // Celebratory Fireworks (at Dusk/Night or during an active Festival!)
+  // Draw isometric road links between adjacent parcels
+  ctx.strokeStyle = era === 0 ? "rgba(124, 88, 54, 0.65)" : era <= 4 ? "rgba(148, 163, 184, 0.45)" : "rgba(30, 41, 59, 0.8)";
+  ctx.lineWidth = 8;
+  parcelCenters.forEach((p, idx) => {
+    if (idx + 3 < parcelCenters.length) {
+      const nextCol = parcelCenters[idx + 3];
+      ctx.beginPath();
+      ctx.moveTo(p.cx, p.cy);
+      ctx.lineTo(nextCol.cx, nextCol.cy);
+      ctx.stroke();
+    }
+    if (p.row < 2 && idx + 1 < parcelCenters.length) {
+      const nextRow = parcelCenters[idx + 1];
+      ctx.beginPath();
+      ctx.moveTo(p.cx, p.cy);
+      ctx.lineTo(nextRow.cx, nextRow.cy);
+      ctx.stroke();
+    }
+  });
+
+  // Decorative 2.5D Trees between parcels
+  const treeStyles = era >= 7 ? ["cyber"] : ["pine", "cherry", "round", "autumn"];
+  parcelCenters.forEach((p, idx) => {
+    drawTree(ctx, p.cx - 66, p.cy - 8, 0.78, treeStyles[idx % treeStyles.length]);
+    drawTree(ctx, p.cx + 66, p.cy + 10, 0.78, treeStyles[(idx + 2) % treeStyles.length]);
+  });
+
+  // 5. RENDER ALL 18 MINIMIZED 2.5D ISOMETRIC DISTRICT PARCELS (Sorted Back-to-Front by Y!)
+  isoParcelHitboxes = [];
+  const sortedParcels = [...parcelCenters].sort((a, b) => a.cy - b.cy);
+  const rx = 56;
+  const ry = 24;
+  const plinthDepth = 9;
+
+  sortedParcels.forEach((p) => {
+    const b = p.b;
+    const count = state.buildings[b.id] || 0;
+    const isRevealed = (state.revealedBuildings || []).includes(b.id) || count > 0;
+    if (!isRevealed && b.era > state.currentEra + 1) return;
+
+    const { cx, cy } = p;
+    const isSelected = selectedDistrictId === b.id;
+    const isHovered = hoveredDistrictId === b.id;
+    const crisis = state.civ.crises[b.id];
+    const isOverdriven = (state.civ.overdrives[b.id] || 0) > Date.now();
+    const zCol = ZONE_ISO_COLORS[b.zoneTag] || ZONE_ISO_COLORS.Residential;
+
+    // Register interactive 2.5D parcel hitbox
+    isoParcelHitboxes.push({
+      bId: b.id,
+      cx,
+      cy,
+      x: cx - rx - 6,
+      y: cy - ry - 48,
+      w: rx * 2 + 12,
+      h: ry * 2 + 64
+    });
+
+    if (count <= 0) {
+      // Unbuilt Revealed Blueprint Plot in 2.5D
+      if (isRevealed) {
+        drawPolygon(
+          ctx,
+          [[cx, cy - ry], [cx + rx, cy], [cx, cy + ry], [cx - rx, cy]],
+          isHovered ? "rgba(56, 189, 248, 0.22)" : "rgba(15, 23, 42, 0.45)",
+          isHovered ? "#38bdf8" : "rgba(255, 255, 255, 0.24)",
+          isHovered ? 2 : 1
+        );
+        ctx.save();
+        ctx.font = "bold 10px 'Segoe UI', system-ui, sans-serif";
+        ctx.fillStyle = isHovered ? "#fef08a" : "rgba(226, 232, 240, 0.72)";
+        ctx.textAlign = "center";
+        ctx.fillText(`🔨 ${b.icon} ${b.name}`, cx, cy - 2);
+        ctx.font = "9px 'Consolas', monospace";
+        ctx.fillStyle = state.cp >= b.baseCost ? "#34d399" : "#94a3b8";
+        ctx.fillText(`Click to Build (${formatNum(b.baseCost)} CP)`, cx, cy + 10);
+        ctx.restore();
+      }
+      return;
+    }
+
+    // Active Owned 2.5D Isometric District Plinth!
+    const borderCol = crisis
+      ? "#ef4444"
+      : isSelected || isHovered
+      ? "#fde047"
+      : isOverdriven
+      ? "#38bdf8"
+      : zCol.accent;
+    const lineW = isSelected || isHovered || crisis ? 2.4 : 1.3;
+
+    drawIsoPlinth(
+      ctx,
+      cx,
+      cy,
+      rx,
+      ry,
+      plinthDepth,
+      zCol.top,
+      zCol.left,
+      zCol.right,
+      borderCol,
+      lineW
+    );
+
+    // Draw 3D Isometric Sub-Structures around the parcel based on building count!
+    const subCount = Math.min(4, Math.floor(Math.log2(count + 1)));
+    const winColor = isNight ? "#fde047" : "rgba(224, 242, 254, 0.75)";
+    const subOffsets = [
+      [-26, -4],
+      [26, -4],
+      [-22, 8],
+      [22, 8]
+    ];
+    for (let s = 0; s < subCount; s++) {
+      const [ox, oy] = subOffsets[s];
+      const boxH = Math.min(36, 12 + b.era * 2.5 + (s % 2) * 4);
+      drawIsoBox3D(
+        ctx,
+        cx + ox,
+        cy + oy,
+        10,
+        5,
+        boxH,
+        zCol.accent,
+        zCol.left,
+        zCol.right,
+        winColor
+      );
+    }
+
+    // Draw the animated centerpiece landmark structure of this district on the 2.5D plinth!
+    drawUnitGraphicOnStrip(ctx, b.id, cx, cy + 4, p.idx, isNight);
+
+    // Animated 2.5D Citizens walking on the parcel
+    const citX = cx + Math.sin(animTick * 1.8 + p.idx) * 24;
+    const citY = cy + 9 + Math.cos(animTick * 1.8 + p.idx) * 4;
+    ctx.fillStyle = "#fde047";
+    ctx.fillRect(citX - 1.5, citY - 4, 3, 4);
+
+    // If District is in CRISIS: Draw animated 2.5D Fire/Smoke & Click-to-Fix Alert!
+    if (crisis) {
+      for (let f = 0; f < 3; f++) {
+        const fx = cx - 14 + f * 14 + Math.sin(animTick * 4 + f) * 4;
+        const fy = cy - 16 - ((animTick * 18 + f * 9) % 24);
+        ctx.fillStyle = f % 2 === 0 ? "rgba(239, 68, 68, 0.85)" : "rgba(250, 204, 21, 0.85)";
+        ctx.beginPath();
+        ctx.arc(fx, fy, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const alertY = cy - 44 + Math.sin(animTick * 4) * 3;
+      ctx.save();
+      ctx.font = "bold 10px 'Segoe UI', sans-serif";
+      const alertTxt = `🚨 ${crisis.short.toUpperCase()}! CLICK TO FIX`;
+      const tw = ctx.measureText(alertTxt).width + 12;
+      ctx.fillStyle = "rgba(185, 28, 28, 0.95)";
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(cx - tw / 2, alertY - 10, tw, 18, 9);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(alertTxt, cx, alertY - 1);
+      ctx.restore();
+    }
+
+    // Floating 2.5D Minimized District Badge at the front of the Isometric Plinth
+    ctx.save();
+    ctx.font = "bold 10px 'Segoe UI', system-ui, sans-serif";
+    const labelTxt = `${b.icon} ×${count}${isOverdriven ? " ⚡2×" : ""}`;
+    const lw = Math.max(46, ctx.measureText(labelTxt).width + 12);
+    const badgeX = cx - lw / 2;
+    const badgeY = cy + ry + 2;
+    ctx.fillStyle = isSelected ? "rgba(245, 158, 11, 0.95)" : "rgba(10, 14, 24, 0.88)";
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, lw, 16, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = isSelected ? "#09090b" : "#f8fafc";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(labelTxt, cx, badgeY + 8.5);
+    ctx.restore();
+  });
+
+  // 6. Celebratory Fireworks (at Dusk/Night or during an active Festival!)
   const isFestivalActive = Date.now() < boostExpiresAt;
   const fwChance = isFestivalActive ? 0.08 : (isNight || isDuskOrDawn ? 0.018 : 0);
   if (fwChance > 0 && Math.random() < fwChance && cityFireworks.length < 70) {
-    spawnCityFirework(70 + Math.random() * (w - 140), 24 + Math.random() * 60);
+    spawnCityFirework(70 + Math.random() * (w - 140), 24 + Math.random() * (horizonY + 40));
   }
   for (let i = cityFireworks.length - 1; i >= 0; i--) {
     const fw = cityFireworks[i];
@@ -3941,25 +4369,8 @@ function drawCityCanvas() {
     ctx.globalAlpha = 1;
   }
 
-  if (era === 8) {
-    ctx.strokeStyle = "rgba(6, 182, 212, 0.28)";
-    ctx.lineWidth = 1;
-    rainDrops.forEach((r) => {
-      r.y += r.speed;
-      if (r.y > h) {
-        r.y = -10;
-        r.xRatio = Math.random();
-      }
-      const rx = r.xRatio * w;
-      ctx.beginPath();
-      ctx.moveTo(rx, r.y);
-      ctx.lineTo(rx - 2, r.y + r.len);
-      ctx.stroke();
-    });
-  }
-
-  // 8. VOICES OF THE CITIZENS: Interactive Floating Speech Bubbles over the Skyline!
-  drawAndUpdateCitizenSpeechBubble(ctx, w, h);
+  // 7. VOICES OF THE CITIZENS: Interactive Floating Speech Bubbles!
+  drawAndUpdateCitizenSpeechBubble(ctx, w, horizonY + 55);
 }
 
 const CITIZEN_VOICES = [
@@ -4500,9 +4911,42 @@ function setupDevConsole() {
     });
   }
 
-  document.getElementById("dev-add-shards-100")?.addEventListener("click", () => {
+    document.getElementById("dev-add-shards-100")?.addEventListener("click", () => {
     state.shards += 100;
     SoundFX.wonder();
+    refreshAllDevUI();
+  });
+
+  const immortalBtn = document.getElementById("dev-toggle-immortal");
+  if (immortalBtn) {
+    immortalBtn.addEventListener("click", () => {
+      devImmortalMode = !devImmortalMode;
+      immortalBtn.textContent = `🛡️ Collapse Immunity: ${devImmortalMode ? "ON" : "OFF"}`;
+      immortalBtn.classList.toggle("active-toggle", devImmortalMode);
+      SoundFX.wonder();
+      refreshAllDevUI();
+    });
+  }
+
+  document.getElementById("dev-restore-vitals")?.addEventListener("click", () => {
+    ensureCivState();
+    state.civ.food = 100;
+    state.civ.happiness = 100;
+    state.civ.stability = 100;
+    state.civ.integrity = 100;
+    state.civ.crises = {};
+    SoundFX.wonder();
+    refreshAllDevUI();
+    showToast("💚", "Vitals Restored!", "All civic vitals at 100% and active crises cleared.");
+  });
+
+  document.getElementById("dev-spawn-crisis")?.addEventListener("click", () => {
+    spawnDistrictCrisis();
+    refreshAllDevUI();
+  });
+
+  document.getElementById("dev-force-collapse")?.addEventListener("click", () => {
+    triggerCivilizationCollapse("Architect God-Mode manual collapse trigger");
     refreshAllDevUI();
   });
 
@@ -4621,6 +5065,7 @@ function init() {
   renderAchievements();
   updateTopHUD();
   setupDevConsole();
+  setupStrategyControls();
 
   document.getElementById("btn-rename-city").addEventListener("click", openCityNameModal);
   document.getElementById("btn-random-name").addEventListener("click", () => {
@@ -4824,11 +5269,16 @@ function init() {
     const dt = (now - lastTick) / 1000;
     lastTick = now;
 
-    const gained = getTotalCps() * dt;
-    if (gained > 0) {
-      state.cp += gained;
-      state.totalCp += gained;
-      state.allTimeCp += gained;
+    tickCivilizationStrategy(dt);
+    const netRate = getNetCps();
+    const netGained = netRate * dt;
+    if (netGained > 0) {
+      state.cp += netGained;
+      state.totalCp += netGained;
+      state.allTimeCp += netGained;
+    } else if (netGained < 0) {
+      // Negative CP/s deficit drains treasury down to 0
+      state.cp = Math.max(0, state.cp + netGained);
     }
 
     updateTopHUD();
@@ -5030,26 +5480,80 @@ function setupCivicCouncilAndVoices() {
     });
   }
 
-  // Clickable Citizen Speech Bubbles on #city-canvas!
+  // Clickable Citizen Speech Bubbles & 2.5D Isometric District Parcels on #city-canvas!
   const cityCanvas = document.getElementById("city-canvas");
   if (cityCanvas) {
-    cityCanvas.addEventListener("click", (e) => {
-      if (!activeSpeechBubble || !activeSpeechBubble.hitW) return;
+    cityCanvas.addEventListener("mousemove", (e) => {
       const rect = cityCanvas.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
-      const sb = activeSpeechBubble;
-      if (cx >= sb.hitX - 8 && cx <= sb.hitX + sb.hitW + 8 && cy >= sb.hitY - 8 && cy <= sb.hitY + sb.hitH + 8) {
-        const bonus = Math.max(10, Math.ceil(getTotalCps() * 6 + getClickPower() * 5));
-        state.cp += bonus;
-        state.totalCp += bonus;
-        state.allTimeCp += bonus;
-        spawnCityFirework(sb.x, sb.y - 12);
-        spawnFloatingText(e.clientX, e.clientY, `💬 +${formatNum(bonus)} CP`, true);
-        SoundFX.achievement();
-        activeSpeechBubble = null;
-        nextSpeechBubbleAt = Date.now() + 5500;
-        updateTopHUD();
+
+      let hovered = null;
+      for (let i = isoParcelHitboxes.length - 1; i >= 0; i--) {
+        const hit = isoParcelHitboxes[i];
+        if (cx >= hit.x && cx <= hit.x + hit.w && cy >= hit.y && cy <= hit.y + hit.h) {
+          hovered = hit.bId;
+          break;
+        }
+      }
+
+      const overBubble = activeSpeechBubble && activeSpeechBubble.hitW &&
+        cx >= activeSpeechBubble.hitX - 8 && cx <= activeSpeechBubble.hitX + activeSpeechBubble.hitW + 8 &&
+        cy >= activeSpeechBubble.hitY - 8 && cy <= activeSpeechBubble.hitY + activeSpeechBubble.hitH + 8;
+
+      if (hovered !== hoveredDistrictId) {
+        hoveredDistrictId = hovered;
+      }
+      cityCanvas.style.cursor = (hovered || overBubble) ? "pointer" : "default";
+    });
+
+    cityCanvas.addEventListener("mouseleave", () => {
+      hoveredDistrictId = null;
+    });
+
+    cityCanvas.addEventListener("click", (e) => {
+      const rect = cityCanvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+
+      // 1. Check Citizen Speech Bubble click
+      if (activeSpeechBubble && activeSpeechBubble.hitW) {
+        const sb = activeSpeechBubble;
+        if (cx >= sb.hitX - 8 && cx <= sb.hitX + sb.hitW + 8 && cy >= sb.hitY - 8 && cy <= sb.hitY + sb.hitH + 8) {
+          const bonus = Math.max(10, Math.ceil(getTotalCps() * 6 + getClickPower() * 5));
+          state.cp += bonus;
+          state.totalCp += bonus;
+          state.allTimeCp += bonus;
+          spawnCityFirework(sb.x, sb.y - 12);
+          spawnFloatingText(e.clientX, e.clientY, `💬 +${formatNum(bonus)} CP`, true);
+          SoundFX.achievement();
+          activeSpeechBubble = null;
+          nextSpeechBubbleAt = Date.now() + 5500;
+          updateTopHUD();
+          return;
+        }
+      }
+
+      // 2. Check 2.5D Isometric District Parcel click!
+      for (let i = isoParcelHitboxes.length - 1; i >= 0; i--) {
+        const hit = isoParcelHitboxes[i];
+        if (cx >= hit.x && cx <= hit.x + hit.w && cy >= hit.y && cy <= hit.y + hit.h) {
+          const bId = hit.bId;
+          const count = state.buildings[bId] || 0;
+          // If active crisis: resolve immediately on click!
+          if (state.civ && state.civ.crises && state.civ.crises[bId]) {
+            resolveDistrictCrisis(bId, e.clientX, e.clientY);
+            return;
+          }
+          // If unbuilt but revealed: buy directly!
+          if (count <= 0) {
+            buyBuilding(bId);
+            return;
+          }
+          // Otherwise open the 2.5D District Inspector
+          openDistrictInspector(bId);
+          return;
+        }
       }
     });
   }

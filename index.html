@@ -40,6 +40,21 @@
     </div>
   </div>
 
+  <!-- Dramatic Civilization Collapse Modal -->
+  <div id="collapse-modal" class="modal-backdrop hidden">
+    <div class="modal-card collapse-modal-card">
+      <div class="collapse-modal-icon">🌋</div>
+      <div class="era-reveal-sub" style="color:#fca5a5;">CATASTROPHIC URBAN FAILURE</div>
+      <h2 class="collapse-modal-title">CIVILIZATION COLLAPSE!</h2>
+      <p class="collapse-modal-desc" id="collapse-modal-desc">Unchecked famine, riots, and infrastructure neglect have plunged your city into chaos!</p>
+      <div class="collapse-losses-box" id="collapse-losses-box">
+        <div>📉 Lost Treasury: <strong id="collapse-lost-cp">-0 CP</strong></div>
+        <div>🏚️ Districts Damaged: <strong id="collapse-lost-blds">-0 Structures</strong></div>
+      </div>
+      <button id="btn-recover-collapse" class="action-btn collapse-recover-btn">🛡️ Enact Emergency Reconstruction</button>
+    </div>
+  </div>
+
   <!-- Import/Export Modal -->
   <div id="save-modal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -95,9 +110,9 @@
           <h4>🏗️ Manipulate Infrastructure Districts</h4>
           <div class="dev-btn-row">
             <button class="dev-btn" id="dev-bld-era-25">+25 Current Era Buildings</button>
-            <button class="dev-btn" id="dev-bld-all-10">+10 Every Building (All 36)</button>
-            <button class="dev-btn" id="dev-bld-all-50">+50 Every Building (All 36)</button>
-            <button class="dev-btn" id="dev-reveal-all-blds">👁️ Reveal All 36 Buildings</button>
+            <button class="dev-btn" id="dev-bld-all-10">+10 Every Building (All 18)</button>
+            <button class="dev-btn" id="dev-bld-all-50">+50 Every Building (All 18)</button>
+            <button class="dev-btn" id="dev-reveal-all-blds">👁️ Reveal All Buildings</button>
             <button class="dev-btn danger" id="dev-clear-blds">Reset Buildings to 0</button>
           </div>
           <div class="dev-input-row">
@@ -119,12 +134,16 @@
           </div>
         </div>
 
-        <!-- 5. Time Shards, God Mode & World Controls -->
+        <!-- 5. Time Shards, Strategy Vitals, Crises & World Controls -->
         <div class="dev-section">
-          <h4>⚡ God-Mode Multipliers, Time Shards &amp; World</h4>
+          <h4>⚡ God-Mode, Strategy Vitals &amp; Collapse Controls</h4>
           <div class="dev-btn-row">
             <button class="dev-btn" id="dev-toggle-god">⚡ 1,000× God Multiplier: OFF</button>
             <button class="dev-btn" id="dev-toggle-crit">💥 100% Crit Clicks: OFF</button>
+            <button class="dev-btn" id="dev-toggle-immortal">🛡️ Collapse Immunity: OFF</button>
+            <button class="dev-btn accent" id="dev-restore-vitals">💚 Max All Vitals &amp; Clear Crises</button>
+            <button class="dev-btn danger" id="dev-spawn-crisis">🔥 Spawn District Crisis</button>
+            <button class="dev-btn danger" id="dev-force-collapse">🌋 Trigger Collapse Now</button>
             <button class="dev-btn" id="dev-add-shards-100">⏳ +100 Time Shards</button>
             <button class="dev-btn" id="dev-add-shards-10k">⏳ +10,000 Time Shards</button>
             <button class="dev-btn" id="dev-spawn-anomaly">✨ Spawn Golden Anomaly</button>
@@ -139,7 +158,7 @@
     <div class="brand">
       <span id="era-badge" class="era-badge">STONE AGE</span>
       <div class="brand-titles">
-        <h1>Clicktopolis</h1>
+        <h1>Clicktopolis <span class="sim-tag">2.5D STRATEGY</span></h1>
       </div>
     </div>
 
@@ -155,6 +174,7 @@
 
     <div class="top-actions">
       <button id="btn-dev-console" class="action-btn dev-top-btn hidden" title="Open Architect God-Mode Console">🛠️ DEV</button>
+      <button id="btn-fullscreen-top" class="action-btn accent-top-btn" title="Toggle Full-Screen 2.5D Interactive City View">⛶ 2.5D Fullscreen</button>
       <button id="btn-sound" class="action-btn" title="Toggle synthesized sound effects">🔊 SFX: ON</button>
       <button id="btn-prestige" class="action-btn prestige-btn" title="Reset timeline for permanent Time Shards (+10% production each)">
         ⏳ Time Rift (<span id="pending-shards">+0</span>)
@@ -177,8 +197,8 @@
           <span id="res-amount" class="cp-giant-number">0</span>
           <span class="cp-label-main">CIVILIZATION POINTS</span>
         </div>
-        <div class="cp-rate-banner">
-          per second: <strong id="res-cps">0.0</strong>
+        <div class="cp-rate-banner" id="cp-rate-banner">
+          net rate: <strong id="res-cps">+0.0 /s</strong>
         </div>
         <div class="sub-counters">
           <div class="stat-pill">🔨 <span id="res-cpc">1</span> / click</div>
@@ -233,36 +253,162 @@
       <div class="era-timeline" id="era-timeline"></div>
     </section>
 
-    <!-- CENTER COLUMN: THE LIVING CITY PANORAMA & INFRASTRUCTURE DISTRICTS -->
-    <section class="panel center-panel">
+    <!-- CENTER COLUMN: 2.5D INTERACTIVE STRATEGY CITY & CIVILIZATION COMMAND -->
+    <section class="panel center-panel" id="center-panel">
       <div class="news-ticker">
         <span class="ticker-tag">CITY GAZETTE</span>
         <p id="news-text">Settlers clear the riverbank and raise the first thatched huts of your growing city...</p>
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="city">🏙️ City &amp; Districts <span id="bld-total-badge" class="badge">0</span></button>
+        <button class="tab-btn active" data-tab="city">🗺️ 2.5D City &amp; Strategy <span id="bld-total-badge" class="badge">0</span></button>
         <button class="tab-btn" data-tab="wonders">🏛️ Landmarks <span id="wonder-badge" class="badge">0/?</span></button>
         <button class="tab-btn" data-tab="achievements">🏆 Achievements <span id="ach-badge" class="badge">0/0</span></button>
         <button class="tab-btn" data-tab="stats">📊 City Archives</button>
       </div>
 
-      <!-- TAB 1 (DEFAULT): LIVING CITY PANORAMA & VISUAL INFRASTRUCTURE DISTRICTS -->
+      <!-- TAB 1 (DEFAULT): FULL-STAGE 2.5D INTERACTIVE CITY & CIVILIZATION STRATEGY -->
       <div class="tab-content active" id="tab-city">
-        <div class="city-panorama-frame" id="city-stage">
-          <div class="city-scroll-viewport" id="city-scroll-viewport" title="Drag or scroll left & right to tour your expanding city! Click citizen speech bubbles for bonus CP!">
-            <canvas id="city-canvas" width="860" height="230"></canvas>
+        <!-- CIVILIZATION VITALS & STRATEGY COMMAND BAR -->
+        <div class="civ-strategy-deck" id="civ-strategy-deck">
+          <!-- Top Row: 4 Core Vitals + Collapse Risk Indicator -->
+          <div class="vitals-row">
+            <div class="vital-meter" title="Food & Water Supply — Fed by Agriculture/Waterworks & Farmers. Low food triggers Famine & CP drain!">
+              <div class="vital-top">
+                <span>🌾 Food &amp; Water</span>
+                <strong id="vital-food-val">100%</strong>
+              </div>
+              <div class="vital-track"><div id="vital-food-fill" class="vital-fill food" style="width:100%"></div></div>
+            </div>
+
+            <div class="vital-meter" title="Citizen Happiness & Morale — Boosted by Scholars, Civic/Commerce districts & Festivals. Drained by high taxes!">
+              <div class="vital-top">
+                <span>😊 Morale</span>
+                <strong id="vital-happy-val">100%</strong>
+              </div>
+              <div class="vital-track"><div id="vital-happy-fill" class="vital-fill happy" style="width:100%"></div></div>
+            </div>
+
+            <div class="vital-meter" title="Civic Stability & Order — Protected by Watchmen. IF STABILITY HITS 0%, YOUR CIVILIZATION COLLAPSES!">
+              <div class="vital-top">
+                <span>🛡️ Stability</span>
+                <strong id="vital-stab-val">100%</strong>
+              </div>
+              <div class="vital-track"><div id="vital-stab-fill" class="vital-fill stab" style="width:100%"></div></div>
+            </div>
+
+            <div class="vital-meter" title="Infrastructure & Grid Health — Maintained by Engineers & Utilities. Low integrity causes district fires & blackouts!">
+              <div class="vital-top">
+                <span>⚙️ Grid Health</span>
+                <strong id="vital-grid-val">100%</strong>
+              </div>
+              <div class="vital-track"><div id="vital-grid-fill" class="vital-fill grid" style="width:100%"></div></div>
+            </div>
           </div>
+
+          <!-- Second Row: Interactive Workforce Castes + Tax Rate + Emergency Actions -->
+          <div class="strategy-controls-row">
+            <!-- Workforce Allocation -->
+            <div class="workforce-box">
+              <div class="wf-title">👥 CITIZEN WORKFORCE (<span id="wf-pop-total">1</span> Citizens)</div>
+              <div class="wf-castes">
+                <div class="wf-caste" title="Farmers produce Food & Water for your growing population">
+                  <span>🌾 Farmers <strong id="job-farmers-pct">30%</strong></span>
+                  <div class="wf-btns">
+                    <button class="wf-btn" data-job="farmers" data-delta="-5">-</button>
+                    <button class="wf-btn" data-job="farmers" data-delta="5">+</button>
+                  </div>
+                </div>
+                <div class="wf-caste" title="Engineers maintain Grid Health, repair districts & boost Click Power">
+                  <span>⚒️ Engineers <strong id="job-workers-pct">30%</strong></span>
+                  <div class="wf-btns">
+                    <button class="wf-btn" data-job="workers" data-delta="-5">-</button>
+                    <button class="wf-btn" data-job="workers" data-delta="5">+</button>
+                  </div>
+                </div>
+                <div class="wf-caste" title="Scholars boost Citizen Morale & grant bonus Global CP/s">
+                  <span>🎭 Scholars <strong id="job-scholars-pct">20%</strong></span>
+                  <div class="wf-btns">
+                    <button class="wf-btn" data-job="scholars" data-delta="-5">-</button>
+                    <button class="wf-btn" data-job="scholars" data-delta="5">+</button>
+                  </div>
+                </div>
+                <div class="wf-caste" title="Watchmen defend Stability & prevent riots, fires, and collapse">
+                  <span>🛡️ Watchmen <strong id="job-guards-pct">20%</strong></span>
+                  <div class="wf-btns">
+                    <button class="wf-btn" data-job="guards" data-delta="-5">-</button>
+                    <button class="wf-btn" data-job="guards" data-delta="5">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Taxation & Emergency Decrees -->
+            <div class="policy-box">
+              <div class="tax-row">
+                <span class="wf-title">🪙 TAXATION:</span>
+                <button class="tax-btn" data-tax="low" title="0.80× CP/s, +Morale & +Stability recovery">Low</button>
+                <button class="tax-btn active" data-tax="normal" title="1.00× CP/s, Balanced civic growth">Normal</button>
+                <button class="tax-btn" data-tax="high" title="1.35× CP/s, Drains Morale & Stability">High</button>
+                <button class="tax-btn danger" data-tax="brutal" title="1.75× CP/s, Rapidly drains Morale & Stability — High Collapse Risk!">Brutal</button>
+              </div>
+              <div class="decree-row">
+                <button id="btn-decree-ration" class="decree-btn" title="Emergency Grain Dole: Spend CP to restore +30% Food & +10% Morale">🍞 Ration Dole</button>
+                <button id="btn-decree-circus" class="decree-btn" title="Hold Bread & Circuses: Spend CP to restore +30% Morale & +15% Stability">🎪 Games</button>
+                <button id="btn-decree-repair" class="decree-btn" title="Deploy Watch & Repair Brigades: Extinguish all district crises & restore +30% Grid Health & +20% Stability">🚒 Fix Crises (<span id="crisis-count-badge">0</span>)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLLAPSE DANGER ALERT BAR (Shown when Stability/Food is critical or Crises are active) -->
+        <div id="collapse-warning-bar" class="collapse-warning-bar hidden">
+          <span id="collapse-warning-text">🚨 CRITICAL UNREST! Stability is failing and your civilization is losing CP! Click burning districts or deploy brigades!</span>
+        </div>
+
+        <!-- 2.5D INTERACTIVE CITY VIEWPORT (Full-Stage & Expandable to Fullscreen) -->
+        <div class="city-panorama-frame" id="city-stage">
+          <div class="city-scroll-viewport" id="city-scroll-viewport">
+            <canvas id="city-canvas" width="1100" height="420"></canvas>
+          </div>
+
+          <!-- Top Floating Map HUD -->
           <div class="panorama-overlay-label">
             <span id="panorama-era-title">Stone Age Settlement</span>
             <span id="panorama-time-badge">☀️ Midday</span>
             <div class="panorama-right-controls">
               <button id="btn-civic-council" class="council-trigger-btn" title="Summon a citizen petition or city festival!">🎭 Civic Council: Ready!</button>
-              <span id="panorama-cps-share">City Output: +0.0 CP/s</span>
-              <button id="btn-pan-left" class="pan-btn" title="Pan City Left">◀</button>
-              <button id="btn-pan-right" class="pan-btn" title="Pan City Right">▶</button>
+              <span id="panorama-cps-share">Net Output: +0.0 CP/s</span>
+              <button id="btn-pan-left" class="pan-btn" title="Pan 2.5D City Left">◀</button>
+              <button id="btn-pan-right" class="pan-btn" title="Pan 2.5D City Right">▶</button>
+              <button id="btn-fullscreen-city" class="pan-btn fullscreen-stage-btn" title="Expand 2.5D City to Fullscreen">⛶</button>
             </div>
           </div>
+
+          <!-- Floating Interactive 2.5D District Inspector (Opens when clicking any 2.5D District in the city!) -->
+          <div id="district-inspector-overlay" class="district-inspector-overlay hidden">
+            <div class="dist-insp-header">
+              <div class="dist-insp-title-wrap">
+                <span id="dist-insp-icon" class="dist-insp-icon">🛖</span>
+                <div>
+                  <div id="dist-insp-name" class="dist-insp-name">Settler Homesteads</div>
+                  <div id="dist-insp-sub" class="dist-insp-sub">Residential • ×12 Structures</div>
+                </div>
+              </div>
+              <button id="btn-close-dist-insp" class="mini-btn">✕</button>
+            </div>
+            <div class="dist-insp-stats">
+              <span>Output: <strong id="dist-insp-cps">+0.0 CP/s</strong></span>
+              <span>Integrity: <strong id="dist-insp-health">100%</strong></span>
+              <span id="dist-insp-status" class="dist-status-ok">🟢 Thriving</span>
+            </div>
+            <div class="dist-insp-actions">
+              <button id="btn-dist-buy" class="dist-action-btn build">🏗️ Expand (+1)</button>
+              <button id="btn-dist-overdrive" class="dist-action-btn overdrive">⚡ Overdrive (2×)</button>
+              <button id="btn-dist-repair" class="dist-action-btn repair">🚒 Repair / Resolve</button>
+            </div>
+          </div>
+
           <!-- Floating Golden Anomaly -->
           <button id="golden-anomaly" class="golden-anomaly hidden" title="Click for a civic boom!">✨</button>
         </div>
@@ -283,13 +429,15 @@
           </div>
         </div>
 
-        <div class="section-subtitle" style="margin-top: 14px;">
-          <span>🏘️ City Zones &amp; Infrastructure Districts <small style="font-weight:500;opacity:0.75;">(Scrollable ↔)</small></span>
-          <span id="districts-summary-note" style="font-size:0.74rem;color:var(--text-muted);text-transform:none;">Construct buildings on the right to expand your city districts</span>
-        </div>
-
-        <div id="infrastructure-districts" class="infrastructure-districts">
-          <!-- Populated dynamically with visual building strips (like Cookie Clicker rows!) -->
+        <!-- MINIMIZED DISTRICT DOCK (Compact interactive chips synced with the 2.5D City!) -->
+        <div class="minimized-districts-bar">
+          <div class="minimized-dock-header">
+            <span>🏙️ Minimized City Districts <small>(Click any district in the 2.5D city or dock below to inspect, expand, or repair)</small></span>
+            <span id="districts-summary-note">0 Active Districts</span>
+          </div>
+          <div id="infrastructure-districts" class="infrastructure-districts-dock">
+            <!-- Populated dynamically with compact interactive district chips -->
+          </div>
         </div>
       </div>
 

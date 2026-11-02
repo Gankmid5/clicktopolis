@@ -724,7 +724,7 @@ body {
 .tab-content {
   display: none;
   flex: 1;
-  padding: 14px;
+  padding: 10px 12px;
   overflow-y: auto;
 }
 
@@ -732,20 +732,33 @@ body {
   display: block;
 }
 
-/* Grand City Panorama Frame */
+#tab-city.active {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* Grand 2.5D City Panorama Frame (Full-Stage & Fullscreen Capable) */
 .city-panorama-frame {
   position: relative;
   width: 100%;
+  flex: 1;
+  min-height: 290px;
   border-radius: 12px;
   border: 2px solid var(--border-color);
   overflow: hidden;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
-  background: transparent;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  background: #090d16;
   line-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .city-scroll-viewport {
   width: 100%;
+  flex: 1;
+  height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   cursor: grab;
@@ -777,7 +790,8 @@ body {
 #city-canvas {
   display: block;
   min-width: 100%;
-  height: 230px;
+  height: 100%;
+  cursor: pointer;
 }
 
 .panorama-overlay-label {
@@ -2066,6 +2080,566 @@ body {
   color: #052e16;
   border-color: #34d399;
   font-weight: 900;
+}
+
+/* ============================================================================
+   2.5D STRATEGY OVERHAUL: VITALS, WORKFORCE, FULLSCREEN MAP, DOCK & COLLAPSE
+   ============================================================================ */
+.sim-tag {
+  font-size: 0.65rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #06b6d4, #10b981);
+  color: #042f2e;
+  padding: 2px 7px;
+  border-radius: 99px;
+  vertical-align: middle;
+  margin-left: 6px;
+  letter-spacing: 0.8px;
+}
+
+.accent-top-btn {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.25));
+  border-color: #2dd4bf;
+  color: #a7f3d0;
+}
+
+.accent-top-btn:hover {
+  background: #14b8a6;
+  color: #042f2e;
+}
+
+/* Fullscreen 2.5D City Mode */
+body.fullscreen-25d .left-panel,
+body.fullscreen-25d .right-panel {
+  display: none !important;
+}
+
+body.fullscreen-25d .game-layout {
+  grid-template-columns: 1fr !important;
+  padding: 8px 12px;
+}
+
+body.fullscreen-25d .city-panorama-frame {
+  border-color: var(--accent);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.85), 0 0 20px var(--accent-glow);
+}
+
+.fullscreen-stage-btn {
+  background: linear-gradient(135deg, #0ea5e9, #10b981) !important;
+  color: #042f2e !important;
+  font-weight: 900 !important;
+  border-color: #a7f3d0 !important;
+}
+
+/* Negative Net CP/s Deficit Alert on Left HUD */
+.cp-rate-banner.deficit {
+  background: rgba(220, 38, 38, 0.28);
+  border-color: #ef4444;
+  animation: pulseCrisis 0.85s infinite alternate;
+}
+
+.cp-rate-banner.deficit strong {
+  color: #fca5a5 !important;
+}
+
+/* Civilization Strategy Command Deck */
+.civ-strategy-deck {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(9, 13, 22, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.vitals-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.vital-meter {
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vital-meter.critical {
+  border-color: #ef4444;
+  background: rgba(153, 27, 27, 0.28);
+  animation: pulseCrisis 0.8s infinite alternate;
+}
+
+.vital-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.71rem;
+  font-weight: 700;
+}
+
+.vital-top strong {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+}
+
+.vital-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.vital-fill {
+  height: 100%;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+.vital-fill.food  { background: linear-gradient(90deg, #10b981, #34d399); }
+.vital-fill.happy { background: linear-gradient(90deg, #f59e0b, #fde047); }
+.vital-fill.stab  { background: linear-gradient(90deg, #3b82f6, #38bdf8); }
+.vital-fill.grid  { background: linear-gradient(90deg, #a855f7, #e879f9); }
+
+.vital-fill.low {
+  background: linear-gradient(90deg, #dc2626, #f97316) !important;
+}
+
+/* Workforce & Policy Controls Row */
+.strategy-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workforce-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.wf-title {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.wf-castes {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.wf-caste {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.69rem;
+}
+
+.wf-caste strong {
+  font-family: var(--font-mono);
+  color: #fde047;
+}
+
+.wf-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.wf-btn {
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text-main);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.wf-btn:hover {
+  background: var(--accent);
+  color: #09090b;
+  border-color: var(--accent);
+}
+
+.policy-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tax-row,
+.decree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tax-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  padding: 3px 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tax-btn:hover {
+  color: var(--text-main);
+  border-color: var(--accent);
+}
+
+.tax-btn.active {
+  background: var(--accent);
+  color: #09090b;
+  border-color: var(--accent);
+}
+
+.tax-btn.danger.active {
+  background: #ef4444;
+  color: #fff;
+  border-color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.decree-btn {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.2));
+  color: #e0f2fe;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.decree-btn:hover {
+  background: linear-gradient(135deg, #0ea5e9, #10b981);
+  color: #042f2e;
+  transform: translateY(-1px);
+}
+
+.decree-btn.urgent {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(249, 115, 22, 0.45));
+  border-color: #fde047;
+  color: #fef08a;
+  animation: pulseCrisis 0.7s infinite alternate;
+}
+
+/* Collapse Danger Warning Bar */
+.collapse-warning-bar {
+  background: linear-gradient(90deg, rgba(185, 28, 28, 0.9), rgba(234, 88, 12, 0.9));
+  border: 1px solid #fde047;
+  border-radius: 8px;
+  padding: 5px 12px;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.55);
+  animation: pulseCrisis 0.75s infinite alternate;
+  flex-shrink: 0;
+}
+
+.collapse-warning-bar.hidden {
+  display: none !important;
+}
+
+@keyframes pulseCrisis {
+  from { box-shadow: 0 0 6px rgba(239, 68, 68, 0.35); }
+  to { box-shadow: 0 0 18px rgba(239, 68, 68, 0.85); }
+}
+
+/* Floating Interactive 2.5D District Inspector inside #city-stage */
+.district-inspector-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 6;
+  width: min(390px, calc(100% - 24px));
+  background: rgba(10, 14, 26, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 18px var(--accent-glow);
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: petitionPopIn 0.2s ease-out;
+}
+
+.district-inspector-overlay.hidden {
+  display: none !important;
+}
+
+.dist-insp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.dist-insp-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.dist-insp-icon {
+  font-size: 1.65rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dist-insp-name {
+  font-weight: 900;
+  font-size: 0.86rem;
+  color: #fff;
+}
+
+.dist-insp-sub {
+  font-size: 0.71rem;
+  color: var(--text-muted);
+}
+
+.dist-insp-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 0.73rem;
+  font-family: var(--font-mono);
+}
+
+.dist-status-ok { color: #34d399; font-weight: 800; }
+.dist-status-crisis { color: #f87171; font-weight: 900; }
+
+.dist-insp-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.dist-action-btn {
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 0.71rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transition: all 0.15s;
+}
+
+.dist-action-btn.build {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.55));
+  border-color: #34d399;
+}
+
+.dist-action-btn.overdrive {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(234, 88, 12, 0.55));
+  border-color: #fbbf24;
+}
+
+.dist-action-btn.repair {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(29, 78, 216, 0.55));
+  border-color: #60a5fa;
+}
+
+.dist-action-btn:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+/* Minimized City Districts Bar / Dock */
+.minimized-districts-bar {
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  max-height: 112px;
+}
+
+.minimized-dock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.minimized-dock-header small {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.infrastructure-districts-dock {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 3px;
+}
+
+.mini-district-chip {
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 5px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  color: var(--text-main);
+  font-size: 0.74rem;
+}
+
+.mini-district-chip:hover,
+.mini-district-chip.selected {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.11);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35), 0 0 10px var(--accent-glow);
+}
+
+.mini-district-chip.in-crisis {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.45), rgba(234, 88, 12, 0.35));
+  animation: pulseCrisis 0.7s infinite alternate;
+}
+
+.mini-chip-icon {
+  font-size: 1.15rem;
+}
+
+.mini-chip-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.mini-chip-top {
+  font-weight: 800;
+  font-size: 0.73rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-chip-cnt {
+  background: var(--accent);
+  color: #09090b;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.63rem;
+  padding: 0 5px;
+  border-radius: 99px;
+}
+
+.mini-chip-sub {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #34d399;
+}
+
+/* Civilization Collapse Modal */
+.collapse-modal-card {
+  text-align: center;
+  align-items: center;
+  border: 2px solid #ef4444;
+  background: radial-gradient(circle at 50% 0%, rgba(153, 27, 27, 0.55), var(--bg-panel) 70%);
+  box-shadow: 0 0 60px rgba(239, 68, 68, 0.65);
+  padding: 26px 24px;
+}
+
+.collapse-modal-icon {
+  font-size: 3.8rem;
+  filter: drop-shadow(0 0 20px #ef4444);
+}
+
+.collapse-modal-title {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #fca5a5;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 18px rgba(239, 68, 68, 0.8);
+}
+
+.collapse-modal-desc {
+  font-size: 0.88rem;
+  color: #f8fafc;
+  line-height: 1.4;
+}
+
+.collapse-losses-box {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-around;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: #fca5a5;
+}
+
+.collapse-recover-btn {
+  width: 100%;
+  padding: 11px;
+  font-size: 0.92rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #ffffff;
+  border: 1px solid #fde047;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
 }
 
 /* Responsive fallback */
