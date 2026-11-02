@@ -1244,6 +1244,49 @@ const SoundFX = {
 // ============================================================================
 const SAVE_KEY = "clicktopolis_save_v1";
 
+const SEASONS = [
+  {
+    id: "spring",
+    name: "🌸 Spring Thaw",
+    desc: "Melting snows restore river basins. Farm yields +25%, +10% Population growth.",
+    icon: "🌸",
+    duration: 45,
+    farmMod: 1.25,
+    powerDemandMod: 1.0,
+    crisisRiskMod: 0.8
+  },
+  {
+    id: "summer",
+    name: "☀️ Summer Heatwave",
+    desc: "Scorching sun spikes power grid cooling demand by +35%. Wildfire crisis risk +40%.",
+    icon: "☀️",
+    duration: 45,
+    farmMod: 1.10,
+    powerDemandMod: 1.35,
+    crisisRiskMod: 1.4
+  },
+  {
+    id: "autumn",
+    name: "🍂 Autumn Harvest",
+    desc: "Bountiful granary reserves collected! Farm yields +50%, citizen morale +15%.",
+    icon: "🍂",
+    duration: 45,
+    farmMod: 1.50,
+    powerDemandMod: 0.95,
+    crisisRiskMod: 0.9
+  },
+  {
+    id: "winter",
+    name: "❄️ Great Blizzard",
+    desc: "Sub-zero frost halts agriculture (-50% farm yields) and spikes heating power demand (+45%).",
+    icon: "❄️",
+    duration: 45,
+    farmMod: 0.50,
+    powerDemandMod: 1.45,
+    crisisRiskMod: 1.3
+  }
+];
+
 function createDefaultCivState() {
   return {
     food: 100,
@@ -1259,7 +1302,23 @@ function createDefaultCivState() {
     },
     crises: {},
     overdrives: {},
-    collapses: 0
+    collapses: 0,
+    seasonIdx: 0,
+    seasonTimer: 45,
+    granary: 100,
+    granaryCap: 100,
+    grainNetRate: 0,
+    gridPower: 50,
+    gridDemand: 25,
+    upkeepCost: 0,
+    isFamine: false,
+    isBrownout: false,
+    laws: {
+      rationing: false,
+      overtime: false,
+      research: false,
+      curfew: false
+    }
   };
 }
 
@@ -1327,6 +1386,19 @@ function ensureCivState() {
     state.civ.overdrives = {};
   }
   if (!isFinite(state.civ.collapses)) state.civ.collapses = 0;
+  if (!isFinite(state.civ.seasonIdx)) state.civ.seasonIdx = 0;
+  if (!isFinite(state.civ.seasonTimer)) state.civ.seasonTimer = 45;
+  if (!isFinite(state.civ.granary)) state.civ.granary = 100;
+  if (!isFinite(state.civ.granaryCap)) state.civ.granaryCap = 100;
+  if (!isFinite(state.civ.grainNetRate)) state.civ.grainNetRate = 0;
+  if (!isFinite(state.civ.gridPower)) state.civ.gridPower = 50;
+  if (!isFinite(state.civ.gridDemand)) state.civ.gridDemand = 25;
+  if (!isFinite(state.civ.upkeepCost)) state.civ.upkeepCost = 0;
+  if (typeof state.civ.isFamine !== "boolean") state.civ.isFamine = false;
+  if (typeof state.civ.isBrownout !== "boolean") state.civ.isBrownout = false;
+  if (!state.civ.laws || typeof state.civ.laws !== "object") {
+    state.civ.laws = { rationing: false, overtime: false, research: false, curfew: false };
+  }
 }
 
 // ============================================================================
@@ -1545,12 +1617,53 @@ function getTotalCps() {
   return total;
 }
 
-// Net CP/s accounts for Civilization Deficit / Unrest / Crisis Drain! Can go NEGATIVE!
+function getUpkeepCost() {
+  ensureCivState();
+  let totalUpkeep = 0;
+  BUILDINGS.forEach((b) => {
+    const count = state.buildings[b.id] || 0;
+    if (count > 0) {
+      // Scale upkeep with era: Era 0 is free; Era 1+ scales smoothly with structure tier
+      const eraRates = [0, 0.0006, 0.0018, 0.0035, 0.0055, 0.0075];
+      const rate = eraRates[b.era] !== undefined ? eraRates[b.era] : 0.008;
+      totalUpkeep += count * (b.baseCost * rate);
+    }
+  });
+
+  // Science Subsidies Ordinance increases municipal upkeep by +15%
+  if (state.civ.laws && state.civ.laws.research) {
+    totalUpkeep *= 1.15;
+  }
+
+  state.civ.upkeepCost = totalUpkeep;
+  return totalUpkeep;
+}
+
+// Net CP/s accounts for Civilization Deficit / Unrest / Upkeep / Famine / Brownouts! Can go NEGATIVE!
 function getNetCps() {
   ensureCivState();
-  const gross = getTotalCps();
+  let gross = getTotalCps();
   if (gross <= 0) return 0;
 
+  // Law bonuses
+  if (state.civ.laws && state.civ.laws.overtime) {
+    gross *= 1.20; // +20% industrial overtime bonus
+  }
+  if (state.civ.laws && state.civ.laws.research) {
+    gross *= 1.12; // +12% scholar discovery bonus
+  }
+
+  // Famine penalty (-60% output if granary is empty!)
+  if (state.civ.isFamine) {
+    gross *= 0.40;
+  }
+
+  // Brownout / Power Grid failure (-65% output if load exceeds capacity!)
+  if (state.civ.isBrownout) {
+    gross *= 0.35;
+  }
+
+  // Vitals penalties
   let penaltyFactor = 0;
   if (state.civ.food < 30) {
     penaltyFactor += ((30 - state.civ.food) / 30) * 0.85;
@@ -1566,7 +1679,10 @@ function getNetCps() {
     penaltyFactor += activeCrisisCount * 0.22;
   }
 
-  return gross * (1 - penaltyFactor);
+  const grossAfterVitals = gross * (1 - Math.min(1.5, penaltyFactor));
+  const upkeep = getUpkeepCost();
+
+  return grossAfterVitals - upkeep;
 }
 
 function getClickPower() {
@@ -1808,6 +1924,64 @@ function updateTopHUD() {
       warnBar.classList.add("hidden");
     }
   }
+
+  // Real-time Strategy Economy & Seasons Deck
+  const season = SEASONS[state.civ.seasonIdx] || SEASONS[0];
+  const seasonBadge = document.getElementById("season-badge");
+  if (seasonBadge) {
+    seasonBadge.textContent = season.name;
+    seasonBadge.setAttribute("data-season", season.id);
+    seasonBadge.title = `${season.name}: ${season.desc}`;
+  }
+  const seasonTimerDesc = document.getElementById("season-timer-desc");
+  if (seasonTimerDesc) {
+    seasonTimerDesc.textContent = `${Math.ceil(Math.max(0, state.civ.seasonTimer))}s remaining`;
+  }
+
+  // Granary Pill
+  const granaryVal = document.getElementById("res-granary-val");
+  const granaryRate = document.getElementById("res-granary-rate");
+  const granaryPill = document.getElementById("pill-granary");
+  if (granaryVal) granaryVal.textContent = `${formatNum(state.civ.granary, 0)} / ${formatNum(state.civ.granaryCap, 0)}`;
+  if (granaryRate) {
+    const rate = state.civ.grainNetRate || 0;
+    const sign = rate >= 0 ? "+" : "";
+    granaryRate.textContent = `${sign}${formatNum(rate, 1)}/s`;
+    granaryRate.className = `strat-res-rate ${rate >= 0 ? "positive" : "negative"}`;
+  }
+  if (granaryPill) {
+    granaryPill.classList.toggle("critical", state.civ.isFamine || state.civ.granary < 15);
+    granaryPill.classList.toggle("warning", !state.civ.isFamine && state.civ.granary < 35);
+  }
+
+  // Power Grid Pill
+  const gridVal = document.getElementById("res-grid-val");
+  const gridPill = document.getElementById("pill-grid");
+  if (gridVal) {
+    const loadPct = Math.round((state.civ.gridDemand / Math.max(1, state.civ.gridPower)) * 100);
+    gridVal.textContent = `${loadPct}% (${formatNum(state.civ.gridDemand, 0)}/${formatNum(state.civ.gridPower, 0)} MW)`;
+  }
+  if (gridPill) {
+    gridPill.classList.toggle("critical", state.civ.isBrownout);
+    gridPill.classList.toggle("warning", !state.civ.isBrownout && (state.civ.gridDemand / Math.max(1, state.civ.gridPower)) > 0.85);
+  }
+
+  // Upkeep Pill
+  const upkeepVal = document.getElementById("res-upkeep-val");
+  const upkeepPill = document.getElementById("pill-upkeep");
+  if (upkeepVal) {
+    const up = getUpkeepCost();
+    upkeepVal.textContent = `${formatNum(up, 1)} CP/s`;
+  }
+  if (upkeepPill) {
+    upkeepPill.classList.toggle("warning", netCps < 0);
+  }
+
+  // Law buttons active state sync
+  document.querySelectorAll(".law-btn").forEach((btn) => {
+    const lawKey = btn.getAttribute("data-law");
+    btn.classList.toggle("active", Boolean(state.civ.laws && state.civ.laws[lawKey]));
+  });
 
   const critEl = document.getElementById("crit-chance");
   if (critEl) {
@@ -2464,7 +2638,7 @@ const CRISIS_TYPES = [
 
 let nextCrisisCheckAt = Date.now() + 22000;
 
-function spawnDistrictCrisis(forceBId = null) {
+function spawnDistrictCrisis(forceBId = null, causeLabel = null) {
   ensureCivState();
   const owned = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0);
   if (owned.length === 0) return;
@@ -2477,16 +2651,18 @@ function spawnDistrictCrisis(forceBId = null) {
   const pick = CRISIS_TYPES[Math.floor(Math.random() * CRISIS_TYPES.length)];
   state.civ.crises[target.id] = {
     type: pick.type,
-    label: pick.label,
+    label: causeLabel || pick.label,
     short: pick.short,
     health: 55,
+    hitsRemaining: 3,
+    duration: 0,
     startedAt: Date.now()
   };
 
   SoundFX.click(0);
   renderInfrastructureDistricts();
   updateTopHUD();
-  showToast("🚨", `${pick.label} in ${target.name}!`, `Click the ${target.name} district in the 2.5D city (or '🚒 Fix Crises') before Stability collapses!`);
+  showToast("🚨", `${causeLabel || pick.label} in ${target.name}!`, `Click the ${target.name} district in the 2.5D city (or '🚒 Fix Crises') before Stability collapses!`);
 }
 
 function resolveDistrictCrisis(bId, clientX = null, clientY = null) {
@@ -2495,22 +2671,37 @@ function resolveDistrictCrisis(bId, clientX = null, clientY = null) {
   const b = BUILDINGS.find((x) => x.id === bId);
   if (!crisis || !b) return false;
 
+  // Multi-tap interactive triage (3 rapid taps required on map)
+  crisis.hitsRemaining = (crisis.hitsRemaining !== undefined ? crisis.hitsRemaining : 3) - 1;
+  crisis.health = Math.min(100, (crisis.health || 50) + 18);
+
+  if (crisis.hitsRemaining > 0) {
+    SoundFX.click(0);
+    if (clientX !== null && clientY !== null) {
+      spawnFloatingText(clientX, clientY, `🧯 Triaging... (${crisis.hitsRemaining} left)`, false);
+    }
+    renderInfrastructureDistricts();
+    updateDistrictInspectorUI();
+    return false;
+  }
+
+  // Crisis completely extinguished!
   delete state.civ.crises[bId];
-  state.civ.stability = Math.min(100, state.civ.stability + 8);
-  state.civ.integrity = Math.min(100, state.civ.integrity + 6);
-  const reward = Math.max(15, Math.ceil(getTotalCps() * 4 + getClickPower() * 4));
+  state.civ.stability = Math.min(100, state.civ.stability + 10);
+  state.civ.integrity = Math.min(100, state.civ.integrity + 8);
+  const reward = Math.max(20, Math.ceil(getTotalCps() * 4 + getClickPower() * 5));
   state.cp += reward;
   state.totalCp += reward;
   state.allTimeCp += reward;
 
   if (clientX !== null && clientY !== null) {
-    spawnFloatingText(clientX, clientY, `🚒 Resolved! +${formatNum(reward)} CP`, true);
+    spawnFloatingText(clientX, clientY, `🚒 Crisis Extinguished! +${formatNum(reward)} CP`, true);
   }
   SoundFX.achievement();
   renderInfrastructureDistricts();
   updateDistrictInspectorUI();
   updateTopHUD();
-  showToast("🚒", `${b.name} Stabilized!`, `Crisis extinguished! +8% Stability & +${formatNum(reward)} CP relief bonus.`);
+  showToast("🚒", `${b.name} Stabilized!`, `Crisis extinguished! +10% Stability & +${formatNum(reward)} CP relief bonus.`);
   return true;
 }
 
@@ -2534,6 +2725,9 @@ function triggerCivilizationCollapse(reason = "Unchecked urban unrest, famine, a
   state.civ.happiness = 65;
   state.civ.stability = 65;
   state.civ.integrity = 70;
+  state.civ.granary = 60;
+  state.civ.isFamine = false;
+  state.civ.isBrownout = false;
   state.civ.taxRate = "normal";
   state.civ.crises = {};
 
@@ -2564,11 +2758,12 @@ function tickCivilizationStrategy(dt) {
   ensureCivState();
   const totBlds = getTotalBuildings();
   if (totBlds < 2) {
-    // Keep starter village completely stable until player has built at least 2 structures
+    // Keep starter settlement completely stable until player has built at least 2 structures
     state.civ.food = 100;
     state.civ.happiness = 100;
     state.civ.stability = 100;
     state.civ.integrity = 100;
+    state.civ.granary = 100;
     return;
   }
 
@@ -2576,80 +2771,176 @@ function tickCivilizationStrategy(dt) {
   const activeCrisisIds = Object.keys(state.civ.crises || {});
   const crisisCount = activeCrisisIds.length;
 
-  // 1. Food & Water Equilibrium
-  const agSupply =
-    (state.buildings.megalith || 0) * 1.5 +
-    (state.buildings.foundry || 0) * 2.5 +
-    (state.buildings.aqueduct || 0) * 3.5 +
+  // 1. Advance Seasons & Weather Cycle
+  state.civ.seasonTimer -= dt;
+  if (state.civ.seasonTimer <= 0) {
+    state.civ.seasonIdx = (state.civ.seasonIdx + 1) % SEASONS.length;
+    const nextSeason = SEASONS[state.civ.seasonIdx];
+    state.civ.seasonTimer = nextSeason.duration;
+    showToast(nextSeason.icon, `Season Shift: ${nextSeason.name}!`, nextSeason.desc);
+    SoundFX.wonder();
+  }
+  const season = SEASONS[state.civ.seasonIdx] || SEASONS[0];
+
+  // 2. Physical Granary Stockpile & Famine Simulation
+  const granaryCap = 100 +
+    (state.buildings.megalith || 0) * 20 +
+    (state.buildings.aqueduct || 0) * 45 +
+    (state.buildings.watermill || 0) * 90 +
+    (state.buildings.arcology || 0) * 350;
+  state.civ.granaryCap = granaryCap;
+
+  const baseGrainSupply = 1.2 +
+    (state.buildings.forager || 0) * 0.45 +
+    (state.buildings.megalith || 0) * 1.6 +
+    (state.buildings.aqueduct || 0) * 4.2 +
+    (state.buildings.watermill || 0) * 8.5 +
+    (state.buildings.arcology || 0) * 28.0;
+  const farmerMult = (state.civ.jobs.farmers / 25) * season.farmMod;
+  const grainInflow = baseGrainSupply * farmerMult;
+
+  let grainConsumption = Math.max(0.6, (totBlds * 0.35) + (Math.log10(Math.max(1, getPopulation())) * 1.5));
+  if (state.civ.laws && state.civ.laws.rationing) {
+    grainConsumption *= 0.60; // -40% consumption from emergency rationing
+  }
+  if (season.id === "winter") {
+    grainConsumption *= 1.30; // +30% winter calorie demand
+  }
+
+  const netGrainRate = grainInflow - grainConsumption;
+  state.civ.grainNetRate = netGrainRate;
+  state.civ.granary = Math.max(0, Math.min(granaryCap, state.civ.granary + netGrainRate * dt));
+
+  if (state.civ.granary <= 0.05 && totBlds >= 3) {
+    state.civ.isFamine = true;
+    state.civ.food = Math.max(0, state.civ.food - 6.0 * dt);
+    state.civ.happiness = Math.max(0, state.civ.happiness - 4.5 * dt);
+    state.civ.stability = Math.max(0, state.civ.stability - 3.5 * dt);
+  } else {
+    state.civ.isFamine = false;
+    const foodTarget = Math.min(100, Math.max(20, 42 + (jobs.farmers - 15) * 2.1));
+    const foodDelta = (foodTarget - state.civ.food) * 0.10 * dt - (crisisCount * 0.35 * dt);
+    state.civ.food = Math.max(0, Math.min(100, state.civ.food + foodDelta));
+  }
+
+  // 3. Power Grid Balance & Brownouts
+  const baseGridPower = 25 +
+    (state.buildings.forager || 0) * 0.5 +
+    (state.buildings.quarry || 0) * 1.5 +
     (state.buildings.watermill || 0) * 4.0 +
-    (state.buildings.arcology || 0) * 6.0;
-  const foodTarget = Math.min(100, Math.max(15, 38 + (jobs.farmers - 15) * 2.1 + Math.min(25, agSupply * 0.8)));
-  const foodDelta = (foodTarget - state.civ.food) * 0.08 * dt - (crisisCount * 0.35 * dt);
-  state.civ.food = Math.max(0, Math.min(100, state.civ.food + foodDelta));
+    (state.buildings.steamworks || 0) * 16.0 +
+    (state.buildings.fission || 0) * 60.0 +
+    (state.buildings.quantum || 0) * 160.0 +
+    (state.buildings.dyson || 0) * 600.0;
+  const workerPowerMult = Math.max(0.4, state.civ.jobs.workers / 25);
+  const gridPower = baseGridPower * workerPowerMult;
+  state.civ.gridPower = gridPower;
 
-  // 2. Grid & Infrastructure Integrity
-  const utilSupply =
-    (state.buildings.steamworks || 0) * 2 +
-    (state.buildings.fission || 0) * 4 +
-    (state.buildings.quantum || 0) * 4;
-  const gridTarget = Math.min(100, Math.max(15, 42 + (jobs.workers - 15) * 2.0 + Math.min(22, utilSupply)));
-  const gridDelta = (gridTarget - state.civ.integrity) * 0.07 * dt - (crisisCount * 0.65 * dt);
-  state.civ.integrity = Math.max(0, Math.min(100, state.civ.integrity + gridDelta));
+  let gridDemand = 10 +
+    (state.buildings.foundry || 0) * 1.8 +
+    (state.buildings.workshop || 0) * 2.5 +
+    (state.buildings.steamworks || 0) * 5.0 +
+    (state.buildings.rail || 0) * 10.0 +
+    (state.buildings.fission || 0) * 12.0 +
+    (state.buildings.telecom || 0) * 22.0 +
+    (state.buildings.cyber || 0) * 40.0 +
+    (state.buildings.quantum || 0) * 65.0 +
+    (state.buildings.singularity || 0) * 110.0;
+  gridDemand *= season.powerDemandMod;
+  if (state.civ.laws && state.civ.laws.overtime) {
+    gridDemand *= 1.20; // +20% demand from overtime
+  }
+  state.civ.gridDemand = gridDemand;
 
-  // 3. Citizen Morale & Happiness (affected by Taxes, Scholars, Food & Festivals)
+  const gridLoad = gridDemand / Math.max(1, gridPower);
+  if (gridLoad > 1.05 && totBlds >= 4) {
+    state.civ.isBrownout = true;
+    state.civ.integrity = Math.max(0, state.civ.integrity - (gridLoad - 1.0) * 5.5 * dt);
+    state.civ.stability = Math.max(0, state.civ.stability - 2.0 * dt);
+  } else {
+    state.civ.isBrownout = false;
+    const gridTarget = Math.min(100, Math.max(20, 48 + (jobs.workers - 15) * 1.9));
+    const gridDelta = (gridTarget - state.civ.integrity) * 0.08 * dt - (crisisCount * 0.65 * dt);
+    state.civ.integrity = Math.max(0, Math.min(100, state.civ.integrity + gridDelta));
+  }
+
+  // 4. Citizen Morale & Happiness
   let taxDrift = 0;
   if (state.civ.taxRate === "low") taxDrift = +1.1;
   else if (state.civ.taxRate === "normal") taxDrift = +0.15;
   else if (state.civ.taxRate === "high") taxDrift = -0.95;
   else if (state.civ.taxRate === "brutal") taxDrift = -2.4;
 
-  const festivalBonus = Date.now() < boostExpiresAt ? 1.2 : 0;
+  let lawHappyDrift = 0;
+  if (state.civ.laws && state.civ.laws.rationing) lawHappyDrift -= 1.0;
+  if (state.civ.laws && state.civ.laws.curfew) lawHappyDrift -= 1.3;
+  if (season.id === "autumn") lawHappyDrift += 0.8; // Harvest festival morale bonus
+
+  const festivalBonus = Date.now() < boostExpiresAt ? 1.5 : 0;
   const happyTarget = Math.min(100, Math.max(10, 48 + (jobs.scholars - 15) * 1.8));
-  let happyRate = (happyTarget - state.civ.happiness) * 0.06 + taxDrift + festivalBonus - crisisCount * 0.55;
-  if (state.civ.food < 35) happyRate -= (35 - state.civ.food) * 0.05;
+  let happyRate = (happyTarget - state.civ.happiness) * 0.06 + taxDrift + lawHappyDrift + festivalBonus - (crisisCount * 0.6);
+  if (state.civ.food < 35) happyRate -= (35 - state.civ.food) * 0.06;
   state.civ.happiness = Math.max(0, Math.min(100, state.civ.happiness + happyRate * dt));
 
-  // 4. Civic Stability & Order (Protected by Watchmen; Drained by Famine, Low Morale, Brutal Taxes & Crises!)
-  let stabRate = (jobs.guards - 18) * 0.07;
-  if (state.civ.food >= 65 && state.civ.happiness >= 65 && crisisCount === 0) {
-    stabRate += 0.65;
+  // 5. Civic Stability & Order
+  let stabRate = (jobs.guards - 18) * 0.08;
+  if (state.civ.food >= 65 && state.civ.happiness >= 65 && crisisCount === 0 && !state.civ.isFamine && !state.civ.isBrownout) {
+    stabRate += 0.75;
   }
-  if (state.civ.food < 30) stabRate -= (30 - state.civ.food) * 0.075;
-  if (state.civ.happiness < 35) stabRate -= (35 - state.civ.happiness) * 0.07;
-  if (state.civ.integrity < 30) stabRate -= (30 - state.civ.integrity) * 0.05;
-  if (state.civ.taxRate === "brutal") stabRate -= 1.25;
-  else if (state.civ.taxRate === "high") stabRate -= 0.35;
+  if (state.civ.laws && state.civ.laws.overtime) stabRate -= 0.65;
+  if (state.civ.food < 30) stabRate -= (30 - state.civ.food) * 0.085;
+  if (state.civ.happiness < 35) stabRate -= (35 - state.civ.happiness) * 0.075;
+  if (state.civ.integrity < 30) stabRate -= (30 - state.civ.integrity) * 0.06;
+  if (state.civ.taxRate === "brutal") stabRate -= 1.35;
+  else if (state.civ.taxRate === "high") stabRate -= 0.38;
   else if (state.civ.taxRate === "low") stabRate += 0.65;
-  stabRate -= crisisCount * 0.85;
+  stabRate -= crisisCount * 0.95;
 
   state.civ.stability = Math.max(0, Math.min(100, state.civ.stability + stabRate * dt));
 
-  // Damage active crisis districts over time
+  // 6. Crisis Contagion & Damage over time
   activeCrisisIds.forEach((bId) => {
     const cr = state.civ.crises[bId];
     if (cr) {
+      cr.duration = (cr.duration || 0) + dt;
       cr.health = Math.max(5, (cr.health || 55) - 1.2 * dt);
+
+      // Contagion! If crisis is unchecked for > 25 seconds, it can spread to an uninfected neighbor!
+      if (cr.duration > 25 && Math.random() < 0.06 * dt && crisisCount < 4) {
+        const ownedUninfected = BUILDINGS.filter((b) => (state.buildings[b.id] || 0) > 0 && !state.civ.crises[b.id]);
+        if (ownedUninfected.length > 0) {
+          const spreadTarget = ownedUninfected[Math.floor(Math.random() * ownedUninfected.length)];
+          spawnDistrictCrisis(spreadTarget.id, `${cr.short} Outbreak`);
+          showToast("🔥", `Contagion Spreads!`, `Unchecked ${cr.label} spread to the ${spreadTarget.name} district!`);
+        }
+        cr.duration = 10;
+      }
     }
   });
 
-  // Periodic Crisis Spawner (higher risk if Integrity, Morale, or Watchmen are low)
+  // 7. Periodic Crisis Spawner (Factoring Season Risk & Curfew Ordinance)
   if (totBlds >= 4 && Date.now() >= nextCrisisCheckAt) {
-    const guardFactor = Math.max(0.05, 0.38 - (jobs.guards * 0.008) + (state.civ.taxRate === "brutal" ? 0.22 : 0));
-    if (crisisCount < 3 && Math.random() < guardFactor) {
+    let guardFactor = Math.max(0.05, 0.36 - (jobs.guards * 0.008) + (state.civ.taxRate === "brutal" ? 0.22 : 0));
+    guardFactor *= season.crisisRiskMod;
+    if (state.civ.laws && state.civ.laws.curfew) {
+      guardFactor *= 0.50; // Curfew cuts crisis chance in half!
+    }
+    if (crisisCount < 4 && Math.random() < guardFactor) {
       spawnDistrictCrisis();
     }
-    nextCrisisCheckAt = Date.now() + 24000 + Math.random() * 14000;
+    nextCrisisCheckAt = Date.now() + 20000 + Math.random() * 14000;
   }
 
-  // Check for Catastrophic Civilization Collapse!
+  // 8. Catastrophic Civilization Collapse Check
   if (state.civ.stability <= 0.2) {
     if (devImmortalMode) {
       state.civ.stability = 25;
     } else {
       let reason = "Severe civic instability and neglected urban crises";
-      if (state.civ.food < 20) reason = "Catastrophic Famine and water shortages";
-      else if (state.civ.taxRate === "brutal" || state.civ.happiness < 20) reason = "A city-wide Tax Revolt and citizen uprising";
-      else if (crisisCount >= 2) reason = "Uncontrolled fires and district disasters";
+      if (state.civ.isFamine || state.civ.food < 15) reason = "Catastrophic Famine and empty granary stockpiles";
+      else if (state.civ.isBrownout) reason = "Total Power Grid blackout and municipal collapse";
+      else if (state.civ.taxRate === "brutal" || state.civ.happiness < 15) reason = "A violent city-wide Tax Revolt and citizen uprising";
+      else if (crisisCount >= 2) reason = "Uncontrolled multi-district fires and contagions";
       triggerCivilizationCollapse(reason);
     }
   }
@@ -2708,6 +2999,23 @@ function setupStrategyControls() {
       updateTopHUD();
       renderBuildingsList();
       renderInfrastructureDistricts();
+    });
+  });
+
+  // Civic Ordinances & Strategic Laws
+  document.querySelectorAll(".law-btn").forEach((btn) => {
+    const lawKey = btn.getAttribute("data-law");
+    btn.classList.toggle("active", Boolean(state.civ.laws && state.civ.laws[lawKey]));
+    btn.addEventListener("click", () => {
+      ensureCivState();
+      state.civ.laws[lawKey] = !state.civ.laws[lawKey];
+      btn.classList.toggle("active", state.civ.laws[lawKey]);
+      SoundFX.research();
+      updateTopHUD();
+      renderBuildingsList();
+      renderInfrastructureDistricts();
+      const status = state.civ.laws[lawKey] ? "ENACTED" : "REPEALED";
+      showToast("📜", `Ordinance ${status}`, `${btn.textContent.trim()} is now ${status.toLowerCase()}.`);
     });
   });
 
@@ -5546,6 +5854,35 @@ function setupDevConsole() {
     SoundFX.wonder();
     refreshAllDevUI();
     showToast("💚", "Vitals Restored!", "All civic vitals at 100% and active crises cleared.");
+  });
+
+  document.getElementById("dev-cycle-season")?.addEventListener("click", () => {
+    ensureCivState();
+    state.civ.seasonIdx = (state.civ.seasonIdx + 1) % SEASONS.length;
+    state.civ.seasonTimer = SEASONS[state.civ.seasonIdx].duration;
+    SoundFX.wonder();
+    refreshAllDevUI();
+    showToast(SEASONS[state.civ.seasonIdx].icon, "Season Shifted!", `Now in ${SEASONS[state.civ.seasonIdx].name}`);
+  });
+
+  document.getElementById("dev-trigger-famine")?.addEventListener("click", () => {
+    ensureCivState();
+    state.civ.granary = 0;
+    state.civ.food = 8;
+    state.civ.isFamine = true;
+    SoundFX.click(0);
+    refreshAllDevUI();
+    showToast("🌾", "Dev Famine Triggered!", "Granary emptied, citizens starving! -60% output!");
+  });
+
+  document.getElementById("dev-trigger-brownout")?.addEventListener("click", () => {
+    ensureCivState();
+    state.civ.gridDemand = state.civ.gridPower * 1.6;
+    state.civ.isBrownout = true;
+    state.civ.integrity = 18;
+    SoundFX.click(0);
+    refreshAllDevUI();
+    showToast("⚡", "Dev Grid Brownout Triggered!", "Power load exceeded 160% capacity! -65% output!");
   });
 
   document.getElementById("dev-spawn-crisis")?.addEventListener("click", () => {

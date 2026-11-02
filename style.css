@@ -2354,6 +2354,180 @@ body.fullscreen-25d .city-panorama-frame {
   animation: pulseCrisis 0.7s infinite alternate;
 }
 
+/* Strategy Economy Bar (Seasons, Granary, Power Grid, Upkeep) */
+.strategy-economy-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.season-badge-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 105px;
+}
+
+.season-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s ease;
+}
+
+.season-badge[data-season="spring"] {
+  color: #a7f3d0;
+  border-color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+}
+
+.season-badge[data-season="summer"] {
+  color: #fde047;
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.18);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+}
+
+.season-badge[data-season="autumn"] {
+  color: #fed7aa;
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.18);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.25);
+}
+
+.season-badge[data-season="winter"] {
+  color: #bae6fd;
+  border-color: #38bdf8;
+  background: rgba(14, 165, 233, 0.22);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+.season-timer-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  padding-left: 2px;
+}
+
+.strat-res-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.69rem;
+  transition: all 0.2s ease;
+}
+
+.strat-res-pill.critical {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.22);
+  animation: pulseCrisis 0.8s infinite alternate;
+}
+
+.strat-res-pill.warning {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.strat-res-pill.good {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.strat-res-icon {
+  font-size: 0.88rem;
+}
+
+.strat-res-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.strat-res-label {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.strat-res-val {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--text-main);
+  font-size: 0.72rem;
+}
+
+.strat-res-rate {
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.strat-res-rate.positive {
+  color: #34d399;
+}
+
+.strat-res-rate.negative {
+  color: #f87171;
+}
+
+/* Civic Ordinances & Laws */
+.ordinance-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.law-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-muted);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.67rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.law-btn:hover {
+  color: var(--text-main);
+  border-color: var(--accent);
+}
+
+.law-btn.active {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.35), rgba(249, 115, 22, 0.35));
+  border-color: #facc15;
+  color: #fef08a;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.45);
+}
+
 /* Collapse Danger Warning Bar */
 .collapse-warning-bar {
   background: linear-gradient(90deg, rgba(185, 28, 28, 0.9), rgba(234, 88, 12, 0.9));

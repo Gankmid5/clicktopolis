@@ -146,8 +146,10 @@
             <button class="dev-btn danger" id="dev-force-collapse">🌋 Trigger Collapse Now</button>
             <button class="dev-btn" id="dev-add-shards-100">⏳ +100 Time Shards</button>
             <button class="dev-btn" id="dev-add-shards-10k">⏳ +10,000 Time Shards</button>
-            <button class="dev-btn" id="dev-spawn-anomaly">✨ Spawn Golden Anomaly</button>
             <button class="dev-btn" id="dev-cycle-time">🕒 Cycle Day / Dusk / Night / Dawn</button>
+            <button class="dev-btn accent" id="dev-cycle-season">🌦️ Cycle Season (Spring/Summer/Fall/Winter)</button>
+            <button class="dev-btn danger" id="dev-trigger-famine">🌾 Force Famine (Empty Granary)</button>
+            <button class="dev-btn danger" id="dev-trigger-brownout">⚡ Force Grid Brownout</button>
           </div>
         </div>
       </div>
@@ -271,7 +273,24 @@
       <div class="tab-content active" id="tab-city">
         <!-- CIVILIZATION VITALS & STRATEGY COMMAND BAR -->
         <div class="civ-strategy-deck" id="civ-strategy-deck">
-          <!-- Top Row: 4 Core Vitals + Collapse Risk Indicator -->
+          <!-- Top Row: Dynamic Historical Season & Physical Economy Stockpiles -->
+          <div class="strategy-economy-bar">
+            <div class="season-badge-wrap" title="Current Season Cycle (45s). Climate dynamically impacts farm yields, power loads, and survival!">
+              <span id="season-badge" class="season-badge">☀️ Summer Solstice</span>
+              <span id="season-timer-desc" class="season-desc">+15% Morale • +40% Power Load</span>
+            </div>
+            <div class="strat-res-pill" id="pill-granary" title="Granary Stockpile: Eaten by citizens every second. If empty, the city enters FAMINE!">
+              <span>🌾 Granary: <strong id="res-granary-val">500 / 1,000</strong> <small id="res-granary-rate">(+8/s)</small></span>
+            </div>
+            <div class="strat-res-pill" id="pill-grid" title="Grid Power Capacity: Supplied by Utilities & Engineers. If demand > supply = BROWNOUTS!">
+              <span>⚡ Power Grid: <strong id="res-grid-val">0 / 20 MW</strong></span>
+            </div>
+            <div class="strat-res-pill" id="pill-upkeep" title="Municipal Upkeep: CP maintenance cost of all operational city districts. Overexpansion causes Fiscal Deficit!">
+              <span>🪙 District Upkeep: <strong id="res-upkeep-val">-0 CP/s</strong></span>
+            </div>
+          </div>
+
+          <!-- Second Row: 4 Core Vitals + Collapse Risk Indicator -->
           <div class="vitals-row">
             <div class="vital-meter" title="Food & Water Supply — Fed by Agriculture/Waterworks & Farmers. Low food triggers Famine & CP drain!">
               <div class="vital-top">
@@ -306,7 +325,7 @@
             </div>
           </div>
 
-          <!-- Second Row: Interactive Workforce Castes + Tax Rate + Emergency Actions -->
+          <!-- Third Row: Interactive Workforce Castes + Tax Rate + Civic Laws + Emergency Decrees -->
           <div class="strategy-controls-row">
             <!-- Workforce Allocation -->
             <div class="workforce-box">
@@ -343,7 +362,7 @@
               </div>
             </div>
 
-            <!-- Taxation & Emergency Decrees -->
+            <!-- Taxation, Civic Laws & Emergency Decrees -->
             <div class="policy-box">
               <div class="tax-row">
                 <span class="wf-title">🪙 TAXATION:</span>
@@ -352,6 +371,16 @@
                 <button class="tax-btn" data-tax="high" title="1.35× CP/s, Drains Morale & Stability">High</button>
                 <button class="tax-btn danger" data-tax="brutal" title="1.75× CP/s, Rapidly drains Morale & Stability — High Collapse Risk!">Brutal</button>
               </div>
+
+              <!-- Civic Ordinances (Toggleable Laws with Strategic Trade-offs) -->
+              <div class="ordinance-row">
+                <span class="wf-title">📜 LAWS:</span>
+                <button class="law-btn" data-law="rationing" title="Rationing Act: -50% Food eaten by citizens, but -18% Citizen Morale">🌾 Rationing</button>
+                <button class="law-btn" data-law="overtime" title="Overtime Mandates: +30% Production & +25% Power, but -15% Morale & +20% Crisis Risk">⚡ Overtime</button>
+                <button class="law-btn" data-law="research" title="Research Subsidies: +45% Scholar Output & +35% Anomaly Spawns, but costs 12% CP/s">🎓 Subsidies</button>
+                <button class="law-btn" data-law="curfew" title="Curfew & Martial Law: +25% Stability & halts unrest, but -25% Click Power">🛡️ Curfew</button>
+              </div>
+
               <div class="decree-row">
                 <button id="btn-decree-ration" class="decree-btn" title="Emergency Grain Dole: Spend CP to restore +30% Food & +10% Morale">🍞 Ration Dole</button>
                 <button id="btn-decree-circus" class="decree-btn" title="Hold Bread & Circuses: Spend CP to restore +30% Morale & +15% Stability">🎪 Games</button>
