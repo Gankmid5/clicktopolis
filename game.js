@@ -1402,6 +1402,20 @@ function ensureCivState() {
 }
 
 // ============================================================================
+// VERCEL ANALYTICS & TELEMETRY INTEGRATION
+// ============================================================================
+function trackGameEvent(name, data = {}) {
+  try {
+    if (typeof window !== "undefined" && typeof window.va === "function") {
+      window.va("event", { name, ...data });
+    }
+  } catch (err) {
+    // Non-blocking telemetry
+    console.debug("[Analytics]", name, data, err);
+  }
+}
+
+// ============================================================================
 // NUMBER FORMATTING & HELPERS
 // ============================================================================
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
@@ -1801,6 +1815,7 @@ function checkEraProgression() {
     renderAchievements();
     showEraRevealBanner(ERAS[newEra]);
     SoundFX.eraAdvance();
+    trackGameEvent("era_advance", { era: ERAS[newEra].name });
   }
 }
 
@@ -2721,6 +2736,7 @@ function triggerCivilizationCollapse(reason = "Unchecked urban unrest, famine, a
   });
 
   state.civ.collapses = (state.civ.collapses || 0) + 1;
+  trackGameEvent("civilization_collapse", { collapses: String(state.civ.collapses) });
   state.civ.food = 68;
   state.civ.happiness = 65;
   state.civ.stability = 65;
@@ -3072,6 +3088,7 @@ function setupStrategyControls() {
   document.getElementById("btn-recover-collapse")?.addEventListener("click", () => {
     document.getElementById("collapse-modal")?.classList.add("hidden");
     SoundFX.buy();
+    trackGameEvent("collapse_recovered", { era: ERAS[state.currentEra].name });
   });
 
   // Fullscreen 2.5D City Toggles
@@ -3527,6 +3544,7 @@ function buyWonder(wId) {
   }
 
   showToast(w.icon, `World Wonder Erected: ${w.name}!`, w.effectText);
+  trackGameEvent("wonder_built", { wonder: w.name, era: ERAS[w.era].name });
   renderWonders();
   renderBuildingsList();
   renderInfrastructureDistricts();
@@ -3542,6 +3560,7 @@ function checkAchievements() {
       newlyUnlocked = true;
       showToast(ach.icon, `Achievement Unlocked: ${ach.name}`, `${ach.desc} (+1% Global CP/s)`);
       SoundFX.achievement();
+      trackGameEvent("achievement_unlocked", { achievement: ach.name });
     }
   });
   if (newlyUnlocked) {
@@ -6033,6 +6052,7 @@ function executePrestige() {
   checkAchievements();
   renderAchievements();
   updateTopHUD();
+  trackGameEvent("prestige_ascend", { shards: String(state.shards), prestiges: String(state.prestiges) });
   showToast("⏳", "Time Rift Ascended!", `You now possess ${state.shards} Time Shards (+${state.shards * 10}% permanent production).`);
 }
 
@@ -6048,6 +6068,7 @@ function init() {
   registerAchievements();
   loadGame();
   checkProximityReveals();
+  trackGameEvent("game_session_start", { era: ERAS[state.currentEra].name, prestiges: String(state.prestiges) });
 
   if (!state.cityName || !state.cityName.trim()) {
     openCityNameModal();
