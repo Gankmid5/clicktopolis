@@ -3668,17 +3668,23 @@ function handleMainClick(e) {
   if (isCrit) state.totalCrits = (state.totalCrits || 0) + 1;
 
   // Instant visual feedback on the button and the giant CP counter for uncapped-speed clicking
-  const btnEl = e.currentTarget;
-  btnEl.classList.add("clicked");
-  setTimeout(() => btnEl.classList.remove("clicked"), 45);
+  const btnEl = (e && e.currentTarget) || document.getElementById("main-clicker");
+  if (btnEl && btnEl.classList) {
+    btnEl.classList.add("clicked");
+    setTimeout(() => btnEl.classList.remove("clicked"), 45);
+  }
 
   const resEl = document.getElementById("res-amount");
-  resEl.textContent = formatNum(state.cp, state.cp < 100 ? 1 : 0);
-  resEl.classList.add("pop");
-  setTimeout(() => resEl.classList.remove("pop"), 60);
+  if (resEl) {
+    resEl.textContent = formatNum(state.cp, state.cp < 100 ? 1 : 0);
+    resEl.classList.add("pop");
+    setTimeout(() => resEl.classList.remove("pop"), 60);
+  }
 
-  const rect = btnEl.getBoundingClientRect();
-  const hasMouse = e.clientX > 0 || e.clientY > 0;
+  const rect = btnEl && typeof btnEl.getBoundingClientRect === "function" 
+    ? btnEl.getBoundingClientRect() 
+    : { left: 100, top: 100, width: 80, height: 80 };
+  const hasMouse = e && (e.clientX > 0 || e.clientY > 0);
   const x = hasMouse ? e.clientX : rect.left + rect.width / 2;
   const y = hasMouse ? e.clientY : rect.top + rect.height / 2;
   spawnFloatingText(x, y, isCrit ? `💥 CRIT! +${formatNum(gain)}` : `+${formatNum(gain)}`, isCrit);
@@ -5934,6 +5940,9 @@ function loadGame() {
     state.wonders = Array.isArray(parsed.wonders) ? parsed.wonders : [];
     state.revealedBuildings = Array.isArray(parsed.revealedBuildings) ? parsed.revealedBuildings : ["forager"];
     state.revealedUpgrades = Array.isArray(parsed.revealedUpgrades) ? parsed.revealedUpgrades : [];
+    state.upgrades = Array.isArray(parsed.upgrades) ? parsed.upgrades : [];
+    state.achievements = Array.isArray(parsed.achievements) ? parsed.achievements : [];
+    ensureCivState();
 
     const elapsedSec = Math.max(0, (Date.now() - (state.lastSavedAt || Date.now())) / 1000);
     if (elapsedSec > 10) {
@@ -5952,15 +5961,48 @@ function loadGame() {
   }
 }
 
-function triggerPrestige() {
+function openPrestigeModal() {
+  const pending = getPendingShards();
+  const currentShards = state.shards || 0;
+  
+  const curShardsEl = document.getElementById("prestige-current-shards");
+  const curMultEl = document.getElementById("prestige-current-mult");
+  const pendShardsEl = document.getElementById("prestige-pending-shards");
+  const pendMultEl = document.getElementById("prestige-pending-mult");
+  const confirmBtn = document.getElementById("btn-confirm-prestige");
+
+  if (curShardsEl) curShardsEl.textContent = formatNum(currentShards);
+  if (curMultEl) curMultEl.textContent = `+${currentShards * 10}% Permanent Boost`;
+  
+  if (pendShardsEl) pendShardsEl.textContent = `+${formatNum(pending)}`;
+  if (pendMultEl) pendMultEl.textContent = `+${pending * 10}% Extra Boost`;
+
+  if (confirmBtn) {
+    if (pending <= 0) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = "⏳ Insufficient CP (Need 2.5M All-Time)";
+    } else {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = `🌌 Transmute Realm (+${formatNum(pending)} Shards)`;
+    }
+  }
+
+  document.getElementById("prestige-modal")?.classList.remove("hidden");
+}
+
+function closePrestigeModal() {
+  document.getElementById("prestige-modal")?.classList.add("hidden");
+}
+
+function executePrestige() {
   const pending = getPendingShards();
   if (pending <= 0) {
     showToast("⏳", "Not Enough Timeline Energy", "Reach at least 2,500,000 all-time CP to crystallize your first Time Shard.");
+    closePrestigeModal();
     return;
   }
-  if (!confirm(`Open a Time Rift and reset ${getCityDisplayName()} to the Stone Age in exchange for +${pending} Time Shards?\n\nEach Time Shard grants a permanent +10% CP/s boost, and you keep all unlocked Achievements!`)) {
-    return;
-  }
+
+  closePrestigeModal();
 
   const nextState = createDefaultState();
   nextState.cityName = state.cityName;
@@ -5975,7 +6017,12 @@ function triggerPrestige() {
   nextState.shards = state.shards + pending;
   nextState.prestiges = state.prestiges + 1;
 
+  // Clear active timers & boosts
+  boostMultiplier = 1;
+  boostExpiresAt = 0;
+
   state = nextState;
+  ensureCivState();
   saveGame();
   SoundFX.eraAdvance();
   applyEraTheme();
@@ -5987,6 +6034,10 @@ function triggerPrestige() {
   renderAchievements();
   updateTopHUD();
   showToast("⏳", "Time Rift Ascended!", `You now possess ${state.shards} Time Shards (+${state.shards * 10}% permanent production).`);
+}
+
+function triggerPrestige() {
+  openPrestigeModal();
 }
 
 // ============================================================================
@@ -6195,10 +6246,11 @@ function init() {
       state.revealedBuildings = Array.isArray(decoded.revealedBuildings) ? decoded.revealedBuildings : ["forager"];
       state.revealedUpgrades = Array.isArray(decoded.revealedUpgrades) ? decoded.revealedUpgrades : [];
       state.revealedWonders = Array.isArray(decoded.revealedWonders) ? decoded.revealedWonders : [];
+      ensureCivState();
       document.querySelectorAll(".doctrine-btn").forEach((btn) => {
         btn.classList.toggle("active", btn.getAttribute("data-doctrine") === state.doctrine);
       });
-      soundBtn.textContent = state.sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
+      syncSoundUI();
       saveGame(false);
       checkProximityReveals();
       applyEraTheme();
@@ -6217,6 +6269,13 @@ function init() {
 
   document.getElementById("btn-save").addEventListener("click", () => saveGame(true));
   document.getElementById("btn-prestige").addEventListener("click", triggerPrestige);
+  document.getElementById("btn-menu-prestige")?.addEventListener("click", () => {
+    gameMenuModal?.classList.add("hidden");
+    openPrestigeModal();
+  });
+  document.getElementById("btn-close-prestige-modal")?.addEventListener("click", closePrestigeModal);
+  document.getElementById("btn-cancel-prestige")?.addEventListener("click", closePrestigeModal);
+  document.getElementById("btn-confirm-prestige")?.addEventListener("click", executePrestige);
   document.getElementById("btn-reset").addEventListener("click", () => {
     if (confirm("Are you sure you want to completely wipe your save and found a new settlement?")) {
       localStorage.removeItem(SAVE_KEY);

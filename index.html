@@ -58,6 +58,50 @@
     </div>
   </div>
 
+  <!-- Epic Ascension / Time Rift Chamber Modal -->
+  <div id="prestige-modal" class="modal-backdrop hidden">
+    <div class="modal-card prestige-modal-card">
+      <div class="prestige-modal-header">
+        <div class="prestige-vortex-icon">🌌</div>
+        <div>
+          <div class="prestige-modal-eyebrow">CHRONO-SPATIAL ANOMALY</div>
+          <h2 class="prestige-modal-title">ASCEND THE TIMELINE</h2>
+        </div>
+        <button id="btn-close-prestige-modal" class="mini-btn">✕</button>
+      </div>
+      <div class="prestige-modal-body">
+        <p class="prestige-lore-text">Tear open a rift in the fabric of history. Reset your empire back to the Stone Age, transmuting all your historical accomplishments into permanent <span class="gold-glow-text">Time Shards</span>.</p>
+        
+        <div class="prestige-stats-grid">
+          <div class="prestige-stat-card">
+            <span class="p-stat-label">Current Shards</span>
+            <strong id="prestige-current-shards" class="p-stat-val">0</strong>
+            <span id="prestige-current-mult" class="p-stat-sub">+0% Permanent Boost</span>
+          </div>
+          <div class="prestige-stat-arrow">➔</div>
+          <div class="prestige-stat-card highlight">
+            <span class="p-stat-label">Pending Crystallization</span>
+            <strong id="prestige-pending-shards" class="p-stat-val gold">+0</strong>
+            <span id="prestige-pending-mult" class="p-stat-sub gold">+0% Extra Boost</span>
+          </div>
+        </div>
+
+        <div class="prestige-preservation-box">
+          <div class="p-box-title">🛡️ PRESERVED ACROSS RIFTS:</div>
+          <ul class="p-perks-list">
+            <li>✨ All unlocked <strong>Achievements</strong> &amp; Trophy Multipliers</li>
+            <li>💎 All accumulated <strong>Time Shards</strong> (+10% permanent CP/s each)</li>
+            <li>🏛️ Historical statistics, All-Time CP, and Realm Renown</li>
+          </ul>
+        </div>
+      </div>
+      <div class="prestige-modal-actions">
+        <button id="btn-cancel-prestige" class="action-btn">Abort Rift</button>
+        <button id="btn-confirm-prestige" class="action-btn prestige-confirm-btn">🌌 Transmute Realm &amp; Ascend</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Import/Export Modal -->
   <div id="save-modal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -153,6 +197,7 @@
             <button class="dev-btn accent" id="dev-cycle-season">🌦️ Cycle Season (Spring/Summer/Fall/Winter)</button>
             <button class="dev-btn danger" id="dev-trigger-famine">🌾 Force Famine (Empty Granary)</button>
             <button class="dev-btn danger" id="dev-trigger-brownout">⚡ Force Grid Brownout</button>
+            <button class="dev-btn accent" id="dev-spawn-anomaly">🌠 Spawn Golden Anomaly</button>
           </div>
         </div>
       </div>
@@ -198,6 +243,14 @@
           <div class="menu-btn-text">
             <strong id="menu-sound-label">Audio Effects</strong>
             <small id="menu-sound-sub">Synthesized audio: ON</small>
+          </div>
+        </button>
+
+        <button id="btn-menu-prestige" class="game-menu-btn" title="Open Time Rift and Ascend">
+          <span class="menu-btn-icon">🌌</span>
+          <div class="menu-btn-text">
+            <strong>Ascend Timeline</strong>
+            <small>Transmute empire for Time Shards</small>
           </div>
         </button>
 
