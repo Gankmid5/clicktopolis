@@ -3886,6 +3886,17 @@ const skyCraft = {
 const cityFireworks = [];
 const shootingStars = [];
 
+const seasonalWeatherParticles = Array.from({ length: 55 }, () => ({
+  x: Math.random() * 1600,
+  y: Math.random() * 450,
+  vx: (Math.random() - 0.5) * 1.2,
+  vy: 0.6 + Math.random() * 1.1,
+  size: 2.5 + Math.random() * 3.5,
+  rot: Math.random() * Math.PI * 2,
+  vRot: (Math.random() - 0.5) * 0.08,
+  phase: Math.random() * Math.PI * 2
+}));
+
 const rainDrops = Array.from({ length: 65 }, () => ({
   xRatio: Math.random(),
   y: Math.random() * 230,
@@ -4860,6 +4871,42 @@ function drawCityCanvas() {
   ctx.arc(orbX, orbY, 34, 0, Math.PI * 2);
   ctx.fill();
 
+  // Volumetric Atmospheric God-Rays & Moonbeams across the Horizon
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  const numRays = isNight ? 4 : 6;
+  for (let r = 0; r < numRays; r++) {
+    const rayAngle = 0.45 + (r / (numRays - 1)) * 0.95 + Math.sin(animTick * 0.4 + r) * 0.04;
+    const rayLength = h * 1.6;
+    const rx1 = orbX - Math.cos(rayAngle - 0.045) * rayLength;
+    const ry1 = orbY + Math.sin(rayAngle - 0.045) * rayLength;
+    const rx2 = orbX - Math.cos(rayAngle + 0.045) * rayLength;
+    const ry2 = orbY + Math.sin(rayAngle + 0.045) * rayLength;
+
+    const rGrad = ctx.createLinearGradient(orbX, orbY, (rx1 + rx2) / 2, (ry1 + ry2) / 2);
+    if (isNight) {
+      rGrad.addColorStop(0, era === 8 ? "rgba(168, 85, 247, 0.26)" : "rgba(186, 230, 253, 0.20)");
+      rGrad.addColorStop(0.4, era === 8 ? "rgba(168, 85, 247, 0.08)" : "rgba(186, 230, 253, 0.06)");
+      rGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    } else if (isDuskOrDawn) {
+      rGrad.addColorStop(0, "rgba(251, 146, 60, 0.30)");
+      rGrad.addColorStop(0.45, "rgba(244, 63, 94, 0.10)");
+      rGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    } else {
+      rGrad.addColorStop(0, era === 8 ? "rgba(244, 63, 94, 0.26)" : "rgba(254, 240, 138, 0.26)");
+      rGrad.addColorStop(0.45, era === 8 ? "rgba(244, 63, 94, 0.08)" : "rgba(253, 224, 71, 0.08)");
+      rGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    }
+    ctx.fillStyle = rGrad;
+    ctx.beginPath();
+    ctx.moveTo(orbX, orbY);
+    ctx.lineTo(rx1, ry1);
+    ctx.lineTo(rx2, ry2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
   // Daytime Rainbow Arc or Nighttime Aurora Borealis
   if (!isNight && era <= 6) {
     const rbColors = [
@@ -5187,6 +5234,47 @@ function drawCityCanvas() {
       : zCol.accent;
     const lineW = isSelected || isHovered || crisis ? 2.5 : 1.3;
 
+    // Atmospheric Night-time District Radial Ground Light
+    if (nightFactor > 0.15 && count > 0) {
+      const glowRad = 62;
+      const nightGlow = ctx.createRadialGradient(cx, cy, 6, cx, cy, glowRad);
+      nightGlow.addColorStop(0, era >= 7 ? "rgba(6, 182, 212, 0.32)" : "rgba(253, 224, 71, 0.28)");
+      nightGlow.addColorStop(0.55, era >= 7 ? "rgba(168, 85, 247, 0.10)" : "rgba(245, 158, 11, 0.08)");
+      nightGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = nightGlow;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 4, glowRad, glowRad * 0.46, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Holographic Tactical Beacon Ring & Light Column on Hover/Selection
+    if (isSelected || isHovered) {
+      ctx.save();
+      ctx.lineWidth = isSelected ? 2.5 : 1.8;
+      ctx.strokeStyle = isSelected ? "#f59e0b" : "#38bdf8";
+      ctx.shadowColor = isSelected ? "#f59e0b" : "#38bdf8";
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + plinthDepth + 3, rx + 14, ry + 7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const bAng = animTick * 1.8;
+      for (let m = 0; m < 4; m++) {
+        const ang = bAng + (m * Math.PI) / 2;
+        const mx = cx + Math.cos(ang) * (rx + 14);
+        const my = cy + plinthDepth + 3 + Math.sin(ang) * (ry + 7);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(mx - 2, my - 2, 4, 4);
+      }
+
+      const colGrad = ctx.createLinearGradient(0, cy - 70, 0, cy + plinthDepth);
+      colGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+      colGrad.addColorStop(1, isSelected ? "rgba(245, 158, 11, 0.18)" : "rgba(56, 189, 248, 0.15)");
+      ctx.fillStyle = colGrad;
+      ctx.fillRect(cx - rx - 8, cy - 70, (rx + 8) * 2, 70 + plinthDepth);
+      ctx.restore();
+    }
+
     drawIsoPlinth(
       ctx,
       cx,
@@ -5286,6 +5374,31 @@ function drawCityCanvas() {
     ctx.textBaseline = "middle";
     ctx.fillText(labelTxt, cx, badgeY + 8.5);
     ctx.restore();
+
+    // Tactical RTS Hover Tooltip
+    if (isHovered && !crisis) {
+      const bCps = getBuildingCps(b, count);
+      const hoverTipTxt = `${b.name.toUpperCase()} • LVL ${count} (+${formatNum(bCps, 1)}/s)`;
+      ctx.save();
+      ctx.font = "bold 11px 'Rajdhani', sans-serif";
+      const tipW = ctx.measureText(hoverTipTxt).width + 16;
+      const tipH = 20;
+      const tipY = cy - 48;
+      ctx.fillStyle = "rgba(10, 8, 7, 0.94)";
+      ctx.strokeStyle = "#fde047";
+      ctx.lineWidth = 1.4;
+      ctx.shadowColor = "rgba(245, 158, 11, 0.6)";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.roundRect(cx - tipW / 2, tipY - tipH / 2, tipW, tipH, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#fef08a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(hoverTipTxt, cx, tipY + 1);
+      ctx.restore();
+    }
   });
 
   // 6. Celebratory Fireworks (at Dusk/Night or during an active Festival!)
@@ -5309,6 +5422,65 @@ function drawCityCanvas() {
     ctx.fillRect(fw.x, fw.y, 2.5, 2.5);
     ctx.globalAlpha = 1;
   }
+
+  // 6b. DYNAMIC SEASONAL WEATHER PARTICLES (Sakura, Fireflies, Autumn Leaves, Snow)
+  const currentSeason = SEASONS[state.civ?.seasonIdx || 0] || SEASONS[0];
+  const sKind = currentSeason.id;
+
+  seasonalWeatherParticles.forEach((sp) => {
+    sp.rot += sp.vRot;
+    if (sKind === "winter") {
+      sp.x += sp.vx + Math.sin(animTick + sp.phase) * 0.6;
+      sp.y += sp.vy;
+      if (sp.y > h + 10) { sp.y = -10; sp.x = Math.random() * w; }
+      if (sp.x > w + 10) sp.x = -10;
+      if (sp.x < -10) sp.x = w + 10;
+      ctx.fillStyle = "rgba(248, 250, 252, 0.85)";
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, Math.max(1, sp.size * 0.55), 0, Math.PI * 2);
+      ctx.fill();
+    } else if (sKind === "spring") {
+      sp.x += sp.vx + 0.8 + Math.cos(animTick * 1.5 + sp.phase) * 0.8;
+      sp.y += sp.vy * 0.75 + Math.sin(animTick + sp.phase) * 0.3;
+      if (sp.y > h + 10) { sp.y = -10; sp.x = Math.random() * w; }
+      if (sp.x > w + 10) sp.x = -10;
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+      ctx.rotate(sp.rot);
+      ctx.fillStyle = sp.phase > 3 ? "rgba(244, 114, 182, 0.82)" : "rgba(251, 207, 232, 0.88)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, sp.size, sp.size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (sKind === "autumn") {
+      sp.x += sp.vx + 1.1 + Math.sin(animTick * 2 + sp.phase) * 0.6;
+      sp.y += sp.vy * 0.9;
+      if (sp.y > h + 10) { sp.y = -10; sp.x = Math.random() * w; }
+      if (sp.x > w + 10) sp.x = -10;
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+      ctx.rotate(sp.rot);
+      ctx.fillStyle = sp.phase > 4 ? "#ef4444" : sp.phase > 2 ? "#f59e0b" : "#d97706";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, sp.size * 1.1, sp.size * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      sp.x += Math.sin(animTick * 1.2 + sp.phase) * 0.8;
+      sp.y += Math.cos(animTick * 1.2 + sp.phase) * 0.5;
+      if (sp.y > h) sp.y = horizonY + 20;
+      if (sp.y < horizonY) sp.y = h - 20;
+      const pulse = 0.4 + 0.6 * Math.sin(animTick * 3 + sp.phase);
+      const ffGrad = ctx.createRadialGradient(sp.x, sp.y, 1, sp.x, sp.y, 8);
+      ffGrad.addColorStop(0, `rgba(250, 204, 21, ${pulse.toFixed(2)})`);
+      ffGrad.addColorStop(0.5, `rgba(163, 230, 53, ${(pulse * 0.4).toFixed(2)})`);
+      ffGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = ffGrad;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
 
   // 7. VOICES OF THE CITIZENS: Interactive Floating Speech Bubbles!
   drawAndUpdateCitizenSpeechBubble(ctx, w, horizonY + 55);
