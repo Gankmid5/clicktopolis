@@ -5581,8 +5581,7 @@ function refreshAllDevUI() {
 
 function unlockDevConsole(openModal = true) {
   state.devUnlocked = true;
-  const devBtn = document.getElementById("btn-dev-console");
-  if (devBtn) devBtn.classList.remove("hidden");
+  document.querySelectorAll("#btn-dev-console, .dev-menu-btn").forEach((btn) => btn.classList.remove("hidden"));
   SoundFX.wonder();
   showToast("🛠️", "Architect Dev Access Unlocked!", "Full timeline manipulation enabled via metropolisclicktopolisapocalypse.");
   if (openModal) {
@@ -5593,19 +5592,20 @@ function unlockDevConsole(openModal = true) {
 }
 
 function setupDevConsole() {
-  const devBtn = document.getElementById("btn-dev-console");
+  const devBtns = document.querySelectorAll("#btn-dev-console, .dev-menu-btn");
   const devModal = document.getElementById("dev-modal");
   const closeDevBtn = document.getElementById("btn-close-dev");
 
-  if (state.devUnlocked && devBtn) {
-    devBtn.classList.remove("hidden");
+  if (state.devUnlocked) {
+    devBtns.forEach((btn) => btn.classList.remove("hidden"));
   }
 
-  if (devBtn && devModal) {
-    devBtn.addEventListener("click", () => {
-      devModal.classList.remove("hidden");
+  devBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("game-menu-modal")?.classList.add("hidden");
+      devModal?.classList.remove("hidden");
     });
-  }
+  });
   if (closeDevBtn && devModal) {
     closeDevBtn.addEventListener("click", () => {
       devModal.classList.add("hidden");
@@ -6024,10 +6024,42 @@ function init() {
   });
 
   const soundBtn = document.getElementById("btn-sound");
-  soundBtn.textContent = state.sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
-  soundBtn.addEventListener("click", () => {
+  const syncSoundUI = () => {
+    if (soundBtn) soundBtn.textContent = state.sfxEnabled ? "🔊 SFX" : "🔇 OFF";
+    const menuSoundLabel = document.getElementById("menu-sound-label");
+    const menuSoundSub = document.getElementById("menu-sound-sub");
+    const menuSoundIcon = document.getElementById("menu-sound-icon");
+    if (menuSoundLabel) menuSoundLabel.textContent = state.sfxEnabled ? "Audio Effects: ON" : "Audio Effects: MUTED";
+    if (menuSoundSub) menuSoundSub.textContent = state.sfxEnabled ? "Synthesized game audio: ACTIVE" : "Click to unmute sound effects";
+    if (menuSoundIcon) menuSoundIcon.textContent = state.sfxEnabled ? "🔊" : "🔇";
+  };
+  syncSoundUI();
+
+  soundBtn?.addEventListener("click", () => {
     state.sfxEnabled = !state.sfxEnabled;
-    soundBtn.textContent = state.sfxEnabled ? "🔊 SFX: ON" : "🔇 SFX: OFF";
+    syncSoundUI();
+    if (state.sfxEnabled) SoundFX.achievement();
+    saveGame(false);
+  });
+
+  // Game Menu Modal Controls
+  const gameMenuModal = document.getElementById("game-menu-modal");
+  document.getElementById("btn-game-menu")?.addEventListener("click", () => {
+    syncSoundUI();
+    gameMenuModal?.classList.remove("hidden");
+    SoundFX.click(0);
+  });
+  document.getElementById("btn-close-game-menu")?.addEventListener("click", () => {
+    gameMenuModal?.classList.add("hidden");
+    SoundFX.click(0);
+  });
+  document.getElementById("btn-menu-rename")?.addEventListener("click", () => {
+    gameMenuModal?.classList.add("hidden");
+    openCityNameModal();
+  });
+  document.getElementById("btn-sound-menu")?.addEventListener("click", () => {
+    state.sfxEnabled = !state.sfxEnabled;
+    syncSoundUI();
     if (state.sfxEnabled) SoundFX.achievement();
     saveGame(false);
   });

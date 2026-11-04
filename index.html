@@ -10,6 +10,9 @@
   <meta property="og:description" content="Guide your settlement from a Stone Age campfire to a Cosmic Singularity metropolis across 9 eras, 36 animated districts, 155 civic upgrades, and 9 World Wonders.">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-era="0">
@@ -156,11 +159,76 @@
     </div>
   </div>
 
+  <!-- Video Game Pause & Options Menu Modal -->
+  <div id="game-menu-modal" class="modal-backdrop hidden">
+    <div class="modal-card game-menu-card">
+      <div class="game-menu-header">
+        <div class="game-menu-crest">⚙️</div>
+        <h2>IMPERIAL OPTIONS &amp; ARCHIVES</h2>
+        <p class="modal-sub">Civilization management, timeline archives, and game audio</p>
+      </div>
+
+      <div class="game-menu-grid">
+        <button id="btn-save" class="game-menu-btn" title="Save timeline state">
+          <span class="menu-btn-icon">💾</span>
+          <div class="menu-btn-text">
+            <strong>Save Empire</strong>
+            <small>Record state to local timeline</small>
+          </div>
+        </button>
+
+        <button id="btn-export" class="game-menu-btn" title="Backup or restore save code">
+          <span class="menu-btn-icon">🔮</span>
+          <div class="menu-btn-text">
+            <strong>Timeline Crystal</strong>
+            <small>Export / Import backup string</small>
+          </div>
+        </button>
+
+        <button id="btn-menu-rename" class="game-menu-btn" title="Change your settlement name">
+          <span class="menu-btn-icon">🏛️</span>
+          <div class="menu-btn-text">
+            <strong>Rename Settlement</strong>
+            <small>Change your civilization title</small>
+          </div>
+        </button>
+
+        <button id="btn-sound-menu" class="game-menu-btn" title="Toggle sound effects">
+          <span class="menu-btn-icon" id="menu-sound-icon">🔊</span>
+          <div class="menu-btn-text">
+            <strong id="menu-sound-label">Audio Effects</strong>
+            <small id="menu-sound-sub">Synthesized audio: ON</small>
+          </div>
+        </button>
+
+        <button id="btn-dev-console" class="game-menu-btn dev-menu-btn hidden" title="Architect Dev Access">
+          <span class="menu-btn-icon">🛠️</span>
+          <div class="menu-btn-text">
+            <strong>Architect Console</strong>
+            <small>God-mode manipulation</small>
+          </div>
+        </button>
+
+        <button id="btn-reset" class="game-menu-btn danger" title="Erase save and start over">
+          <span class="menu-btn-icon">🌋</span>
+          <div class="menu-btn-text">
+            <strong>Wipe Civilization</strong>
+            <small>Reset timeline to Stone Age</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="game-menu-footer">
+        <button id="btn-close-game-menu" class="action-btn confirm-name-btn">⚔️ Return to Empire</button>
+      </div>
+    </div>
+  </div>
+
   <header class="top-bar">
     <div class="brand">
       <span id="era-badge" class="era-badge">STONE AGE</span>
       <div class="brand-titles">
-        <h1>Clicktopolis <span class="sim-tag">2.5D STRATEGY</span></h1>
+        <h1 class="game-title">CLICKTOPOLIS <span class="game-tag">CHRONICLES</span></h1>
       </div>
     </div>
 
@@ -175,15 +243,12 @@
     </div>
 
     <div class="top-actions">
-      <button id="btn-dev-console" class="action-btn dev-top-btn hidden" title="Open Architect God-Mode Console">🛠️ DEV</button>
-      <button id="btn-fullscreen-top" class="action-btn accent-top-btn" title="Toggle Full-Screen 2.5D Interactive City View">⛶ 2.5D Fullscreen</button>
-      <button id="btn-sound" class="action-btn" title="Toggle synthesized sound effects">🔊 SFX: ON</button>
-      <button id="btn-prestige" class="action-btn prestige-btn" title="Reset timeline for permanent Time Shards (+10% production each)">
+      <button id="btn-fullscreen-top" class="game-hud-btn" title="Toggle Full-Screen 2.5D City View">⛶ Fullscreen</button>
+      <button id="btn-sound" class="game-hud-btn sound-hud-btn" title="Toggle Audio Effects">🔊 SFX</button>
+      <button id="btn-prestige" class="game-hud-btn prestige-hud-btn" title="Ascend into Time Rift for permanent +10% shards">
         ⏳ Time Rift (<span id="pending-shards">+0</span>)
       </button>
-      <button id="btn-save" class="action-btn">💾 Save</button>
-      <button id="btn-export" class="action-btn" title="Export or Import Save String">📤 Data</button>
-      <button id="btn-reset" class="action-btn danger-btn" title="Wipe Save">🗑️</button>
+      <button id="btn-game-menu" class="game-hud-btn menu-hud-btn" title="Open Game Menu, Save, &amp; Options">⚙️ Menu</button>
     </div>
   </header>
 
@@ -197,15 +262,15 @@
       <div class="cp-hero-box" id="cp-hero-box">
         <div class="cp-number-wrap">
           <span id="res-amount" class="cp-giant-number">0</span>
-          <span class="cp-label-main">CIVILIZATION POINTS</span>
+          <span class="cp-label-main">IMPERIAL TREASURY</span>
         </div>
         <div class="cp-rate-banner" id="cp-rate-banner">
-          net rate: <strong id="res-cps">+0.0 /s</strong>
+          <span class="rate-label">Empire Yield:</span> <strong id="res-cps">+0.0 /s</strong>
         </div>
         <div class="sub-counters">
-          <div class="stat-pill">🔨 <span id="res-cpc">1</span> / click</div>
-          <div class="stat-pill">👥 Pop: <span id="res-pop">1</span></div>
-          <div class="stat-pill shard-pill" id="shard-pill" title="Permanent +10% CP/s per Time Shard">💎 <span id="res-shards">0</span></div>
+          <div class="stat-pill"><span class="stat-pill-icon">🔨</span> <span id="res-cpc">1</span> <small>/click</small></div>
+          <div class="stat-pill"><span class="stat-pill-icon">👥</span> Pop: <strong id="res-pop">1</strong></div>
+          <div class="stat-pill shard-pill" id="shard-pill" title="Permanent +10% CP/s per Time Shard"><span class="stat-pill-icon">💎</span> <strong id="res-shards">0</strong> Shards</div>
         </div>
 
         <!-- Active Frenzy / Buff Banner -->
@@ -263,10 +328,10 @@
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" data-tab="city">🗺️ 2.5D City &amp; Strategy <span id="bld-total-badge" class="badge">0</span></button>
-        <button class="tab-btn" data-tab="wonders">🏛️ Landmarks <span id="wonder-badge" class="badge">0/?</span></button>
+        <button class="tab-btn active" data-tab="city">🗺️ Realm &amp; Strategy <span id="bld-total-badge" class="badge">0</span></button>
+        <button class="tab-btn" data-tab="wonders">🏛️ World Wonders <span id="wonder-badge" class="badge">0/?</span></button>
         <button class="tab-btn" data-tab="achievements">🏆 Achievements <span id="ach-badge" class="badge">0/0</span></button>
-        <button class="tab-btn" data-tab="stats">📊 City Archives</button>
+        <button class="tab-btn" data-tab="stats">📜 Imperial Archives</button>
       </div>
 
       <!-- TAB 1 (DEFAULT): FULL-STAGE 2.5D INTERACTIVE CITY & CIVILIZATION STRATEGY -->
@@ -513,18 +578,18 @@
       <!-- Top Upgrades Tray -->
       <div class="store-upgrades-section">
         <div class="store-subheader">
-          <span>📜 Civic Upgrades (<span id="upgrade-badge">0</span>)</span>
+          <span>🔮 Ancient Relics &amp; Tech (<span id="upgrade-badge">0</span>)</span>
           <button id="btn-buy-all-upgrades" class="mini-btn">Buy All</button>
         </div>
         <div id="upgrades-tray" class="upgrades-tray"></div>
         <div id="upgrade-inspector" class="upgrade-inspector">
-          Hover over a civic upgrade tile above to inspect its effect and cost.
+          Hover over an ancient relic tile above to inspect its divine power and cost.
         </div>
       </div>
 
       <!-- Bottom Buildings Store -->
       <div class="store-header">
-        <h2>🏗️ Build Infrastructure</h2>
+        <h2>🏰 Expand Metropolis</h2>
         <div class="buy-mode-group" role="group" aria-label="Buy multiplier">
           <button class="buy-mode-btn active" data-qty="1">1x</button>
           <button class="buy-mode-btn" data-qty="10">10x</button>
